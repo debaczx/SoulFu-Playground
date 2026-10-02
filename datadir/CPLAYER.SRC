@@ -1121,7 +1121,7 @@ int Spawn()
     self.item01 = ITEM_FOOD
   if(self.class == CLASS_DWARF)
     self.eqleft = ITEM_SHIELD
-    self.eqright = ITEM_PICK_AXE
+    self.eqright = ITEM_PICK_AXE|WEAPON_VARIANT_MAGIC
     self.eqbody = ITEM_BODY_2
     self.item01 = ITEM_MEAT
   if(self.class == CLASS_HUBBIN)
