@@ -3413,7 +3413,10 @@ void fast_run_script(unsigned char *file_start, unsigned int fast_function, unsi
     {
         if(looking_for_fast_function) {fast_function_found = TRUE;}
         looking_for_fast_function = FALSE;
+        if(xitem_script_depth == 0) xitem_carry_count = 0;  // Fresh item carry memory for each engine->script call
+        xitem_script_depth++;
         run_script(file_start+fast_run_offset, file_start, 0, NULL, 0, NULL);
+        xitem_script_depth--;
         if(current_object_data != object_data)
         {
             sprintf(DEBUG_STRING, "CURRENT_OBJECT WAS CORRUPTED!!!");
@@ -3434,7 +3437,10 @@ void fast_run_script(unsigned char *file_start, unsigned int fast_function, unsi
     {
         if(looking_for_fast_function) {fast_function_found = TRUE;}
         looking_for_fast_function = FALSE;
+        if(xitem_script_depth == 0) xitem_carry_count = 0;  // Fresh item carry memory for each engine->script call
+        xitem_script_depth++;
         run_script(file_start+fast_run_offset, file_start, 0, NULL, 0, NULL);
+        xitem_script_depth--;
     }
 }
 #endif

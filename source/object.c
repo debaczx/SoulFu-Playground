@@ -32,10 +32,22 @@
 #define PARTICLE 1          //
 #define WINDOW 2            //
 
-#define CHARACTER_SIZE 616  // The number of bytes for a character's data
+#define CHARACTER_SIZE 672  // The number of bytes for a character's data (616 original + item extension block)
 #define PARTICLE_SIZE 88    // The number of bytes for a particle's data
 #define MAX_WINDOW 16       // The maximum number of windows a machine can have open
 #define WINDOW_SIZE 616     // The number of bytes for a window's data
+
+// Item extension layer...
+// Every inventory/equipment byte (offsets 224-248) gets a parallel 16-bit "extension" value,
+// stored little-endian at XITEM_OFFSET + (slot_offset-224)*2.  0 means a normal item.
+// Non-zero values identify an extended item (artifact) that is defined in XITEM.SRC.
+// Code that doesn't know about extensions keeps working - the item just acts like its base type.
+#define XITEM_FIRST_SLOT 224
+#define XITEM_LAST_SLOT  248
+#define XITEM_OFFSET     616
+#define XITEM_SIZE       ((XITEM_LAST_SLOT-XITEM_FIRST_SLOT+1)*2)
+unsigned short global_item_ext = 0;   // Extension of the item whose script is currently running
+
 
 // Spawn stuff...
 unsigned short global_spawn_owner = MAX_CHARACTER;
@@ -54,6 +66,123 @@ float room_size_xyz[3];
 unsigned char main_character_data[MAX_CHARACTER][CHARACTER_SIZE];
 unsigned char main_particle_data[MAX_PARTICLE][PARTICLE_SIZE];
 unsigned char main_window_data[MAX_WINDOW][WINDOW_SIZE];
+
+unsigned short xitem_get(unsigned char* character_data, int slot_offset)
+{
+    // <ZZ> Returns the extension value of a character's item slot (slot_offset is 224-248)
+    unsigned char* ext;
+    if(character_data < main_character_data[0] || character_data > main_character_data[MAX_CHARACTER-1] || slot_offset < XITEM_FIRST_SLOT || slot_offset > XITEM_LAST_SLOT) return 0;
+    ext = character_data + XITEM_OFFSET + ((slot_offset-XITEM_FIRST_SLOT)<<1);
+    return (unsigned short) (ext[0] | (ext[1]<<8));
+}
+
+//-----------------------------------------------------------------------------------------------
+// Automatic extension carrying...
+// Scripts move items around by reading item bytes and writing them somewhere else.  Rather than
+// rewriting every script, the script runner reports item-slot reads and writes here.  Each read
+// remembers (item value, extension); a later write of that same value takes the most recently
+// read extension along with it.  The memory only lasts for one engine->script call, so items
+// can't pick up stale extensions from unrelated scripts.
+#define XITEM_CARRY_MAX 32
+unsigned char  xitem_carry_value[XITEM_CARRY_MAX];
+unsigned short xitem_carry_ext[XITEM_CARRY_MAX];
+int xitem_carry_count = 0;
+int xitem_script_depth = 0;
+
+int xitem_locate(unsigned char* addr, unsigned char** character_data)
+{
+    // <ZZ> If addr points at a character's inventory/equipment byte, returns the slot offset
+    //      (224-248) and fills in character_data...  Otherwise returns -1...
+    intptr_t delta, offset;
+    if(addr < main_character_data[0] || addr >= main_character_data[0] + (MAX_CHARACTER*CHARACTER_SIZE)) return -1;
+    delta = addr - main_character_data[0];
+    offset = delta % CHARACTER_SIZE;
+    if(offset < XITEM_FIRST_SLOT || offset > XITEM_LAST_SLOT || offset == 240 || offset == 241) return -1;  // 240-241 are color sliders
+    *character_data = addr - offset;
+    return (int) offset;
+}
+
+void xitem_set(unsigned char* character_data, int slot_offset, unsigned short value)
+{
+    // <ZZ> Sets the extension value of a character's item slot (slot_offset is 224-248)
+    unsigned char* ext;
+    if(character_data < main_character_data[0] || character_data > main_character_data[MAX_CHARACTER-1] || slot_offset < XITEM_FIRST_SLOT || slot_offset > XITEM_LAST_SLOT) return;
+    ext = character_data + XITEM_OFFSET + ((slot_offset-XITEM_FIRST_SLOT)<<1);
+    ext[0] = (unsigned char) (value & 255);
+    ext[1] = (unsigned char) (value >> 8);
+}
+
+void xitem_note_read(unsigned char* addr)
+{
+    // <ZZ> A script read an item byte...  Remember what extension came with it...
+    unsigned char* character_data;
+    int slot, i;
+    if(*addr == 0) return;
+    slot = xitem_locate(addr, &character_data);
+    if(slot < 0) return;
+    if(xitem_carry_count >= XITEM_CARRY_MAX)
+    {
+        // Forget the oldest...
+        repeat(i, XITEM_CARRY_MAX-1)
+        {
+            xitem_carry_value[i] = xitem_carry_value[i+1];
+            xitem_carry_ext[i] = xitem_carry_ext[i+1];
+        }
+        xitem_carry_count = XITEM_CARRY_MAX-1;
+    }
+    xitem_carry_value[xitem_carry_count] = *addr;
+    xitem_carry_ext[xitem_carry_count] = xitem_get(character_data, slot);
+    xitem_carry_count++;
+}
+
+void xitem_note_write(unsigned char* addr, unsigned char new_value)
+{
+    // <ZZ> A script is about to write new_value into an item byte (call BEFORE the write)...
+    //      Decides which extension the slot should end up with...
+    unsigned char* character_data;
+    int slot, i, j;
+    unsigned short ext;
+    slot = xitem_locate(addr, &character_data);
+    if(slot < 0) return;
+    ext = 0;
+    if(new_value != 0)
+    {
+        // Most recently read item with the same value donates its extension...
+        i = xitem_carry_count-1;
+        while(i >= 0)
+        {
+            if(xitem_carry_value[i] == new_value)
+            {
+                ext = xitem_carry_ext[i];
+                for(j = i; j < xitem_carry_count-1; j++)
+                {
+                    xitem_carry_value[j] = xitem_carry_value[j+1];
+                    xitem_carry_ext[j] = xitem_carry_ext[j+1];
+                }
+                xitem_carry_count--;
+                break;
+            }
+            i--;
+        }
+        if(i < 0 && *addr != 0 && ((*addr) & 248) == (new_value & 248))
+        {
+            // Same base item changed in place (like an enchant changing the variant)...  Keep extension...
+            ext = xitem_get(character_data, slot);
+        }
+    }
+    xitem_set(character_data, slot, ext);
+}
+
+void xitem_note_increment(unsigned char* addr)
+{
+    // <ZZ> ++ or -- on an item byte changes the item in place, so the extension stays...
+    //      Unless it becomes ITEM_NONE...
+    unsigned char* character_data;
+    int slot;
+    slot = xitem_locate(addr, &character_data);
+    if(slot < 0) return;
+    if(*addr == 0) xitem_set(character_data, slot, 0);
+}
 
 
 // The script pointers for each object
@@ -318,6 +447,7 @@ unsigned char* obj_spawn(unsigned char type, float x, float y, float z, unsigned
                     *((unsigned int*)(main_character_data[i]+j)) = 0;
                     j+=4;
                 }
+                memset(main_character_data[i]+XITEM_OFFSET, 0, CHARACTER_SIZE-XITEM_OFFSET);  // ...and their extensions
 
                 // Default to no rider/mount...
                 (*((unsigned short*)(main_character_data[i]+106))) = 65535;  // self.rider

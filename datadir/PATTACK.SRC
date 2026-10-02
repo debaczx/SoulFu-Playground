@@ -365,6 +365,13 @@ int FrameEvent(int type, int damage, int wound, int grip, int weapon_range, floa
   damage = damage + (self.str/10)
 
 
+  // Artifact perks...
+  index = SystemGet(SYS_ITEMEXT, 0, 0)
+  if(index)
+    damage = damage + XITEM.ArtifactDamage(index)
+    flags = flags | XITEM.ArtifactFlags(index)
+
+
 
   // Random bonus for Luck...
   if(self.team == TEAM_GOOD)

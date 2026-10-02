@@ -1,0 +1,93 @@
+//-----------------------------------------------------------------------
+// <ZZ> Item extension layer (artifacts)...
+//      Every inventory/equipment slot (offsets 224-248) has a hidden
+//      16 bit extension value stored after the normal character data.
+//      0 means a normal item.  Anything else is an artifact, defined
+//      below.  An artifact is a normal item type (which supplies the
+//      model, animation and attack) plus its own name, look and perks.
+//
+//      The engine carries extensions along automatically whenever a
+//      script moves an item from one slot to another, so most of the
+//      old scripts don't need to know about any of this.
+//-----------------------------------------------------------------------
+#define XITEM_OFFSET 616
+
+
+// Artifact numbers...  Never reuse or renumber these once they've been
+// in a release, or saved games will turn one artifact into another...
+#define ARTIFACT_NONE           0
+#define ARTIFACT_BEARDS_DELVER  1
+
+
+//-----------------------------------------------------------------------
+// Returns the extension value of a character's slot (224-248)...
+int Get(int character, int slot)
+  int offset
+  if(!character)
+    return 0
+  if(slot < 224 || slot > 248)
+    return 0
+  offset = XITEM_OFFSET + ((slot-224)<<1)
+  return FileReadByte(character, offset) + (FileReadByte(character, offset+1)<<8)
+
+//-----------------------------------------------------------------------
+// Sets the extension value of a character's slot (224-248)...
+int Set(int character, int slot, int ext)
+  int offset
+  if(!character)
+    return FALSE
+  if(slot < 224 || slot > 248)
+    return FALSE
+  offset = XITEM_OFFSET + ((slot-224)<<1)
+  FileWriteByte(character, offset, ext&255)
+  FileWriteByte(character, offset+1, (ext>>8)&255)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Returns the extension of the item whose callback is running right now
+// (GetName, ModelSetup, Event, FrameEvent, Refresh, DefenseRating)...
+int Current()
+  return SystemGet(SYS_ITEMEXT, 0, 0)
+
+
+//-----------------------------------------------------------------------
+// Artifact definitions...
+//-----------------------------------------------------------------------
+// Name shown instead of the base item's name...
+int ArtifactName(int ext)
+  if(ext == ARTIFACT_BEARDS_DELVER)
+    return "BEARD'S DELVER"
+  return NULL
+
+//-----------------------------------------------------------------------
+// Texture used instead of the base weapon's main texture...
+int ArtifactTexture(int ext)
+  if(ext == ARTIFACT_BEARDS_DELVER)
+    return "FILE:=PICKGLD.RGB"
+  return NULL
+
+//-----------------------------------------------------------------------
+// Extra damage per hit...
+int ArtifactDamage(int ext)
+  if(ext == ARTIFACT_BEARDS_DELVER)
+    return 3
+  return 0
+
+//-----------------------------------------------------------------------
+// Extra SPECIAL_FLAG_ bits for attacks (DRAIN, POISON, etc.)...
+int ArtifactFlags(int ext)
+  if(ext == ARTIFACT_BEARDS_DELVER)
+    return SPECIAL_FLAG_DRAIN
+  return 0
+
+
+//-----------------------------------------------------------------------
+// Hooks called from the item scripts...
+//-----------------------------------------------------------------------
+// Call at the end of a weapon's ModelSetup()...  Swaps in the artifact's
+// texture, if it has one...
+int WeaponModelSetup(int self, int grip)
+  int texture
+  texture = ArtifactTexture(SystemGet(SYS_ITEMEXT, 0, 0))
+  if(texture)
+    ModelAssign(self+grip+8, texture)

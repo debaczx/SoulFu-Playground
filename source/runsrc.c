@@ -284,6 +284,7 @@ const char ff_map[MAX_FAST_FUNCTION][32] = {
 #define SYS_LOAD                    228
 #define SYS_SCREENPARAMS            229
 #define SYS_PAUSE                   230
+#define SYS_ITEMEXT                 231
 #define SYS_MODELCHECKHACK          255
 
 
@@ -454,9 +455,11 @@ void call_enchantment_function()
         if(main_character_on[enchant_cursor_character] && main_character_on[enchant_cursor_target])
         {
             global_item_index = enchant_cursor_itemindex;
+            global_item_ext = 0;
             backup_object_data = current_object_data;
             backup_object_item = current_object_item;
             fast_run_script(item_type_script[enchant_cursor_itemindex], FAST_FUNCTION_ENCHANTUSAGE, main_character_data[enchant_cursor_character]);
+            global_item_ext = 0;  // Extension only applies during the item's own callback
             current_object_data = backup_object_data;
             current_object_item = backup_object_item;
         }
@@ -1173,6 +1176,7 @@ signed char run_script(unsigned char* address, unsigned char* file_start, unsign
                                 break;
                             case VAR_BYTE:
                                 // Change the byte value at arg_address...
+                                xitem_note_write(arg_address, (unsigned char) i);
                                 (*((unsigned char*) arg_address)) = (unsigned char) i;
                                 break;
                             case VAR_WORD:
@@ -1279,6 +1283,7 @@ signed char run_script(unsigned char* address, unsigned char* file_start, unsign
                             case VAR_BYTE:
                                 // Change the byte value at arg_address...
                                 i = (int) ((*((unsigned char*) arg_address))++);
+                                xitem_note_increment(arg_address);
                                 break;
                             case VAR_WORD:
                                 // Change the word value at arg_address...
@@ -1337,6 +1342,7 @@ signed char run_script(unsigned char* address, unsigned char* file_start, unsign
                             case VAR_BYTE:
                                 // Change the byte value at arg_address...
                                 i = (int) ((*((unsigned char*) arg_address))--);
+                                xitem_note_increment(arg_address);
                                 break;
                             case VAR_WORD:
                                 // Change the word value at arg_address...
@@ -2300,6 +2306,7 @@ log_message("ERROR:  SYS_PLAYERCONTROLHANDLED Called...");
                         // Calls the ModelSetup callback for the given weapon...
                         global_item_index = current_object_data[(((weapon_setup_grip-MODEL_LEFT_FILE)/24)&3)+242];
                         i = global_item_index;
+                        global_item_ext = item_type_script[i] ? xitem_get(current_object_data, (((weapon_setup_grip-MODEL_LEFT_FILE)/24)&3)+242) : 0;
 
 
                         // Clear out the current ModelAssign() thing...
@@ -2312,6 +2319,7 @@ log_message("ERROR:  SYS_PLAYERCONTROLHANDLED Called...");
                             call_address = current_object_data;
                             script_temp_i = current_object_item;
                             fast_run_script(item_type_script[i], FAST_FUNCTION_MODELSETUP, current_object_data);
+                            global_item_ext = 0;  // Extension only applies during the item's own callback
                             current_object_data = call_address;
                             current_object_item = script_temp_i;
                         }
@@ -2319,6 +2327,7 @@ log_message("ERROR:  SYS_PLAYERCONTROLHANDLED Called...");
                     case SYS_WEAPONEVENT:
                         // Calls the Event() callback for the given weapon...
                         i = current_object_data[(((weapon_setup_grip-MODEL_LEFT_FILE)/24)&3)+242];
+                        global_item_ext = item_type_script[i] ? xitem_get(current_object_data, (((weapon_setup_grip-MODEL_LEFT_FILE)/24)&3)+242) : 0;
 
 
                         // Now call that item type's Event() function...
@@ -2328,6 +2337,7 @@ log_message("ERROR:  SYS_PLAYERCONTROLHANDLED Called...");
                             call_address = current_object_data;
                             script_temp_i = current_object_item;
                             fast_run_script(item_type_script[i], FAST_FUNCTION_EVENT, current_object_data);
+                            global_item_ext = 0;  // Extension only applies during the item's own callback
                             current_object_data = call_address;
                             current_object_item = script_temp_i;
                         }
@@ -2335,6 +2345,7 @@ log_message("ERROR:  SYS_PLAYERCONTROLHANDLED Called...");
                     case SYS_WEAPONFRAMEEVENT:
                         // Calls the FrameEvent() callback for the given weapon...
                         i = current_object_data[(((weapon_setup_grip-MODEL_LEFT_FILE)/24)&3)+242];
+                        global_item_ext = item_type_script[i] ? xitem_get(current_object_data, (((weapon_setup_grip-MODEL_LEFT_FILE)/24)&3)+242) : 0;
 
 
                         // Now call that item type's FrameEvent() function...
@@ -2344,6 +2355,7 @@ log_message("ERROR:  SYS_PLAYERCONTROLHANDLED Called...");
                             call_address = current_object_data;
                             script_temp_i = current_object_item;
                             fast_run_script(item_type_script[i], FAST_FUNCTION_FRAMEEVENT, current_object_data);
+                            global_item_ext = 0;  // Extension only applies during the item's own callback
                             current_object_data = call_address;
                             current_object_item = script_temp_i;
                         }
@@ -2351,6 +2363,7 @@ log_message("ERROR:  SYS_PLAYERCONTROLHANDLED Called...");
                     case SYS_WEAPONUNPRESSED:
                         // Calls the Unpressed() callback for the given weapon...
                         i = current_object_data[(((weapon_setup_grip-MODEL_LEFT_FILE)/24)&3)+242];
+                        global_item_ext = item_type_script[i] ? xitem_get(current_object_data, (((weapon_setup_grip-MODEL_LEFT_FILE)/24)&3)+242) : 0;
 
 
                         // Now call that item type's Unpressed() function...
@@ -2360,6 +2373,7 @@ log_message("ERROR:  SYS_PLAYERCONTROLHANDLED Called...");
                             call_address = current_object_data;
                             script_temp_i = current_object_item;
                             fast_run_script(item_type_script[i], FAST_FUNCTION_UNPRESSED, current_object_data);
+                            global_item_ext = 0;  // Extension only applies during the item's own callback
                             current_object_data = call_address;
                             current_object_item = script_temp_i;
                         }
@@ -2405,10 +2419,12 @@ log_message("ERROR:  SYS_PLAYERCONTROLHANDLED Called...");
                         // m is the item type
                         if(item_type_script[m&255])
                         {
-                            global_item_index = (unsigned short) m;
+                            global_item_ext = (unsigned short) (((unsigned int) m)>>8);  // Extension may ride in the upper bits
+                            global_item_index = (unsigned short) (m&255);
                             call_address = current_object_data;
                             script_temp_i = current_object_item;
                             fast_run_script(item_type_script[m&255], FAST_FUNCTION_DEFENSERATING, current_object_data);
+                            global_item_ext = 0;  // Extension only applies during the item's own callback
                             current_object_data = call_address;
                             current_object_item = script_temp_i;
                         }
@@ -2707,6 +2723,10 @@ sprintf(DEBUG_STRING, "Autotrim length == %f", autotrim_length);
                             global_autoshadow_vertex = (unsigned char) m;
                             break;
                     #endif
+                    case SYS_ITEMEXT:
+                        // Sets the extension (artifact) value for the item script about to be run...
+                        global_item_ext = (unsigned short) m;
+                        break;
                     case SYS_ITEMINDEX:
                         // Sets the index of the item that the current script is for...
                         // Used to figure out if weapons & armor are enchanted variants of main type...
@@ -3423,6 +3443,15 @@ sprintf(DEBUG_STRING, "Autotrim length == %f", autotrim_length);
                             fwrite(camera_rotation_xy, sizeof(short), 1, savefile);
                             fprintf(savelog,"\nCamera Spin: %d\n", camera_rotation_xy[X]);
 
+                            // Save item extensions (artifacts)...  Appended at the end so older
+                            // builds can still read this file, and older files still load here...
+                            fwrite("XITM", 1, 4, savefile);
+                            repeat(i, MAX_CHARACTER)
+                            {
+                                fwrite(main_character_data[i]+XITEM_OFFSET, 1, XITEM_SIZE, savefile);
+                            }
+                            size += 4 + (MAX_CHARACTER*XITEM_SIZE);
+
                             // The End
                             fclose(savefile);
                             fclose(savelog);
@@ -3588,6 +3617,41 @@ sprintf(DEBUG_STRING, "Autotrim length == %f", autotrim_length);
                             // Load Extra Stuff
                             fread(camera_rotation_xy, sizeof(short), 1, loadfile);
                             fprintf(savelog,"   Camera Spin: %hd\n", camera_rotation_xy[X]);
+
+                            // Load item extensions (artifacts), if this save has them...
+                            repeat(i, MAX_CHARACTER)
+                            {
+                                memset(main_character_data[i]+XITEM_OFFSET, 0, CHARACTER_SIZE-XITEM_OFFSET);
+                            }
+                            file_name[0] = 0;
+                            if(fread(file_name, 1, 4, loadfile) == 4 && file_name[0] == 'X' && file_name[1] == 'I' && file_name[2] == 'T' && file_name[3] == 'M')
+                            {
+                                repeat(i, MAX_CHARACTER)
+                                {
+                                    fread(main_character_data[i]+XITEM_OFFSET, 1, XITEM_SIZE, loadfile);
+                                }
+                                fprintf(savelog,"   Item extensions loaded\n");
+
+                                // Redo model setup now that extensions are known (artifact weapons may change looks)...
+                                repeat(i, MAX_CHARACTER)
+                                {
+                                    if(main_character_on[i] && main_character_script_start[i])
+                                    {
+                                        x = 256;
+                                        while(x < 616)
+                                        {
+                                            memset(main_character_data[i]+x, 0, 24);
+                                            x+=24;
+                                        }
+                                        call_address = current_object_data;
+                                        script_temp_i = current_object_item;
+                                        looking_for_fast_function = TRUE;
+                                        fast_run_script(main_character_script_start[i], FAST_FUNCTION_MODELSETUP, main_character_data[i]);
+                                        current_object_data = call_address;
+                                        current_object_item = script_temp_i;
+                                    }
+                                }
+                            }
 
                             // Finish Up
                             fclose(loadfile);
@@ -4231,7 +4295,9 @@ sprintf(DEBUG_STRING, "Autotrim length == %f", autotrim_length);
                         // Runs the GetName() function for the given item type...
                         // j is the item type index number...
                         global_item_index = (unsigned short) j;
+                        global_item_ext = (unsigned short) k;  // Extension of the item being named (0 for normal items)
                         i = item_get_type_name((unsigned short) j);
+                        global_item_ext = 0;
                         break;
                     case SYS_WEAPONGRIP:
                         // Gets the grip (left or right) for the weapon setup call...
@@ -4324,6 +4390,11 @@ log_message("ERROR:  Membuffer MAPBUFFER requested...");
                             i = (mouse_last_object-main_window_data[0])/WINDOW_SIZE;
                             i = (intptr_t) main_window_script_start[i];
                         }
+                        break;
+                    case SYS_ITEMEXT:
+                        // Returns the extension (artifact) value of the item that the current script is for...
+                        // 0 means a normal item...
+                        i = global_item_ext;
                         break;
                     case SYS_ITEMINDEX:
                         // Returns the index of the item that the current script is for...
@@ -4711,6 +4782,7 @@ log_message("ERROR:  Membuffer MAPBUFFER requested...");
                                 break;
                             case VAR_BYTE:
                                 // Change the byte value at arg_address...
+                                xitem_note_write(arg_address, (unsigned char) f);
                                 (*((unsigned char*) arg_address)) = (unsigned char) f;
                                 break;
                             case VAR_WORD:
@@ -4790,6 +4862,7 @@ log_message("ERROR:  Membuffer MAPBUFFER requested...");
                             case VAR_BYTE:
                                 // Change the byte value at arg_address...
                                 f = (float) ((*((unsigned char*) arg_address))++);
+                                xitem_note_increment(arg_address);
                                 break;
                             case VAR_WORD:
                                 // Change the word value at arg_address...
@@ -4848,6 +4921,7 @@ log_message("ERROR:  Membuffer MAPBUFFER requested...");
                             case VAR_BYTE:
                                 // Change the byte value at arg_address...
                                 f = (float) ((*((unsigned char*) arg_address))--);
+                                xitem_note_increment(arg_address);
                                 break;
                             case VAR_WORD:
                                 // Change the word value at arg_address...
@@ -5300,6 +5374,7 @@ float_stack_head-=num_float_args;
 
 
                 // Figure where we're reading from...
+                xitem_note_read(call_address + j);
                 push_int_stack((*(call_address + j)));
                 break;
             case OPCODE_FILEWRITEBYTE:
@@ -5308,6 +5383,7 @@ float_stack_head-=num_float_args;
                 pop_int_stack(i);                                       // Offset
                 pop_int_stack_cast(call_address, unsigned char*);       // File/String start
                 call_address+=i;
+                xitem_note_write(call_address, opcode);
                 *call_address = opcode;
                 push_int_stack(TRUE);
                 break;
@@ -7590,6 +7666,7 @@ push_int_stack(TRUE);
                                 break;
                             case VAR_BYTE:
                                 // Push the byte value at arg_address...
+                                xitem_note_read(arg_address);
                                 push_int_stack( (*((unsigned char*) arg_address)) );
                                 break;
                             case VAR_WORD:

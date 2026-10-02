@@ -362,10 +362,18 @@ int FixStats(int self)
 // Fills in the item name, giving damage range and adjusting for stats and
 // enchants...  Also handles stat requirements and parenthetical text...
 ItemName(int base_text, int paren_text, int damage_type, int damage_low, int damage_high, int wound_low, int wound_high)
-  int enchantment, item_index
+  int enchantment, item_index, artifact, artifact_name
   int binding, strength, reqstr, reqdex, reqint, reqmana
   binding = FindBinding()
   item_index = SystemGet(SYS_ITEMINDEX, 0, 0)
+  artifact = SystemGet(SYS_ITEMEXT, 0, 0)
+  if(artifact)
+    // Artifacts have their own names and damage bonus...
+    artifact_name = XITEM.ArtifactName(artifact)
+    if(artifact_name)
+      base_text = artifact_name
+    damage_low = damage_low + XITEM.ArtifactDamage(artifact)
+    damage_high = damage_high + XITEM.ArtifactDamage(artifact)
   strength = 0
   reqstr = 0
   reqdex = 0

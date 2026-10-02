@@ -2704,8 +2704,10 @@ void character_refresh_items_all()
                     {
                         // Call the refresh function...  Used to make flame effects & stuff on weapons...
                         global_item_index = item_type;
+                        global_item_ext = xitem_get(character_data, slot+242);
                         global_item_bone_name = slot+1;
                         fast_run_script(item_script, FAST_FUNCTION_REFRESH, character_data);
+                        global_item_ext = 0;  // Extension only applies during the item's own callback
                     }
                 }
             }

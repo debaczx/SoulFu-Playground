@@ -37,6 +37,7 @@ int ModelSetup()
     ModelAssign(self+grip, "FILE:BAXE.RDY")
     ModelAssign(self+grip+4, "FILE:STEEL.RGB")
     ModelAssign(self+grip+8, "FILE:=PICK.RGB")
+    XITEM.WeaponModelSetup(self, grip)  // Artifact texture, if any...
     ModelAssign(self+grip+12, "FILE:LITESWIP.RGB")
     if((SystemGet(SYS_ITEMINDEX, 0, 0)&7) == WEAPON_VARIANT_MAGIC)
       ModelAssign(self+grip+16, "FILE:BLUE.RGB")

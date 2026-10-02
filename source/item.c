@@ -83,6 +83,7 @@ unsigned char item_get_type_name(unsigned short item_type)
         backup_address = current_object_data;
         backup_item = current_object_item;
         fast_run_script(item_type_script[item_type], FAST_FUNCTION_GETNAME, current_object_data);
+        global_item_ext = 0;
         current_object_data = backup_address;
         current_object_item = backup_item;
         if(NAME_STRING[0] != 0)

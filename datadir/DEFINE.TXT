@@ -471,6 +471,7 @@
 #define SYS_LOAD                    228
 #define SYS_SCREENPARAMS            229
 #define SYS_PAUSE                   230
+#define SYS_ITEMEXT                 231 // Item extension (artifact) value of the item whose script is running...
 #define SYS_MODELCHECKHACK          255
 
 

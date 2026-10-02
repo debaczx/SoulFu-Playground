@@ -37,6 +37,7 @@ int ModelSetup()
     ModelAssign(self+grip, "FILE:HAMMER.RDY")
     ModelAssign(self+grip+4, "FILE:STEEL.RGB")
     ModelAssign(self+grip+8, "FILE:=HAMMER.RGB")
+    XITEM.WeaponModelSetup(self, grip)  // Artifact texture, if any...
     ModelAssign(self+grip+12, "FILE:LITESWIP.RGB")
     ModelAssign(self+grip+16, "FILE:SHADSWRD.RGB")
     ModelAssign(self+grip+20, WHITE)

@@ -685,7 +685,7 @@ int RowIcon(int icon_index, float x, float y)
   int mouseover
   int last_object, last_item, last_script, target, worked
   int item_ammo, overlay_file, item_flags, min_str, min_dex, min_int, min_mana
-  int item_script, index, joy_index, draw_trash, i, draw_coins, color
+  int item_script, index, joy_index, draw_trash, i, draw_coins, color, item_ext
   float msx, msy, offx, offy, scale
 
 
@@ -712,6 +712,7 @@ int RowIcon(int icon_index, float x, float y)
 
     
   // Figure out which item we're drawing...
+  item_ext = 0
   if(icon_index > 253)
     // Special quick equip slot...  Or trash...
     item_type = ITEM_NONE
@@ -723,6 +724,7 @@ int RowIcon(int icon_index, float x, float y)
     else
       // Character's inventory or equipment...
       item_type = FileReadByte(binding, icon_index)
+      item_ext = XITEM.Get(binding, icon_index)
 
 
   // Get the image...  Some slots have special images...
@@ -781,7 +783,7 @@ int RowIcon(int icon_index, float x, float y)
 
 
   if(icon_drag == icon_index || icon_index == joy_index)
-    if(SystemGet(SYS_ITEMREGISTRYNAME, item_type, 0))
+    if(SystemGet(SYS_ITEMREGISTRYNAME, item_type, item_ext))
       if(shop_on && gem3)
         price = SystemGet(SYS_ITEMREGISTRYPRICE, item_type, 0)
         if(price < 0)
