@@ -164,6 +164,22 @@ int FindCore(int who, int element)
   return 0
 
 //-----------------------------------------------------------------------
+// Chills a character for the given number of frames (if longer than what
+// it has left)...  Chilled characters move and animate slower (engine)...
+int Chill(int who, int frames)
+  int now
+  if(!who)
+    return FALSE
+  if(frames > 65535)
+    frames = 65535
+  now = FileReadByte(who, CHILL_OFFSET+1)
+  now = (now<<8) | FileReadByte(who, CHILL_OFFSET)
+  if(frames > now)
+    FileWriteByte(who, CHILL_OFFSET, frames & 255)
+    FileWriteByte(who, CHILL_OFFSET+1, (frames>>8) & 255)
+  return TRUE
+
+//-----------------------------------------------------------------------
 // Extra damage per hit...
 int ArtifactDamage(int ext)
   if(ext == ARTIFACT_BEARDS_DELVER)

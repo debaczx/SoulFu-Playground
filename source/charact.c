@@ -767,6 +767,12 @@ void character_draw_all(unsigned char after_water, unsigned char draw_only_doors
                         global_render_light_color_rgb[0] = (global_render_light_color_rgb[0] * brightness) >> 8;
                         global_render_light_color_rgb[1] = (global_render_light_color_rgb[1] * brightness) >> 8;
                         global_render_light_color_rgb[2] = (global_render_light_color_rgb[2] * brightness) >> 8;
+                        if(*((unsigned short*) (character_data+CHILL_OFFSET)) > 0)
+                        {
+                            // Chilled...  Icy blue tint...
+                            global_render_light_color_rgb[0] = (global_render_light_color_rgb[0] * 140) >> 8;
+                            global_render_light_color_rgb[1] = (global_render_light_color_rgb[1] * 200) >> 8;
+                        }
 
 
 
@@ -996,6 +1002,8 @@ void character_update_all()
     unsigned short mount;
     unsigned char eye_model_valid;
     unsigned char dexterity;
+    unsigned char chilled;  // Chilled status...  Slower animation and movement
+    unsigned char chill_hold;  // TRUE on the frames a chilled character's animation doesn't advance
 
 
     // Update all of the characters...
@@ -1014,6 +1022,7 @@ void character_update_all()
                 // Character is hasten'd...  Counts as +25 dexterity...
                 dexterity += 25;
             }
+            chilled = (*((unsigned short*) (character_data+CHILL_OFFSET)) > 0);
 
 
 
@@ -1196,6 +1205,14 @@ void character_update_all()
                     }
                 }
             }
+            chill_hold = (chilled && (main_game_frame & 1));
+            if(chill_hold)
+            {
+                // Chilled...  Animation runs at half speed...  Read the current frame again
+                // (skip must stay 1, the rest of the update needs the frame data), but don't
+                // advance it or repeat its events...
+                skip = 1;
+            }
             while(skip > 0)
             {
                 frame = *((unsigned short*) (character_data + 178));
@@ -1244,6 +1261,11 @@ void character_update_all()
             if(*((unsigned short*) (character_data+42)) > 0)
             {
                 // Petrified characters don't get frame events...
+                frame_event_flags = 0;
+            }
+            if(chill_hold)
+            {
+                // Held frame was already played...  Don't fire its events twice...
                 frame_event_flags = 0;
             }
  
@@ -1974,6 +1996,7 @@ void character_update_all()
 
                     velx = (velx + (velx*dexterity*0.02f));
                     vely = (vely + (vely*dexterity*0.02f));
+                    if(chilled) { velx *= CHILL_SPEED;  vely *= CHILL_SPEED; }
 
                     velocity_xyz[X] = (*((float*) (character_data+108)))*velx + (*((float*) (character_data+120)))*vely;
                     velocity_xyz[Y] = (*((float*) (character_data+112)))*velx + (*((float*) (character_data+124)))*vely;
@@ -2006,6 +2029,7 @@ void character_update_all()
                         // Jumping creature...  Allow direct control with goto point...
                         vely = (*((float*) (data+7))) * 3.75f;
                         vely = (vely + (vely*dexterity*0.02f));
+                        if(chilled) vely *= CHILL_SPEED;
 
                         x = (*((float*) (character_data+12)));
                         y = (*((float*) (character_data+16)));
@@ -2041,6 +2065,7 @@ void character_update_all()
                         vely = (*((float*) (data+7)))*0.025f;
                         velx = (velx + (velx*dexterity*0.02f));
                         vely = (vely + (vely*dexterity*0.02f));
+                        if(chilled) { velx *= CHILL_SPEED;  vely *= CHILL_SPEED; }
                         velocity_xyz[X] += (*((float*) (character_data+108)))*velx + (*((float*) (character_data+120)))*vely;
                         velocity_xyz[Y] += (*((float*) (character_data+112)))*velx + (*((float*) (character_data+124)))*vely;
                         velocity_xyz[X] *= 0.975f;
@@ -2125,8 +2150,8 @@ void character_update_all()
                 }
                 else
                 {
-                    // Increment the frame...  Only if not petrified...
-                    if(*((unsigned short*) (character_data+42)) == 0)
+                    // Increment the frame...  Only if not petrified (or held by chill)...
+                    if(*((unsigned short*) (character_data+42)) == 0 && !chill_hold)
                     {
                         (*((unsigned short*) (character_data+178)))++;
                         if(next_action != character_data[65])
@@ -2204,6 +2229,13 @@ void character_update_all()
                     character_data[67] = EVENT_SECONDARY_TIMER;
                     fast_run_script(main_character_script_start[i], FAST_FUNCTION_EVENT, character_data);
                 }
+            }
+
+
+            // Chilled status timer (no event, just runs out)
+            if(*((unsigned short*) (character_data+CHILL_OFFSET)) > 0)
+            {
+                (*((unsigned short*) (character_data+CHILL_OFFSET)))--;
             }
 
 

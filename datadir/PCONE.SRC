@@ -2,7 +2,7 @@
 // <ZZ> Cone effect is kinda funky...  Charge should run up to 255 then back down to 200...
 //      A damage particle is spawned every time charge is 200 (so it has to loop back like that)...
 int Effect(float x, float y, float z, float vx, float vy, float vz, int type, int damage, int wound, int flags, int charge, int smoke_color, int image)
-  int child, volume
+  int child, volume, attack
   float tx, ty, tz
 
 
@@ -11,8 +11,9 @@ int Effect(float x, float y, float z, float vx, float vy, float vz, int type, in
     PlaySound("FILE:-SPELL03.RAW", 245+RollDice(1, 20), volume)
 
 
+  attack = NULL
   if(charge == 200)
-    PATTACK.Effect(x, y, z, vx, vy, vz, type, damage, wound, 4.0, 0.5, 6, flags)
+    attack = PATTACK.Effect(x, y, z, vx, vy, vz, type, damage, wound, 4.0, 0.5, 6, flags)
 
   tx = vx*0.3 + ((RollDice(1, 200) - 100) * 0.0015)
   ty = vy*0.3 + ((RollDice(1, 200) - 100) * 0.0015)
@@ -30,5 +31,6 @@ int Effect(float x, float y, float z, float vx, float vy, float vz, int type, in
     tx = vx*0.3 + ((RollDice(1, 200) - 100) * 0.0015)
     ty = vy*0.3 + ((RollDice(1, 200) - 100) * 0.0015)
     PEMBER.Effect(x, y, z, tx, ty, tz, (charge * 0.004) + 0.25, 255, 4, image)
+  return attack  // The damage particle (only on damage frames, else NULL)...
 
 //-----------------------------------------------------------------------

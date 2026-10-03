@@ -171,6 +171,9 @@ int Event()
             PSPARK.Effect(self.x, self.y, self.z, 10, 0)
           // Undo defwoun inversion...
           target.defwoun = defwoun
+          // Chilling attacks (Frost Thrower etc.)...
+          if(self.xhand == XHAND_CHILL && target.team != self.team)
+            XITEM.Chill(target, CHILL_TIME)
           // Allow free moving attack particles to burn guys automatically...
           if(!(self.flags & PART_STUCK_ON))
             if((damage_type & 15) == DAMAGE_FIRE)

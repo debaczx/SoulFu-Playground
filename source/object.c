@@ -46,6 +46,8 @@
 #define XITEM_LAST_SLOT  248
 #define XITEM_OFFSET     616
 #define XITEM_SIZE       ((XITEM_LAST_SLOT-XITEM_FIRST_SLOT+1)*2)
+#define CHILL_OFFSET     666   // unsigned short...  Frames left of the Chilled status (0 = not chilled).  Not saved.
+#define CHILL_SPEED      0.55f // Movement multiplier while chilled
 unsigned short global_item_ext = 0;   // Extension of the item whose script is currently running
 
 

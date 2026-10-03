@@ -162,7 +162,9 @@ Refresh()
         z = SystemGet(SYS_WEAPONREFRESHXYZ, 0, 2) * 0.001
         if(ext == XITEM_FROST_THROWER)
           // Cone of cold...
-          PCONE.Effect(x, y, z, self.frontx, self.fronty, 0.05, DAMAGE_ICE, RollDice(1, 3), 0, SPECIAL_FLAG_CHOP_THROUGH, ((self.charge>>1)&7) + 195, ICE_SMOKE_COLOR, "FILE:ICE1.RGB")
+          child = PCONE.Effect(x, y, z, self.frontx, self.fronty, 0.05, DAMAGE_ICE, RollDice(1, 3), 0, SPECIAL_FLAG_CHOP_THROUGH, ((self.charge>>1)&7) + 195, ICE_SMOKE_COLOR, "FILE:ICE1.RGB")
+          if(child)
+            child.xhand = XHAND_CHILL  // Frost Thrower hits chill...
         if(ext == XITEM_LEECH_BEAM)
           // Draining beam (like the blue floating eye)...
           PBEAM.Effect(self.frontx*0.5, self.fronty*0.5, 0.0, self.height*0.55, 1.0, 2193862, DAMAGE_ICE, RollDice(1, 2), 0, FindIndex(self), SPECIAL_FLAG_DRAIN)

@@ -1341,6 +1341,9 @@
 #define XITEM_LEECH_BEAM         4   // Flamer variant: draining ice beam
 #define XITEM_LIGHTNING_CANNON   5   // Flamer variant: hold to charge, release to fire a lightning bolt
 #define XITEM_CORED            256   // Flag added to a modded weapon's extension when a real core powers it (refunded on swap/salvage)
+#define CHILL_OFFSET           666   // Character data: frames left of the Chilled status (slower moves & animation, blue tint)
+#define CHILL_TIME             180   // Default chill length (~3 seconds)
+#define XHAND_CHILL              3   // Particle xhand value: this attack chills what it hits
 #define XITEM_CORE_BASE         16   // Magic Cores use 17-23: XITEM_CORE_BASE + element (WEAPON_VARIANT_MAGIC..UNHOLY)
 
 #define WEAPON_VARIANT_NONE    0
