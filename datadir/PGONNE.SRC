@@ -25,13 +25,21 @@ int SmokeCloud(int count, float scale, float size, float sx, float sy, float sz)
 
 //-----------------------------------------------------------------------
 int AmmoEffect(int do_damage_to_target)
-  int self, child, damage, wound
+  int self, child, damage, wound, target, owner
 
   self = FindSelf()
   if(do_damage_to_target)
     damage = RollDice(1, 3)+1
     wound = RollDice(1, 3)
     DamageTarget(DAMAGE_EDGE, damage, wound)
+    // Leech rounds (modded Gonne) drain a little life back to the shooter...
+    if(self.xhand == WEAPON_VARIANT_UNHOLY)
+      target = FindTarget()
+      owner = FindOwner()
+      if(target && owner)
+        if(!(target.flags & CHAR_NO_BACKSTAB))
+          GENERIC.RestoreCharacterHits(owner, RollDice(1, 2), 0)
+        PEMBER.Effect(self.x, self.y, self.z, 0.0, 0.0, 0.05, 2.5, 255, 16, "FILE:SPARK8.RGB")
 
 
   self.x = self.lastx
@@ -206,6 +214,7 @@ int FrameEvent(float vx, float vy, float vz)
     child.vx = vx
     child.vy = vy
     child.vz = vz
+  return child
 
 //-----------------------------------------------------------------------
 

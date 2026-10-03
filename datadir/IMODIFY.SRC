@@ -41,6 +41,9 @@ int VariantFor(int self, int element)
       return XITEM_LIGHTNING_CANNON
     if(element == WEAPON_VARIANT_UNHOLY)
       return XITEM_LEECH_BEAM
+  if(self.eqright == ITEM_GONNE)
+    if(element >= WEAPON_VARIANT_MAGIC && element <= WEAPON_VARIANT_UNHOLY)
+      return (XITEM_GONNE_BASE + element)
   return NO_VARIANT
 
 //-----------------------------------------------------------------------
@@ -52,6 +55,8 @@ int ElementOfVariant(int variant)
     return WEAPON_VARIANT_VOLT
   if(variant == XITEM_LEECH_BEAM)
     return WEAPON_VARIANT_UNHOLY
+  if(variant > XITEM_GONNE_BASE && variant <= (XITEM_GONNE_BASE+7))
+    return (variant - XITEM_GONNE_BASE)
   return 0
 
 //-----------------------------------------------------------------------

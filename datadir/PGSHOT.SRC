@@ -1,0 +1,262 @@
+//-----------------------------------------------------------------------
+// <ZZ> Special Gonne shots (G'nome's Modify skill)...
+//      The shot kind is kept in self.xhand (an element number):
+//        WEAPON_VARIANT_FIRE    Homing rocket...  Locks on fast, steers
+//                               hard, explodes on whatever it touches.
+//        WEAPON_VARIANT_POISON  Venom dart...  Flies straight, poisons.
+//        WEAPON_VARIANT_HOLY    Mending missile...  Homes on the most
+//                               hurt ally (ignores its shooter at first)
+//                               and heals it.  Passes through enemies.
+//      The Magic volley just uses PMISSILE...
+//-----------------------------------------------------------------------
+#define kind      self.xhand
+#define age       self.misc4
+#define offx      self.misc5
+#define offy      self.misc6
+#define offz      self.misc7
+
+#define SECONDS_TO_LAST 6
+#define SMOKE_COLOR     (128)
+#define SHOOTER_GRACE   30      // Frames before a mending missile may heal its shooter
+#define MENDING_TICKS   40      // Mending missiles check every 10 frames, so they last ~7 seconds
+
+//-----------------------------------------------------------------------
+// Spawns one special shot...  vx, vy, vz should already be the speed...
+int Effect(float x, float y, float z, float vx, float vy, float vz, int owner_index, int shot_kind)
+  int child, owner
+  owner = FindByIndex(owner_index)
+  child = NULL
+  if(owner)
+    SetSpawnTarget(65535)
+    SetSpawnOwner(owner_index)
+    SetSpawnTeam(owner.team)
+    child = Spawn(PARTICLE, x, y, z, 0)
+    if(child)
+      child.xhand = shot_kind
+      child.team = owner.team
+      child.owner = owner_index
+      child.target = 65535
+      child.spin = owner.spin
+      child.vx = vx
+      child.vy = vy
+      child.vz = vz
+      child.alpha = 255
+      child.timer = 1
+      child.misc4 = 0
+      child.misc5 = RollDice(1, 256)
+      child.misc6 = RollDice(1, 256)
+      child.misc7 = RollDice(1, 256)
+      child.flags = PART_LIGHT_ON | PART_WALL_COLLISION_ON | PART_CHAR_COLLISION_ON
+      if(shot_kind == WEAPON_VARIANT_FIRE)
+        child.image = "FILE:FIRE0.RGB"
+        child.image2 = "FILE:FIRE1.RGB"
+        child.length = 1.6
+        child.width = 1.0
+        child.colsize = 0.2
+        child.trail = 200
+        child.evtimer = 4     // Locks on almost at once...
+      if(shot_kind == WEAPON_VARIANT_POISON)
+        child.image = "FILE:SPARK9.RGB"
+        child.image2 = "FILE:SPARK10.RGB"
+        child.length = 1.2
+        child.width = 0.35
+        child.colsize = 0.1
+        child.trail = 255
+        child.evtimer = 50    // Darts don't last long...
+      if(shot_kind == WEAPON_VARIANT_HOLY)
+        child.image = "FILE:SPARK0.RGB"
+        child.image2 = "FILE:SPARK4.RGB"
+        child.length = 1.0
+        child.width = 0.6
+        child.colsize = 0.15
+        child.trail = 220
+        child.flags = child.flags | PART_IGNORE_INTIMER  // Heals even right after someone got hit...
+        child.evtimer = SHOOTER_GRACE  // Flies out before it starts looking (and before it can heal its shooter)...
+  return child
+
+//-----------------------------------------------------------------------
+// Index of the most hurt ally (soft or hard wounds) within reach, or
+// 65535 if nobody needs healing...  The shooter only counts once the
+// grace time is over...
+int FindHurtFriend(int self, int allow_owner)
+  int i, best, best_need, need, who
+  float dx, dy, dz
+  best = 65535
+  best_need = 0
+  i = 0
+  while(i < MAX_CHARACTER)
+    who = FindByIndex(i)
+    if(who)
+      if(who.team == self.team && who.hits > 0)
+        if(i != self.owner || allow_owner)
+          // Hard wounds count double, since they're harder to fix...
+          need = (who.hitsmax - who.hitstap - who.hits) + (who.hitstap<<1)
+          if(need > best_need)
+            dx = who.x - self.x
+            dy = who.y - self.y
+            dz = who.z - self.z
+            if((dx*dx + dy*dy + dz*dz) < 2500.0)
+              best = i
+              best_need = need
+    i++
+  return best
+
+//-----------------------------------------------------------------------
+int Explode()
+  int self
+  self = FindSelf()
+  PEXPLODE.Effect(self.lastx, self.lasty, self.lastz, 0.0, 0.0, 0.0, DAMAGE_FIRE, 4, 2, self.owner, self.team, "FILE:FIRE1.RGB", SMOKE_COLOR, 64)
+  GoPoof(POOF_SELF)
+
+//-----------------------------------------------------------------------
+int Mend(int target)
+  int self, soft, hard
+  self = FindSelf()
+  soft = RollDice(1, 2) - 1
+  hard = 0
+  if(RollDice(1, 100) <= 20)
+    hard = 1
+  GENERIC.RestoreCharacterHits(target, (soft + hard), hard)
+  PEMBER.Effect(self.x, self.y, self.z, 0.0, 0.0, 0.05, 3.0, 255, 20, self.image2)
+  PSPARK.Effect(self.x, self.y, self.z, 8, 4)
+
+//-----------------------------------------------------------------------
+int Event()
+  int self, target
+  float vx
+
+
+  self = FindSelf()
+  if(self.event == EVENT_SPAWNED_IN_WATER)
+    PDROWN.Effect(self.x, self.y, self.z, 4)
+    GoPoof(POOF_SELF)
+
+
+  if(self.event == EVENT_HIT_CHARACTER || self.event == EVENT_BLOCKED || self.event == EVENT_DEFLECTED)
+    target = FindTarget()
+    if(target)
+      if(kind == WEAPON_VARIANT_HOLY)
+        // Mending missiles go through enemies and only touch the hurt...
+        if(target.team == self.team)
+          if(self.target != self.owner || age > 0)
+            if(target.hitstap > 0 || target.hits < (target.hitsmax - target.hitstap))
+              Mend(target)
+              GoPoof(POOF_SELF)
+        return 0
+      if(target.team == self.team || target.team == TEAM_NEUTRAL)
+        return 0
+      if(DEFLECT.Event(60, 1.0, TRUE))
+        return TRUE
+      if(kind == WEAPON_VARIANT_FIRE)
+        Explode()
+      if(kind == WEAPON_VARIANT_POISON)
+        if(self.event == EVENT_HIT_CHARACTER)
+          DamageTarget(DAMAGE_EDGE, RollDice(1, 2), 1)
+          STANDARD.PoisonCharacter(self.target, self.owner, 300)
+        PSPARK.Effect(self.x, self.y, self.z, 6, 2)
+        GoPoof(POOF_SELF)
+    return 0
+
+
+  if(self.event == EVENT_HIT_FLOOR || self.event == EVENT_HIT_WALL)
+    if(kind == WEAPON_VARIANT_FIRE)
+      Explode()
+    if(kind == WEAPON_VARIANT_POISON)
+      PSPARK.Effect(self.x, self.y, self.z, 6, 2)
+      GoPoof(POOF_SELF)
+    // Mending missiles bounce, like magic missiles...
+    self.x = self.x - self.vx
+    self.y = self.y - self.vy
+    self.z = self.z - self.vz
+    if(self.event == EVENT_HIT_FLOOR)
+      self.vz = -self.vz
+    else
+      vx = self.vx
+      self.vx = -self.vy
+      self.vy = vx
+    return 0
+
+
+  if(self.event == EVENT_TIMER)
+    if(kind == WEAPON_VARIANT_POISON)
+      GoPoof(POOF_SELF)
+    offx = RollDice(1, 256)
+    offy = RollDice(1, 256)
+    offz = RollDice(1, 256)
+
+
+    if(kind == WEAPON_VARIANT_HOLY)
+      // Grace time is over...  The shooter can be healed too now...
+      self.flags = self.flags | PART_HIT_OWNER_ON
+      // Always go for whoever is most hurt right now...
+      self.target = FindHurtFriend(self, TRUE)
+    else
+      target = FindTarget()
+      if(target == NULL)
+        self.target = AcquireTarget(ACQUIRE_SEE_ENEMY, NULL, 150.0)
+        target = FindTarget()
+        if(target == NULL)
+          self.target = AcquireTarget(ACQUIRE_SEE_BEHIND | ACQUIRE_SEE_ENEMY, NULL, 50.0)
+
+
+    age++
+    if(age > SECONDS_TO_LAST && (kind != WEAPON_VARIANT_HOLY || age > MENDING_TICKS))
+      if(kind == WEAPON_VARIANT_FIRE)
+        Explode()
+      if(self.alpha < 8)
+        GoPoof(POOF_SELF)
+      self.alpha = self.alpha - 8
+      self.evtimer = 1
+    else
+      self.evtimer = 30
+      if(kind == WEAPON_VARIANT_HOLY)
+        self.evtimer = 10  // Keeps checking who's most hurt...
+  return 0
+
+//-----------------------------------------------------------------------
+int Refresh()
+  int self, child, target
+  float dx, dy, dz, distance, scale, keep
+
+
+  self = FindSelf()
+  self.timer = 2
+
+
+  // Trail...
+  if(kind == WEAPON_VARIANT_FIRE)
+    PSMOKE.Effect(self.x, self.y, self.z, 0.0, 0.0, 0.02, 0.6, 0.04, FALSE, SMOKE_COLOR, 160, 20)
+  child = PEMBER.Effect(self.x, self.y, self.z, 0.0, 0.0, 0.0, 0.6, self.alpha, (self.alpha>>4)+1, self.image2)
+  if(child)
+    child.trail = 255
+    child.flags = PART_LIGHT_ON
+    child.lastx = self.lastx
+    child.lasty = self.lasty
+    child.lastz = self.lastz
+
+
+  // Darts fly straight...
+  if(kind == WEAPON_VARIANT_POISON)
+    return 0
+
+
+  // Steer toward the target...  Rockets turn much harder...
+  target = FindTarget()
+  if(target)
+    dx = target.x + ((offx-128)*0.04) - self.x
+    dy = target.y + ((offy-128)*0.04) - self.y
+    dz = target.z + (target.height*0.5) - self.z
+    distance = dx*dx + dy*dy + dz*dz
+    if(distance > 0.1)
+      distance = sqrt(distance)
+      scale = 0.05/distance
+      keep = 0.95
+      if(kind == WEAPON_VARIANT_FIRE)
+        scale = 0.12/distance
+        keep = 0.88
+      self.vx = (self.vx*keep) + (dx*scale)
+      self.vy = (self.vy*keep) + (dy*scale)
+      self.vz = (self.vz*keep) + (dz*scale)
+  return 0
+
+//-----------------------------------------------------------------------

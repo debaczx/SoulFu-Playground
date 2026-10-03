@@ -18,7 +18,8 @@
 #define ARTIFACT_NONE           0
 #define ARTIFACT_BEARDS_DELVER  1
 #define ARTIFACT_SPLITTER       2
-// 3-5 are weapon variants made with the G'nome's Modify skill (XITEM_ defines in DEFINE.TXT)...
+// 3-5 (Flamer) and 6-12 (Gonne) are weapon variants made with the G'nome's
+// Modify skill (XITEM_ defines in DEFINE.TXT)...  17-23 are Magic Cores...
 
 
 //-----------------------------------------------------------------------
@@ -96,6 +97,8 @@ int ArtifactIcon(int ext)
     return "FILE:=IFLLEE.RGB"
   if(ext == XITEM_LIGHTNING_CANNON)
     return "FILE:=IFLLIT.RGB"
+  if(ext > XITEM_GONNE_BASE && ext <= (XITEM_GONNE_BASE+7))
+    return GonneIcon(ext-XITEM_GONNE_BASE)
   if(ext > XITEM_CORE_BASE && ext <= XITEM_CORE_BASE+7)
     return CoreIcon(ext-XITEM_CORE_BASE)
   return NULL
@@ -118,6 +121,25 @@ int CoreIcon(int element)
   if(element == WEAPON_VARIANT_UNHOLY)
     return "FILE:=ICORE7.RGB"
   return "FILE:=TINKASK.RGB"
+
+//-----------------------------------------------------------------------
+// Icons for the modded Gonnes...
+int GonneIcon(int element)
+  if(element == WEAPON_VARIANT_MAGIC)
+    return "FILE:=IGON1.RGB"
+  if(element == WEAPON_VARIANT_FIRE)
+    return "FILE:=IGON2.RGB"
+  if(element == WEAPON_VARIANT_ICE)
+    return "FILE:=IGON3.RGB"
+  if(element == WEAPON_VARIANT_VOLT)
+    return "FILE:=IGON4.RGB"
+  if(element == WEAPON_VARIANT_POISON)
+    return "FILE:=IGON5.RGB"
+  if(element == WEAPON_VARIANT_HOLY)
+    return "FILE:=IGON6.RGB"
+  if(element == WEAPON_VARIANT_UNHOLY)
+    return "FILE:=IGON7.RGB"
+  return "FILE:=IGONNE.RGB"
 
 //-----------------------------------------------------------------------
 int CoreName(int element)
