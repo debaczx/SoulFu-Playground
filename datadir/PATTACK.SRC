@@ -184,8 +184,8 @@ int Event()
               drain_amount = drain_amount - target.hits
               // Artifacts with Mending heal hard wounds with what they drain...
               mending = FALSE
-              if(drain_amount > 0 && (self.flags & PART_STUCK_ON) && (self.bone == 1 || self.bone == 2))
-                mending = XITEM.ArtifactMends(XITEM.Get(owner, 241+self.bone))
+              if(drain_amount > 0 && (self.xhand == 1 || self.xhand == 2))
+                mending = XITEM.ArtifactMends(XITEM.Get(owner, 241+self.xhand))
               if(mending)
                 GENERIC.RestoreCharacterHits(owner, drain_amount, drain_amount)
                 drain_amount = 0
@@ -405,6 +405,10 @@ int FrameEvent(int type, int damage, int wound, int grip, int weapon_range, floa
         // Character is doing a jump attack...
         child.number = child.number | SPECIAL_FLAG_KNOCK_DOWN
     child.misc0 = weapon_range
+    // Remember which hand swung, so artifact perks can find the weapon on hit...
+    child.xhand = 2
+    if(grip == MODEL_LEFT_FILE)
+      child.xhand = 1
     child.width = weapon_radius
     child.length= weapon_radius
 

@@ -983,6 +983,7 @@
 #proper colsize    F   80   // part (used for bumping the floor...  Diameter of sphere for particle...  Doesn't work as well as it should...)
 // 84 is used internally as the particle's spawn'd in water detection thinger...
 // 85 is unused
+#proper xhand      B   85   // part (Weapon hand an attack came from: 1 left, 2 right, 0 unknown...  For artifact perks)
 #proper stuckto    W   86   // part (used when particle is stuck to a character...)
 
 #proper int0001    I   12   // win
