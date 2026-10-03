@@ -1,0 +1,37 @@
+//-----------------------------------------------------------------------
+// Gremf Bomb...  Thrown like a gronnade.  Bursts in a harmless purple
+// blast and summons three friendly (purple) Gremfs for 30 seconds...
+//-----------------------------------------------------------------------
+int GetName()
+  STANDARD.ItemName("GREMF BOMB", "SUMMONS 3 GREMFS", 255, 0, 0, 0, 0)
+
+//-----------------------------------------------------------------------
+// Called when item is first used...
+int Event()
+  int self, grip
+  float vx, vy, vz
+
+
+  self = FindSelf()
+  if(self.action == ACTION_WALK || self.action == ACTION_STAND || self.action == ACTION_JUMP || self.action == ACTION_DOUBLE)
+    ButtonHandled()
+    if(self.rltimer == 0)
+      self.rltimer = 10
+      self.action = ACTION_SPECIAL_2
+      self.daction = ACTION_STAND
+      if(self.flags & CHAR_ON_GROUND)
+        self.vx = self.frontx*0.05
+        self.vy = self.fronty*0.05
+        self.vz = 0.5
+      vx = (self.frontx*0.5) + ((RollDice(1, 100)-50)*0.001)
+      vy = (self.fronty*0.5) + ((RollDice(1, 100)-50)*0.001)
+      vz = 0.75
+
+      SetSpawnOwner(FindIndex(self))
+      SetSpawnTeam(self.team)
+      PGREMB.Effect(self.x, self.y, self.z+(self.height*0.5), vx, vy, vz)
+      grip = SystemGet(SYS_WEAPONGRIP, 0, 0)
+      STANDARD.AutoReload(self, grip)
+  return TRUE
+
+//-----------------------------------------------------------------------

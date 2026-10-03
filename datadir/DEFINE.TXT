@@ -1233,7 +1233,7 @@
 #define ITEM_TALK             2
 #define ITEM_PRAY             3
 #define ITEM_KISS             4
-// 5 is unused
+#define ITEM_GREMF_BOMB       5 // Thrown...  Harmless purple blast that summons 3 friendly Gremfs
 #define ITEM_HIDE             6
 #define ITEM_TINKER           7
 #define ITEM_GONNE            8

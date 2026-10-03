@@ -1,3 +1,6 @@
+#define GREMF_SUMMONED_FLAG  32    // eqcol01 bit...  Set for Gremfs summoned by a Gremf Bomb (PGREMB.SRC)
+#define GREMF_SUMMON_TIME    1875  // Game frames a summoned Gremf lasts (~30 seconds)
+
 //-----------------------------------------------------------------------
 int ButtonEvent()
   int self, event
@@ -26,7 +29,13 @@ int Event()
   STANDARD.DamageSoundEvent("FILE:-RAT01.RAW", NULL, NULL)
   STANDARD.Event()
   STANDARD.LevelUpEvent(2, 0, 0, 3, 0)
-  if(self.event == EVENT_HIT_WATER)
+  if(self.event == EVENT_THIRDIARY_TIMER && (self.eqcol01 & GREMF_SUMMONED_FLAG))
+    // Summon time is up...  Vanish in a purple puff...
+    PSMOKE.Effect(self.x, self.y, self.z+1.0, 0.0, 0.0, 0.05, 2.5, 0.10, FALSE, MAGENTA, 200, 25)
+    PSPARK.Effect(self.x, self.y, self.z+1.0, 8, 7)
+    GoPoof(POOF_SELF)
+    return TRUE
+  if(self.event == EVENT_HIT_WATER && !(self.eqcol01 & GREMF_SUMMONED_FLAG))
     // Spawn a helper...
     subtype = self.eqcol01>>6
     if((RoomWaterType() == WATER_TYPE_WATER && subtype < 3) || (RoomWaterType() == WATER_TYPE_LAVA && subtype == 3))
@@ -110,6 +119,10 @@ int ModelSetup()
     // Mini Divil
     ModelAssign(self+MODEL_BASE_TEX0, "FILE:RED.RGB")
     ModelAssign(self+MODEL_BASE_TEX1, "FILE:RED.RGB")
+  if(self.eqcol01 & GREMF_SUMMONED_FLAG)
+    // Summoned by a Gremf Bomb...  Purple...
+    ModelAssign(self+MODEL_BASE_TEX0, "FILE:PURPLE.RGB")
+    ModelAssign(self+MODEL_BASE_TEX1, "FILE:DPURPLE.RGB")
   ModelAssign(self+MODEL_BASE_TEX2, "FILE:=GREMF.RGB")
   STANDARD.EyeSetup(self+MODEL_BASE_TEX3, self.team)
   ModelAssign(self+MODEL_BASE_COLOR, WHITE)
@@ -183,6 +196,13 @@ int Spawn()
     self.defice = -4
     self.deffire = 4
   self.eqspec1 = ITEM_JUMP
+  if(self.eqcol01 & GREMF_SUMMONED_FLAG)
+    // Summoned Gremfs are temporary, and leave nothing behind...
+    self.tetimer = GREMF_SUMMON_TIME
+    self.money = 0
+    self.keys = 0
+    self.item00 = ITEM_NONE
+    self.expgive = 0
 
   ModelSetup()
   STANDARD.PutOnMount()

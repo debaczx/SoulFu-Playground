@@ -1070,6 +1070,9 @@ int Spawn()
     self.item01 = ITEM_HEAL
     self.item02 = ITEM_FOOD
     self.item03 = ITEM_BOOK_5
+    self.item04 = ITEM_GREMF_BOMB  // Test items (unique-testing branch)
+    self.item05 = ITEM_GREMF_BOMB
+    self.item06 = ITEM_GREMF_BOMB
   if(self.class == CLASS_WIZARD)
     self.eqright = ITEM_DAGGER
     if(RollDice(1, 100) < 50)
@@ -1127,6 +1130,9 @@ int Spawn()
     XITEM.Set(self, 243, 1)  // Test artifact: Beard's Delver (see XITEM.SRC)
     self.eqbody = ITEM_BODY_2
     self.item01 = ITEM_MEAT
+    self.item02 = ITEM_GREMF_BOMB  // Test items (unique-testing branch)
+    self.item03 = ITEM_GREMF_BOMB
+    self.item04 = ITEM_GREMF_BOMB
   if(self.class == CLASS_HUBBIN)
     self.eqright = ITEM_DAGGER|WEAPON_VARIANT_POISON
     self.eqleft = ITEM_HIDE
