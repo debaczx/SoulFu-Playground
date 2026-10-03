@@ -7,7 +7,7 @@
 int Event()
   int self, owner, target, drain_amount, child, target_script
   int temp_damage_amount, temp_wound_amount
-  int dex, str, critical, rider, old_target, defwoun, mending
+  int dex, str, critical, rider, old_target, defwoun, mending, drain_cap
   float x, y, z, dot, scale
 
 
@@ -182,10 +182,14 @@ int Event()
           if(special_flags & SPECIAL_FLAG_DRAIN)
             if(!(target.flags & CHAR_NO_BACKSTAB))
               drain_amount = drain_amount - target.hits
-              // Artifacts with Mending have a chance to heal a few hard wounds...
+              // Artifacts can limit their drain, and Mending has a chance to heal hard wounds...
               if(drain_amount > 0 && (self.xhand == 1 || self.xhand == 2))
                 mending = XITEM.Get(owner, 241+self.xhand)
                 if(mending)
+                  if(XITEM.ArtifactDrainAmount(mending) > 0)
+                    drain_cap = RollDice(1, XITEM.ArtifactDrainAmount(mending))
+                    if(drain_amount > drain_cap)
+                      drain_amount = drain_cap
                   if(RollDice(1, 100) <= XITEM.ArtifactMendChance(mending))
                     mending = RollDice(1, XITEM.ArtifactMendAmount(mending))
                     GENERIC.RestoreCharacterHits(owner, mending, mending)

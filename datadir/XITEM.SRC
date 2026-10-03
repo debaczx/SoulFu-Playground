@@ -81,6 +81,14 @@ int ArtifactFlags(int ext)
   return 0
 
 //-----------------------------------------------------------------------
+// Most soft hits a draining artifact restores per hit (heals 1 to this)...
+// 0 means normal drain (as much as the hit dealt)...
+int ArtifactDrainAmount(int ext)
+  if(ext == ARTIFACT_BEARDS_DELVER)
+    return 2
+  return 0
+
+//-----------------------------------------------------------------------
 // Mending: percent chance, per damaging hit, to heal hard wounds...
 int ArtifactMendChance(int ext)
   if(ext == ARTIFACT_BEARDS_DELVER)
