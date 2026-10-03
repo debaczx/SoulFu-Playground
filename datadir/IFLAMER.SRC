@@ -9,6 +9,8 @@
 
 #define SMOKE_COLOR 128
 #define ICE_SMOKE_COLOR (4239600)
+#define VENOM_SMOKE_COLOR (4246576)   // 0x40CC30
+#define HOLY_SMOKE_COLOR (16767088)   // 0xFFD870
 
 //-----------------------------------------------------------------------
 int GetName()
@@ -22,6 +24,15 @@ int GetName()
     return TRUE
   if(ext == XITEM_LIGHTNING_CANNON)
     STANDARD.ItemName("LIGHTNING CANNON", "HOLD TO CHARGE", 255, 0, 0, 0, 0)
+    return TRUE
+  if(ext == XITEM_ARCANE_BEAM)
+    STANDARD.ItemName("ARCANE BEAM", "HURTS SPIRITS", DAMAGE_BASH, 1, 2, 0, 0)
+    return TRUE
+  if(ext == XITEM_VENOM_SPRAY)
+    STANDARD.ItemName("VENOM SPRAY", "POISON", DAMAGE_ACID, 1, 2, 0, 0)
+    return TRUE
+  if(ext == XITEM_SANCTIFIER)
+    STANDARD.ItemName("SANCTIFIER", "SMITES UNDEAD", DAMAGE_BASH, 0, 1, 1, 2)
     return TRUE
   STANDARD.ItemName("FLAMER", NULL, DAMAGE_FIRE, 1, 4, 0, 0)
 
@@ -45,6 +56,12 @@ int ModelSetup()
       ModelAssign(self+grip+8, "FILE:=FLAMLEE.RGB")
     if(ext == XITEM_LIGHTNING_CANNON)
       ModelAssign(self+grip+8, "FILE:=FLAMLIT.RGB")
+    if(ext == XITEM_ARCANE_BEAM)
+      ModelAssign(self+grip+8, "FILE:=FLAMARC.RGB")
+    if(ext == XITEM_VENOM_SPRAY)
+      ModelAssign(self+grip+8, "FILE:=FLAMVEN.RGB")
+    if(ext == XITEM_SANCTIFIER)
+      ModelAssign(self+grip+8, "FILE:=FLAMSAN.RGB")
     ModelAssign(self+grip+12, "FILE:RED.RGB")
     ModelAssign(self+grip+16, "FILE:=FLAMER.RGB")
     ModelAssign(self+grip+20, WHITE)
@@ -135,6 +152,14 @@ Refresh()
     b = 255
   if(ext == XITEM_LIGHTNING_CANNON)
     g = 255
+  if(ext == XITEM_ARCANE_BEAM)
+    b = 255
+    g = g>>1
+  if(ext == XITEM_VENOM_SPRAY)
+    r = g
+    g = 255
+  if(ext == XITEM_SANCTIFIER)
+    g = (g + 255)>>1
   color = (r<<16) | (g<<8) | (b)
   ModelAssign(self+MODEL_RIGHT_FILE+20, color)
   if(self.charge & 128)
@@ -171,7 +196,16 @@ Refresh()
         if(ext == XITEM_LIGHTNING_CANNON)
           // Charging ball...  Fires when the button is let go (see FrameEvent)...
           PZAPPY.ChargeEffect(x, y, z, self.charge<<1)
-        if(ext != XITEM_FROST_THROWER && ext != XITEM_LEECH_BEAM && ext != XITEM_LIGHTNING_CANNON)
+        if(ext == XITEM_ARCANE_BEAM)
+          // Arcane beam (like the floating eyes)...  Magic hurts ghosts & undead properly...
+          PBEAM.Effect(self.frontx*0.5, self.fronty*0.5, 0.0, self.height*0.55, 1.0, 16734463, DAMAGE_BASH, RollDice(1, 2), 0, FindIndex(self), SPECIAL_FLAG_INVERT_DEFWOUN)
+        if(ext == XITEM_VENOM_SPRAY)
+          // Poison cloud...
+          PCONE.Effect(x, y, z, self.frontx, self.fronty, 0.05, DAMAGE_ACID, RollDice(1, 2), 0, SPECIAL_FLAG_CHOP_THROUGH | SPECIAL_FLAG_POISON, ((self.charge>>1)&7) + 195, VENOM_SMOKE_COLOR, "FILE:SPARK10.RGB")
+        if(ext == XITEM_SANCTIFIER)
+          // Holy light...  Little damage, but wounds, and undead can't resist it...
+          PCONE.Effect(x, y, z, self.frontx, self.fronty, 0.05, DAMAGE_BASH, RollDice(1, 2)-1, 1, SPECIAL_FLAG_CHOP_THROUGH | SPECIAL_FLAG_INVERT_DEFWOUN, ((self.charge>>1)&7) + 195, HOLY_SMOKE_COLOR, "FILE:SPARK4.RGB")
+        if(ext == 0)
           PCONE.Effect(x, y, z, self.frontx, self.fronty, 0.05, DAMAGE_FIRE, RollDice(1, 4), 0, SPECIAL_FLAG_CHOP_THROUGH, ((self.charge>>1)&7) + 195, SMOKE_COLOR, "FILE:FIRE1.RGB")
     else
       // Flamer doesn't have button held...
@@ -198,6 +232,15 @@ Refresh()
         if(ext == XITEM_LIGHTNING_CANNON)
           image1 = "FILE:ZAPPY0.RGB"
           image2 = "FILE:ZAPPY1.RGB"
+        if(ext == XITEM_ARCANE_BEAM)
+          image1 = "FILE:SPARK5.RGB"
+          image2 = "FILE:SPARK6.RGB"
+        if(ext == XITEM_VENOM_SPRAY)
+          image1 = "FILE:SPARK9.RGB"
+          image2 = "FILE:SPARK10.RGB"
+        if(ext == XITEM_SANCTIFIER)
+          image1 = "FILE:SPARK0.RGB"
+          image2 = "FILE:SPARK4.RGB"
         PENCHANT.Effect(x, y, z-0.2, 0.06, size, image1, image2, TRUE, color, owner_index)
 
         if((SystemGet(SYS_MAINGAMEFRAME, 0, 0) & 1) == 0)
