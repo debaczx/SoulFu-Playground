@@ -67,10 +67,17 @@ int ArtifactTexture(int ext)
   return NULL
 
 //-----------------------------------------------------------------------
+// Inventory icon used instead of the base item's icon...
+int ArtifactIcon(int ext)
+  if(ext == ARTIFACT_BEARDS_DELVER)
+    return "FILE:=IPICKAR.RGB"
+  return NULL
+
+//-----------------------------------------------------------------------
 // Extra damage per hit...
 int ArtifactDamage(int ext)
   if(ext == ARTIFACT_BEARDS_DELVER)
-    return 3
+    return 1
   return 0
 
 //-----------------------------------------------------------------------

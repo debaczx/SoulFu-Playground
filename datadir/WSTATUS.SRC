@@ -729,6 +729,9 @@ int RowIcon(int icon_index, float x, float y)
 
   // Get the image...  Some slots have special images...
   image_file = SystemGet(SYS_ITEMREGISTRYICON, item_type, 0)
+  if(item_ext)
+    if(XITEM.ArtifactIcon(item_ext))
+      image_file = XITEM.ArtifactIcon(item_ext)
   min_str = SystemGet(SYS_ITEMREGISTRYSTR, item_type, 0)
   min_dex = SystemGet(SYS_ITEMREGISTRYDEX, item_type, 0)
   min_int = SystemGet(SYS_ITEMREGISTRYINT, item_type, 0)

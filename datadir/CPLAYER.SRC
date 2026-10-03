@@ -1121,7 +1121,7 @@ int Spawn()
     self.item01 = ITEM_FOOD
   if(self.class == CLASS_DWARF)
     self.eqleft = ITEM_SHIELD
-    self.eqright = ITEM_PICK_AXE|WEAPON_VARIANT_MAGIC
+    self.eqright = ITEM_PICK_AXE
     XITEM.Set(self, 243, 1)  // Test artifact: Beard's Delver (see XITEM.SRC)
     self.eqbody = ITEM_BODY_2
     self.item01 = ITEM_MEAT
