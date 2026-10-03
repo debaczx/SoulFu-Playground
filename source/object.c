@@ -108,6 +108,9 @@ void xitem_set(unsigned char* character_data, int slot_offset, unsigned short va
     unsigned char* ext;
     if(character_data < main_character_data[0] || character_data > main_character_data[MAX_CHARACTER-1] || slot_offset < XITEM_FIRST_SLOT || slot_offset > XITEM_LAST_SLOT) return;
     ext = character_data + XITEM_OFFSET + ((slot_offset-XITEM_FIRST_SLOT)<<1);
+#ifdef XITEM_DEBUG
+    if((ext[0] | (ext[1]<<8)) != value) log_message("XITEM: char %d slot %d ext %d -> %d (item %d)", (int)((character_data-main_character_data[0])/CHARACTER_SIZE), slot_offset, ext[0] | (ext[1]<<8), value, character_data[slot_offset]);
+#endif
     ext[0] = (unsigned char) (value & 255);
     ext[1] = (unsigned char) (value >> 8);
 }

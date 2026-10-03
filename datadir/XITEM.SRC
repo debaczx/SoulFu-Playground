@@ -21,26 +21,26 @@
 
 //-----------------------------------------------------------------------
 // Returns the extension value of a character's slot (224-248)...
-int Get(int character, int slot)
+int Get(int who, int slot)
   int offset
-  if(!character)
+  if(!who)
     return 0
   if(slot < 224 || slot > 248)
     return 0
   offset = XITEM_OFFSET + ((slot-224)<<1)
-  return FileReadByte(character, offset) + (FileReadByte(character, offset+1)<<8)
+  return FileReadByte(who, offset) + (FileReadByte(who, offset+1)<<8)
 
 //-----------------------------------------------------------------------
 // Sets the extension value of a character's slot (224-248)...
-int Set(int character, int slot, int ext)
+int Set(int who, int slot, int ext)
   int offset
-  if(!character)
+  if(!who)
     return FALSE
   if(slot < 224 || slot > 248)
     return FALSE
   offset = XITEM_OFFSET + ((slot-224)<<1)
-  FileWriteByte(character, offset, ext&255)
-  FileWriteByte(character, offset+1, (ext>>8)&255)
+  FileWriteByte(who, offset, ext&255)
+  FileWriteByte(who, offset+1, (ext>>8)&255)
   return TRUE
 
 //-----------------------------------------------------------------------
@@ -91,3 +91,13 @@ int WeaponModelSetup(int self, int grip)
   texture = ArtifactTexture(SystemGet(SYS_ITEMEXT, 0, 0))
   if(texture)
     ModelAssign(self+grip+8, texture)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// NOTE: The script compiler doesn't close an if() block that sits on the
+// very last line of a file (its jump target is left at 0, which crashes).
+// Always end a file with a line at function level, like the return above.
+// NOTE: Names are case-insensitive and #defines win over variables, so a
+// variable called "character" silently becomes CHARACTER (0)...  Check
+// DEFINE.TXT before picking variable names.
+//-----------------------------------------------------------------------
