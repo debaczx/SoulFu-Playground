@@ -80,6 +80,13 @@ int ArtifactFlags(int ext)
     return SPECIAL_FLAG_DRAIN
   return 0
 
+//-----------------------------------------------------------------------
+// TRUE if the artifact's life drain also heals hard wounds (Mending)...
+int ArtifactMends(int ext)
+  if(ext == ARTIFACT_BEARDS_DELVER)
+    return TRUE
+  return FALSE
+
 
 //-----------------------------------------------------------------------
 // Hooks called from the item scripts...
