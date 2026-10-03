@@ -73,7 +73,7 @@ int DirectedEffect(float x, float y, float z, float vx, float vy, float vz, int 
       child.misc5 = RollDice(1, 256)
       child.misc6 = RollDice(1, 256)
       child.misc7 = RollDice(1, 256)
-      child.evtimer = 20
+      child.evtimer = 8  // Starts homing sooner than the spell version...
   return child
 
 //-----------------------------------------------------------------------
@@ -151,7 +151,7 @@ int Event()
     // Collision effect...
     PSPARK.Effect(self.x, self.y, self.z, 10, 2)
     PEMBER.Effect(self.x, self.y, self.z, 0.0, 0.0, 0.0, 5.0, self.alpha, 16, self.image2)
-    if(age == 0 && self.evtimer == 20)
+    if(age == 0 && (self.evtimer == 20 || self.evtimer == 8))
       // Uh, oh...  Looks like we spawned in a wall...
       GoPoof(POOF_SELF)
     else
