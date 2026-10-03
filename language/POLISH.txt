@@ -87,7 +87,7 @@ Uzdrowicielka
 Gnom
 Elf
 Mistyk
-Beard
+Krasnolud
 Øotrzyk
 92 Reserved
 93 Reserved

@@ -87,7 +87,7 @@ Sanador
 G'nome
 Elfo
 Místico
-Beard
+D'warf
 Hubbin
 92 Reservado
 93 Reservado

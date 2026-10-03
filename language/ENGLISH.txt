@@ -87,7 +87,7 @@ Healer
 G'nome
 Elf
 Mystic
-Beard
+D'warf
 Hubbin
 92 Reserved
 93 Reserved
