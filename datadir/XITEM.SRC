@@ -18,7 +18,7 @@
 #define ARTIFACT_NONE           0
 #define ARTIFACT_BEARDS_DELVER  1
 #define ARTIFACT_SPLITTER       2
-// 3-5 and 13-15 (Flamer), 6-12 (Gonne) are weapon variants made with the G'nome's
+// 3-5 and 13-15 (Flamer), 6-12 (Gonne), 25-31 (Bows), 41-47 (Gronnades) are weapon variants made with the G'nome's
 // Modify skill (XITEM_ defines in DEFINE.TXT)...  17-23 are Magic Cores...
 
 
@@ -120,6 +120,8 @@ int ArtifactIcon(int ext)
     return "FILE:=IFLSAN.RGB"
   if(ext > XITEM_GONNE_BASE && ext <= (XITEM_GONNE_BASE+7))
     return GonneIcon(ext-XITEM_GONNE_BASE)
+  if(ext > XITEM_GRON_BASE && ext <= (XITEM_GRON_BASE+7))
+    return GronIcon(ext-XITEM_GRON_BASE)
   if(ext > XITEM_CORE_BASE && ext <= XITEM_CORE_BASE+7)
     return CoreIcon(ext-XITEM_CORE_BASE)
   return NULL
@@ -132,7 +134,7 @@ int ItemIcon(int ext, int item_type)
   element = (ext & 255) - XITEM_BOW_BASE
   if(element < WEAPON_VARIANT_MAGIC || element > WEAPON_VARIANT_UNHOLY)
     return ArtifactIcon(ext)
-  // Bow variants...  Kept flat (no nested ifs), the compiler mangles some nested if/return chains...
+  // Bow variants...  (Icons draw red when the holder lacks the item's stat requirement, e.g. Long Bow STR)
   longbow = ((item_type & 252) == ITEM_LONG_BOW)
   if(longbow && element == WEAPON_VARIANT_MAGIC)
     return "FILE:=ILB1.RGB"
@@ -180,6 +182,23 @@ int CoreIcon(int element)
   if(element == WEAPON_VARIANT_UNHOLY)
     return "FILE:=ICORE7.RGB"
   return "FILE:=TINKASK.RGB"
+
+//-----------------------------------------------------------------------
+// Icons for the cored Gronnades...
+int GronIcon(int element)
+  if(element == WEAPON_VARIANT_MAGIC)
+    return "FILE:=IGRN1.RGB"
+  if(element == WEAPON_VARIANT_FIRE)
+    return "FILE:=IGRN2.RGB"
+  if(element == WEAPON_VARIANT_ICE)
+    return "FILE:=IGRN3.RGB"
+  if(element == WEAPON_VARIANT_VOLT)
+    return "FILE:=IGRN4.RGB"
+  if(element == WEAPON_VARIANT_POISON)
+    return "FILE:=IGRN5.RGB"
+  if(element == WEAPON_VARIANT_HOLY)
+    return "FILE:=IGRN6.RGB"
+  return "FILE:=IGRN7.RGB"
 
 //-----------------------------------------------------------------------
 // Icons for the modded Gonnes...

@@ -1118,6 +1118,8 @@ int Spawn()
     self.item10 = ITEM_CORE
     XITEM.Set(self, 234, XITEM_CORE_BASE+WEAPON_VARIANT_UNHOLY)
     self.item11 = ITEM_SWORD|WEAPON_VARIANT_FIRE  // To try Salvage on...
+    self.item12 = ITEM_GRONNADE  // To try cored gronnades with...
+    self.item13 = ITEM_GRONNADE
   if(self.class == CLASS_ELF)
     self.eqright = ITEM_DAGGER
     self.eqleft = ITEM_BOW|ARMOR_VARIANT_MAGIC

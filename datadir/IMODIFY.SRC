@@ -40,9 +40,13 @@ int GetName()
 // Each class works on its own kind of gear...  Which hand slot?
 //   G'nome:  Tinker gear (Flamer, Gonne) in the right hand
 //   Elf:     Bows (always in the left hand)
+//   G'nome:  ...or a Gronnade in either hand (right first)
 int ModSlot(int self)
   if(self.class == CLASS_ELF)
     return 242
+  if(self.eqright != ITEM_FLAMER && self.eqright != ITEM_GONNE && self.eqright != ITEM_GRONNADE)
+    if(self.eqleft == ITEM_GRONNADE)
+      return 242
   return MODIFY_SLOT
 
 //-----------------------------------------------------------------------
@@ -65,6 +69,10 @@ int VariantFor(int self, int element)
       if(element >= WEAPON_VARIANT_MAGIC && element <= WEAPON_VARIANT_UNHOLY)
         return (XITEM_BOW_BASE + element)
     return NO_VARIANT
+  if(item == ITEM_GRONNADE)
+    // Gronnades are single use, so they always burn a real core (see ChanceOfWorking)...
+    if(element >= WEAPON_VARIANT_MAGIC && element <= WEAPON_VARIANT_UNHOLY)
+      return (XITEM_GRON_BASE + element)
   if(item == ITEM_FLAMER)
     if(element == WEAPON_VARIANT_FIRE)
       return 0
@@ -104,6 +112,8 @@ int ElementOfVariant(int variant)
     return (variant - XITEM_GONNE_BASE)
   if(variant > XITEM_BOW_BASE && variant <= (XITEM_BOW_BASE+7))
     return (variant - XITEM_BOW_BASE)
+  if(variant > XITEM_GRON_BASE && variant <= (XITEM_GRON_BASE+7))
+    return (variant - XITEM_GRON_BASE)
   return 0
 
 //-----------------------------------------------------------------------
@@ -161,6 +171,8 @@ int ChanceOfWorking(int self, int expression)
     return 100  // Going back to the plain version always works
   if(XITEM.FindCore(self, expression))
     return 100
+  if(variant > XITEM_GRON_BASE && variant <= (XITEM_GRON_BASE+7))
+    return 0  // Gronnades need a real core...
   chance = 30 + ((self.int - 20)*4)
   if(chance > 90)
     chance = 90

@@ -1,6 +1,7 @@
 // Gronnade particle...
 #define hit_count   self.misc7
 #define SMOKE_COLOR (128)
+#define BOMBLET     100   // xhand of a Cluster gronnade's bomblets (cored gronnades keep their element in xhand)
 //-----------------------------------------------------------------------
 int Effect(float x, float y, float z, float vx, float vy, float vz)
   int child
@@ -14,12 +15,254 @@ int Effect(float x, float y, float z, float vx, float vy, float vz)
   return child
 
 //-----------------------------------------------------------------------
+// Colours a cored gronnade by its element (kept in xhand)...
+int Tint(int child)
+  int element
+  element = child.xhand
+  if(element == WEAPON_VARIANT_MAGIC)
+    child.red = 200
+    child.green = 90
+    child.blue = 255
+  if(element == WEAPON_VARIANT_FIRE)
+    child.red = 255
+    child.green = 120
+    child.blue = 40
+  if(element == WEAPON_VARIANT_ICE)
+    child.red = 120
+    child.green = 200
+    child.blue = 255
+  if(element == WEAPON_VARIANT_VOLT)
+    child.red = 255
+    child.green = 240
+    child.blue = 80
+  if(element == WEAPON_VARIANT_POISON)
+    child.red = 90
+    child.green = 230
+    child.blue = 60
+  if(element == WEAPON_VARIANT_HOLY)
+    child.red = 255
+    child.green = 250
+    child.blue = 220
+  if(element == WEAPON_VARIANT_UNHOLY)
+    child.red = 210
+    child.green = 30
+    child.blue = 50
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Does something to every character within range...  Swaps self.target so
+// DamageTarget works on each...  Returns how many it touched...
+//   kind 1: Frost (ice damage, long chill)      kind 2: Gas (poison)
+//   kind 3: Blessing (heal allies, smite undead) kind 4: Blood (wound & drain)
+int Area(float x, float y, float range, int kind)
+  int self, i, who, old_target, count, defwoun, enemy
+  float dx, dy
+  self = FindSelf()
+  old_target = self.target
+  count = 0
+  i = 0
+  while(i < MAX_CHARACTER)
+    who = FindByIndex(i)
+    if(who)
+      dx = who.x - x
+      dy = who.y - y
+      if((dx*dx + dy*dy) < (range*range) && who.hits > 0 && who.team != TEAM_NEUTRAL)
+        enemy = (who.team != self.team)
+        self.target = i
+        if(kind == 1 && enemy)
+          DamageTarget(DAMAGE_ICE, 3, 1)
+          XITEM.Chill(who, CHILL_TIME*2)
+          PSMOKE.Effect(who.x, who.y, who.z+1.0, 0.0, 0.0, 0.03, 1.8, 0.05, FALSE, (4239600), 220, 30)
+          count++
+        if(kind == 2 && enemy)
+          STANDARD.PoisonCharacter(i, self.owner, 900)
+          count++
+        if(kind == 3)
+          if(enemy)
+            if(who.defwoun > 0 && who.defwoun < 128)
+              // Undead...  Summoned ones are banished, the rest are smitten and knocked down...
+              PSPARK.Effect(who.x, who.y, who.z+1.0, 12, 4)
+              if(who.eflags & ENCHANT_FLAG_SUMMON_3)
+                GoPoof(POOF_TARGET)
+              else
+                defwoun = who.defwoun
+                who.defwoun = -who.defwoun
+                who.combo = 4
+                DamageTarget(DAMAGE_BASH, 2, 2)
+                who.defwoun = defwoun
+              count++
+          else
+            // Allies (and the thrower) are healed and cured...
+            GENERIC.RestoreCharacterHits(who, 4, 2)
+            who.pstimer = 0
+            PEMBER.Effect(who.x, who.y, who.z+1.0, 0.0, 0.0, 0.06, 3.0, 255, 10, "FILE:SPARK4.RGB")
+            count++
+        if(kind == 4 && enemy)
+          if(!(who.flags & CHAR_NO_BACKSTAB))
+            count = count + 3
+          DamageTarget(DAMAGE_BASH, 2, 3)
+          PEMBER.Effect(who.x, who.y, who.z+1.0, 0.0, 0.0, 0.05, 2.5, 255, 12, "FILE:SPARK8.RGB")
+    i++
+  self.target = old_target
+  return count
+
+//-----------------------------------------------------------------------
+// Spawns a lightning bolt from a point toward a direction...
+int Zap(float x, float y, float z, float vx, float vy, int life)
+  int self, child
+  self = FindSelf()
+  SetSpawnTarget(65535)
+  SetSpawnOwner(self.owner)
+  SetSpawnTeam(self.team)
+  child = Spawn(PARTICLE, x, y, z, "FILE:PZAPPY.RUN")
+  if(child)
+    child.vx = vx
+    child.vy = vy
+    child.vz = 0.0
+    child.length = 3.0
+    child.width = 3.0
+    child.image = NULL
+    child.flags = PART_LIGHT_ON | PART_WALL_COLLISION_ON | PART_CHAR_COLLISION_ON
+    child.team = self.team
+    child.owner = self.owner
+    child.misc4 = 6
+    child.misc5 = 0
+    child.misc6 = life
+    child.misc7 = 64      // 3 damage per zap
+    child.evtimer = 1
+    child.target = 65535
+  return child
+
+//-----------------------------------------------------------------------
+// A cored gronnade goes off...  Returns TRUE if it's done (can poof)...
+int CoredBlast(int element)
+  int self, i, child, owner, amount
+  float x, y, z, angle, dx, dy
+  self = FindSelf()
+  x = self.lastx
+  y = self.lasty
+  z = self.lastz
+
+
+  if(element == WEAPON_VARIANT_MAGIC)
+    // Gremf Storm...  Five friendly Gremfs...
+    PSPARK.Effect(self.x, self.y, self.z, 8, 7)
+    PEXPLODE.Effect(x, y, z, 0.0, 0.0, 2.3, DAMAGE_FIRE, 0, 0, self.owner, self.team, "FILE:SPARK6.RGB", MAGENTA, 160)
+    PGREMB.Summon(x, y, z, 5)
+
+
+  if(element == WEAPON_VARIANT_FIRE)
+    // Cluster...  Big blast, then six bomblets scatter and go off...
+    PSPARK.Effect(self.x, self.y, self.z, 8, 7)
+    PEXPLODE.Effect(x, y, z, 0.0, 0.0, 2.3, DAMAGE_FIRE, 4+RollDice(1, 3), 3, self.owner, self.team, "FILE:FIRE1.RGB", SMOKE_COLOR, 200)
+    i = 0
+    angle = RollDice(1, 60)
+    while(i < 6)
+      SetSpawnOwner(self.owner)
+      SetSpawnTeam(self.team)
+      child = Effect(x, y, z+1.0, sin(angle)*0.35, sin(angle+90.0)*0.35, 0.6)
+      if(child)
+        child.xhand = BOMBLET
+        child.length = 0.8
+        child.width = 0.6
+        child.red = 255
+        child.green = 120
+        child.blue = 40
+        child.timer = 30 + RollDice(1, 25)
+      angle = angle + 60.0
+      i++
+
+
+  if(element == WEAPON_VARIANT_ICE)
+    // Frost...  Ice blast, everything nearby is chilled for six seconds...
+    PlaySound("FILE:-SPELL03.RAW", 180 + RollDice(1, 30), 255)
+    PEXPLODE.Effect(x, y, z, 0.0, 0.0, 2.3, DAMAGE_ICE, 0, 0, self.owner, self.team, "FILE:ICE1.RGB", (4239600), 200)
+    i = 0
+    while(i < 16)
+      angle = i * 22.5
+      PSMOKE.Effect(x, y, z+0.5, sin(angle)*0.35, sin(angle+90.0)*0.35, 0.0, 1.6, 0.06, FALSE, (4239600), 230, 30)
+      PEMBER.Effect(x, y, z+0.5, sin(angle)*0.4, sin(angle+90.0)*0.4, 0.03, 1.0, 255, 10, "FILE:ICE1.RGB")
+      i++
+    Area(x, y, 12.0, 1)
+
+
+  if(element == WEAPON_VARIANT_VOLT)
+    // Shock...  Three rings of lightning, a third of a second apart...
+    if(self.misc6 == 0)
+      PEXPLODE.Effect(x, y, z, 0.0, 0.0, 2.3, DAMAGE_VOLT, 3, 0, self.owner, self.team, "FILE:ZAPPY0.RGB", SMOKE_COLOR, 120)
+    PlaySound("FILE:-SHOCK.RAW", 230 + RollDice(1, 30), 255)
+    i = 0
+    angle = RollDice(1, 36) + (self.misc6 * 12)
+    while(i < 10)
+      Zap(x + sin(angle)*0.8, y + sin(angle+90.0)*0.8, z + 1.0, sin(angle)*1.0, sin(angle+90.0)*1.0, 18)
+      angle = angle + 36.0
+      i++
+    self.misc6++
+    if(self.misc6 < 3)
+      self.timer = 20
+      return FALSE
+
+
+  if(element == WEAPON_VARIANT_POISON)
+    // Gas...  A field of poison clouds, and everything in it is badly poisoned...
+    i = 0
+    angle = RollDice(1, 72)
+    while(i < 5)
+      PPSNBALL.ShotEffect(x + sin(angle)*3.0, y + sin(angle+90.0)*3.0, z + 1.0, 0.0, 0.0, -0.5, self.owner, 160)
+      angle = angle + 72.0
+      i++
+    PPSNBALL.ShotEffect(x, y, z + 1.0, 0.0, 0.0, -0.5, self.owner, 200)
+    Area(x, y, 9.0, 2)
+
+
+  if(element == WEAPON_VARIANT_HOLY)
+    // Blessing...  Heals and cures allies, smites undead (banishes summoned ones)...
+    PlaySound("FILE:-SPELL01.RAW", 280 + RollDice(1, 20), 255)
+    PEMBER.Effect(x, y, z+1.0, 0.0, 0.0, 0.0, 14.0, 255, 6, "FILE:SPARK4.RGB")
+    i = 0
+    while(i < 12)
+      angle = i * 30.0
+      PEMBER.Effect(x, y, z+0.5, sin(angle)*0.3, sin(angle+90.0)*0.3, 0.05, 1.5, 255, 8, "FILE:SPARK0.RGB")
+      i++
+    if(Area(x, y, 14.0, 3) >= 0)
+      // The thrower is always blessed, even from afar...
+      owner = FindOwner()
+      if(owner)
+        dx = owner.x - x
+        dy = owner.y - y
+        if((dx*dx + dy*dy) >= (14.0*14.0))
+          GENERIC.RestoreCharacterHits(owner, 4, 2)
+          owner.pstimer = 0
+          PEMBER.Effect(owner.x, owner.y, owner.z+1.0, 0.0, 0.0, 0.06, 3.0, 255, 10, "FILE:SPARK4.RGB")
+
+
+  if(element == WEAPON_VARIANT_UNHOLY)
+    // Blood...  Wounds everything nearby and feeds the thrower...
+    PEXPLODE.Effect(x, y, z, 0.0, 0.0, 2.3, DAMAGE_BASH, 0, 0, self.owner, self.team, "FILE:SPARK8.RGB", 8388608, 160)
+    amount = Area(x, y, 10.0, 4)
+    owner = FindOwner()
+    if(owner && amount > 0)
+      if(amount > 8)
+        amount = 8
+      GENERIC.RestoreCharacterHits(owner, amount, 1)
+  return TRUE
+
+//-----------------------------------------------------------------------
 int Refresh()
   int self, damage, wound
 
 
   // Explode
   self = FindSelf()
+  if(self.xhand == BOMBLET)
+    // Cluster bomblet...
+    PEXPLODE.Effect(self.lastx, self.lasty, self.lastz, 0.0, 0.0, 2.3, DAMAGE_FIRE, 3, 1, self.owner, self.team, "FILE:FIRE1.RGB", SMOKE_COLOR, 100)
+    GoPoof(POOF_SELF)
+    return TRUE
+  if(self.xhand >= WEAPON_VARIANT_MAGIC && self.xhand <= WEAPON_VARIANT_UNHOLY)
+    if(CoredBlast(self.xhand))
+      GoPoof(POOF_SELF)
+    return TRUE
   damage = 2+RollDice(1, 3)
   wound = 3
   if(self.team != TEAM_GOOD)
@@ -69,6 +312,7 @@ int Spawn()
   else
     self.vspin = -2000
   hit_count = 0
+  self.misc6 = 0  // Shock gronnade pulse count...
   self.colsize = 0.5
   self.timer = 120
 

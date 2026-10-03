@@ -1,11 +1,43 @@
 //-----------------------------------------------------------------------
+// Element of a cored Gronnade (G'nome's Modify), or 0...
+int VariantElement()
+  int ext
+  ext = (SystemGet(SYS_ITEMEXT, 0, 0) & 255)
+  if(ext > XITEM_GRON_BASE && ext <= (XITEM_GRON_BASE+7))
+    return (ext - XITEM_GRON_BASE)
+  return 0
+
+//-----------------------------------------------------------------------
 int GetName()
+  int element
+  element = VariantElement()
+  if(element == WEAPON_VARIANT_MAGIC)
+    STANDARD.ItemName("GREMF STORM", "SUMMONS 5 GREMFS", 255, 0, 0, 0, 0)
+    return TRUE
+  if(element == WEAPON_VARIANT_FIRE)
+    STANDARD.ItemName("CLUSTER GRONNADE", NULL, 255, 0, 0, 0, 0)
+    return TRUE
+  if(element == WEAPON_VARIANT_ICE)
+    STANDARD.ItemName("FROST GRONNADE", "CHILLS", 255, 0, 0, 0, 0)
+    return TRUE
+  if(element == WEAPON_VARIANT_VOLT)
+    STANDARD.ItemName("SHOCK GRONNADE", NULL, 255, 0, 0, 0, 0)
+    return TRUE
+  if(element == WEAPON_VARIANT_POISON)
+    STANDARD.ItemName("GAS GRONNADE", "POISON", 255, 0, 0, 0, 0)
+    return TRUE
+  if(element == WEAPON_VARIANT_HOLY)
+    STANDARD.ItemName("BLESSING", "HEALS ALLIES", 255, 0, 0, 0, 0)
+    return TRUE
+  if(element == WEAPON_VARIANT_UNHOLY)
+    STANDARD.ItemName("BLOOD GRONNADE", "DRAINS", 255, 0, 0, 0, 0)
+    return TRUE
   STANDARD.ItemName("GRONNADE", NULL, 255, 0, 0, 0, 0)
 
 //-----------------------------------------------------------------------
 // Called when item is first used, to start proper animation
 int Event()
-  int self, grip, delay
+  int self, grip, delay, child
   float vx, vy, vz
 
 
@@ -29,7 +61,11 @@ int Event()
 
       SetSpawnOwner(FindIndex(self))
       SetSpawnTeam(self.team)
-      PGRON.Effect(self.x, self.y, self.z+(self.height*0.5), vx, vy, vz)
+      child = PGRON.Effect(self.x, self.y, self.z+(self.height*0.5), vx, vy, vz)
+      if(child)
+        // Cored gronnade...  The core goes with it...
+        child.xhand = VariantElement()
+        PGRON.Tint(child)
       grip = SystemGet(SYS_WEAPONGRIP, 0, 0)
       STANDARD.AutoReload(self, grip)
 

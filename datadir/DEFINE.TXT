@@ -1353,6 +1353,7 @@
 #define XITEM_GONNE_LEECH       12   // Gonne variant (Unholy): bullets that drain life
 #define XITEM_BOW_BASE          24   // Bow variants (Elf) use 25-31: XITEM_BOW_BASE + element.  Bow and Long Bow share them (effect depends on the bow)
 #define XHAND_BOW_BASE          32   // Arrow xhand: XHAND_BOW_BASE + element marks an arrow from a modded bow
+#define XITEM_GRON_BASE         40   // Gronnade variants (G'nome) use 41-47: XITEM_GRON_BASE + element.  Need a real core, spent when thrown
 #define XITEM_CORED            256   // Flag added to a modded weapon's extension when a real core powers it (refunded on swap/salvage)
 #define CHILL_OFFSET           666   // Character data: frames left of the Chilled status (slower moves & animation, blue tint)
 #define CHILL_TIME             180   // Default chill length (~3 seconds)

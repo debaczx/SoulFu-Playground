@@ -34,15 +34,26 @@ int Refresh()
 
 
   // Summon three friendly Gremfs around the blast...
+  Summon(self.lastx, self.lasty, self.lastz, 3)
+  GoPoof(POOF_SELF)
+
+//-----------------------------------------------------------------------
+// Summons friendly Gremfs in a ring around a point, for whoever owns the
+// calling particle (also used by the Magic-cored gronnade)...
+int Summon(float x, float y, float z, int count)
+  int self, i, child
+  float angle, gx, gy, step
+  self = FindSelf()
   i = 0
   angle = RollDice(1, 256) * 1.4
-  while(i < 3)
-    gx = self.lastx + (sin(angle)*1.5)
-    gy = self.lasty + (sin(angle+90.0)*1.5)
+  step = 360.0 / count
+  while(i < count)
+    gx = x + (sin(angle)*1.5)
+    gy = y + (sin(angle+90.0)*1.5)
     SystemSet(SYS_GLOBALSPAWN, 0, GLOBAL_SPAWN_TEAM, self.team)
     SystemSet(SYS_GLOBALSPAWN, 0, GLOBAL_SPAWN_SUBTYPE, GREMF_SUMMONED_FLAG | (RollDice(1, 16)&15))
     SystemSet(SYS_GLOBALSPAWN, 0, GLOBAL_SPAWN_OWNER, self.owner)
-    child = Spawn(CHARACTER, gx, gy, self.lastz + 0.5, "FILE:CGREMF.RUN")
+    child = Spawn(CHARACTER, gx, gy, z + 0.5, "FILE:CGREMF.RUN")
     if(child)
       child.spin = RollDice(1, 256)<<8
       child.aitimer = 10 + RollDice(1, 20)  // Wake up the AI (it only runs when this counts down)...
@@ -51,9 +62,9 @@ int Refresh()
       child.daction = ACTION_JUMP
       child.flags = child.flags | CHAR_FALL_ON
       PFLASH.Effect(child, "FILE:LITESPRK.RGB", MAGENTA, TRUE, 0.9)
-    angle = angle + 120.0
+    angle = angle + step
     i++
-  GoPoof(POOF_SELF)
+  return TRUE
 
 //-----------------------------------------------------------------------
 int Event()

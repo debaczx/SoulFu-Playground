@@ -49,7 +49,6 @@ int VariantElement()
 int VariantName(int type, int element, int name)
   int longbow
   longbow = (type == ITEM_LONG_BOW)
-  // Kept flat (no nested ifs), the compiler mangles some nested if/return chains...
   if(!longbow && element == WEAPON_VARIANT_MAGIC)
     return "SPLITTER"
   if(!longbow && element == WEAPON_VARIANT_FIRE)
