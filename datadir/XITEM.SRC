@@ -81,11 +81,18 @@ int ArtifactFlags(int ext)
   return 0
 
 //-----------------------------------------------------------------------
-// TRUE if the artifact's life drain also heals hard wounds (Mending)...
-int ArtifactMends(int ext)
+// Mending: percent chance, per damaging hit, to heal hard wounds...
+int ArtifactMendChance(int ext)
   if(ext == ARTIFACT_BEARDS_DELVER)
-    return TRUE
-  return FALSE
+    return 25
+  return 0
+
+//-----------------------------------------------------------------------
+// Mending: most hard wounds healed when it triggers (heals 1 to this)...
+int ArtifactMendAmount(int ext)
+  if(ext == ARTIFACT_BEARDS_DELVER)
+    return 2
+  return 0
 
 
 //-----------------------------------------------------------------------

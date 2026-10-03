@@ -182,13 +182,13 @@ int Event()
           if(special_flags & SPECIAL_FLAG_DRAIN)
             if(!(target.flags & CHAR_NO_BACKSTAB))
               drain_amount = drain_amount - target.hits
-              // Artifacts with Mending heal hard wounds with what they drain...
-              mending = FALSE
+              // Artifacts with Mending have a chance to heal a few hard wounds...
               if(drain_amount > 0 && (self.xhand == 1 || self.xhand == 2))
-                mending = XITEM.ArtifactMends(XITEM.Get(owner, 241+self.xhand))
-              if(mending)
-                GENERIC.RestoreCharacterHits(owner, drain_amount, drain_amount)
-                drain_amount = 0
+                mending = XITEM.Get(owner, 241+self.xhand)
+                if(mending)
+                  if(RollDice(1, 100) <= XITEM.ArtifactMendChance(mending))
+                    mending = RollDice(1, XITEM.ArtifactMendAmount(mending))
+                    GENERIC.RestoreCharacterHits(owner, mending, mending)
               if(drain_amount > 0)
                 owner.hits = owner.hits + drain_amount
                 if(owner.hits > (owner.hitsmax-owner.hitstap))
