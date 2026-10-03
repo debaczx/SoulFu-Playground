@@ -17,6 +17,7 @@
 // in a release, or saved games will turn one artifact into another...
 #define ARTIFACT_NONE           0
 #define ARTIFACT_BEARDS_DELVER  1
+#define ARTIFACT_SPLITTER       2
 
 
 //-----------------------------------------------------------------------
@@ -57,6 +58,8 @@ int Current()
 int ArtifactName(int ext)
   if(ext == ARTIFACT_BEARDS_DELVER)
     return "BEARD'S DELVER"
+  if(ext == ARTIFACT_SPLITTER)
+    return "SPLITTER"
   return NULL
 
 //-----------------------------------------------------------------------
@@ -64,6 +67,16 @@ int ArtifactName(int ext)
 int ArtifactTexture(int ext)
   if(ext == ARTIFACT_BEARDS_DELVER)
     return "FILE:=PICKGLD.RGB"
+  if(ext == ARTIFACT_SPLITTER)
+    return "FILE:=PICKSPL.RGB"
+  return NULL
+
+//-----------------------------------------------------------------------
+// Texture used instead of the base weapon's shine/body texture (model slot
+// +4)...  Bows use this one for their limbs...
+int ArtifactShine(int ext)
+  if(ext == ARTIFACT_SPLITTER)
+    return "FILE:WOODSPL.RGB"
   return NULL
 
 //-----------------------------------------------------------------------
@@ -71,6 +84,8 @@ int ArtifactTexture(int ext)
 int ArtifactIcon(int ext)
   if(ext == ARTIFACT_BEARDS_DELVER)
     return "FILE:=IPICKAR.RGB"
+  if(ext == ARTIFACT_SPLITTER)
+    return "FILE:=IBOWSPL.RGB"
   return NULL
 
 //-----------------------------------------------------------------------
@@ -109,6 +124,13 @@ int ArtifactMendAmount(int ext)
     return 2
   return 0
 
+//-----------------------------------------------------------------------
+// TRUE if the artifact bow's arrows burst into two magic missiles on hit...
+int ArtifactSplits(int ext)
+  if(ext == ARTIFACT_SPLITTER)
+    return TRUE
+  return FALSE
+
 
 //-----------------------------------------------------------------------
 // Hooks called from the item scripts...
@@ -120,6 +142,9 @@ int WeaponModelSetup(int self, int grip)
   texture = ArtifactTexture(SystemGet(SYS_ITEMEXT, 0, 0))
   if(texture)
     ModelAssign(self+grip+8, texture)
+  texture = ArtifactShine(SystemGet(SYS_ITEMEXT, 0, 0))
+  if(texture)
+    ModelAssign(self+grip+4, texture)
   return TRUE
 
 //-----------------------------------------------------------------------

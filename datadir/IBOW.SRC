@@ -51,6 +51,7 @@ int ModelSetup()
       ModelAssign(self+grip+12, "FILE:=HAMMER.RGB")
       ModelAssign(self+grip+16, "FILE:=ARROW.RGB")
       ModelAssign(self+grip+20, WHITE)
+      XITEM.WeaponModelSetup(self, grip)  // Artifact texture, if any...
     else
       // Long bow...
       ModelAssign(self+grip, "FILE:LBOW.RDY")
@@ -68,7 +69,7 @@ int ModelSetup()
 //-----------------------------------------------------------------------
 // Called when attack particle is supposed to be spawned
 int FrameEvent()
-  int self, dex, type, str
+  int self, dex, type, str, child
   float speed
   float vx, vy, vz
 
@@ -92,7 +93,9 @@ int FrameEvent()
   vy = AutoAim(0.0, 0.0, 0, 0, 0, 0, AUTOAIM_Y)
   vz = AutoAim(0.0, 0.0, 0, 0, 0, 0, AUTOAIM_Z)
   type = SystemGet(SYS_ITEMINDEX, 0, 0) & 7
-  PARROW.Effect(type, vx, vy, vz, TRUE)
+  child = PARROW.Effect(type, vx, vy, vz, TRUE)
+  if(child)
+    child.xhand = 1  // Bows are always left hand...  Lets artifact perks find the bow on hit...
 
 //-----------------------------------------------------------------------
 // Called when item is first used, to start proper animation

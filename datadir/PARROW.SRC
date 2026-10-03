@@ -6,6 +6,7 @@ int Event()
   int child, image0, image1, smoke_color, damage_type, defwoun
   int owner
   float length, x, y, z
+  float sx, sy, sl
 
 
 
@@ -96,6 +97,26 @@ int Event()
                 critical = TRUE
                 if(damage_type == DAMAGE_FIRE)
                   PBURNING.Effect(target, 4, self.owner)
+
+
+
+      // Artifact bows (Splitter) burst into missiles on hit...  Only once per arrow...
+      if(self.xhand == 1 && owner && target.team != self.team)
+        if(XITEM.ArtifactSplits(XITEM.Get(owner, 242)))
+          self.xhand = 0
+          sx = self.vx
+          sy = self.vy
+          sl = sqrt((sx*sx) + (sy*sy))
+          if(sl < 0.01)
+            sx = owner.frontx
+            sy = owner.fronty
+            sl = 1.0
+          sx = sx / sl
+          sy = sy / sl
+          // Spawn one missile to each side of the target, flying outward...
+          sl = (target.boxsize + 1.5)
+          PMISSILE.DirectedEffect(target.x - (sy*sl), target.y + (sx*sl), self.z, (sx*0.15) - (sy*0.4), (sy*0.15) + (sx*0.4), 0.0, self.owner, "FILE:SPARK5.RGB", "FILE:SPARK6.RGB")
+          PMISSILE.DirectedEffect(target.x + (sy*sl), target.y - (sx*sl), self.z, (sx*0.15) + (sy*0.4), (sy*0.15) - (sx*0.4), 0.0, self.owner, "FILE:SPARK5.RGB", "FILE:SPARK6.RGB")
 
 
 

@@ -45,6 +45,38 @@ int ShotEffect(float x, float y, float z, float vx, float vy, float vz, int owne
 
 
 //-----------------------------------------------------------------------
+// Spawns a single missile flying in a given direction (instead of aiming
+// along the owner's facing like ShotEffect)...  Used by artifacts...
+int DirectedEffect(float x, float y, float z, float vx, float vy, float vz, int owner_index, int image, int image2)
+  int child, owner
+  owner = FindByIndex(owner_index)
+  if(owner)
+    child = Spawn(PARTICLE, x, y, z, 0)
+    if(child)
+      child.image = image
+      child.image2 = image2
+      child.flags = PART_LIGHT_ON | PART_WALL_COLLISION_ON | PART_CHAR_COLLISION_ON
+      child.length = 1.0
+      child.width = 0.5
+      child.colsize = 0.1
+      child.trail = 220
+      child.alpha = 255
+      child.team = owner.team
+      child.owner = owner_index
+      child.timer = 1
+      child.spin = owner.spin
+      child.target = 65535
+      child.vx = vx
+      child.vy = vy
+      child.vz = vz
+      child.misc4 = 0
+      child.misc5 = RollDice(1, 256)
+      child.misc6 = RollDice(1, 256)
+      child.misc7 = RollDice(1, 256)
+      child.evtimer = 20
+  return child
+
+//-----------------------------------------------------------------------
 int ChargeEffect(float x, float y, float z, int charge, int image2)
   int i
   float dx, dy, dz, angle

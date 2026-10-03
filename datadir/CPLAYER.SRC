@@ -1112,6 +1112,8 @@ int Spawn()
     self.item03 = ITEM_FOOD
     self.item04 = ITEM_TRIPE
     self.item05 = ITEM_TRIPE
+    self.item06 = ITEM_BOW
+    XITEM.Set(self, 230, 2)  // Test artifact: Splitter (see XITEM.SRC)
   if(self.class == CLASS_MYSTIC)
     self.eqright = ITEM_SHORT_SWORD
     if(RollDice(1, 100) < 50)
