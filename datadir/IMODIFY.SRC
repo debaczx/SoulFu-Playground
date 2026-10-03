@@ -1,7 +1,9 @@
 //-----------------------------------------------------------------------
-// <ZZ> Modify...  G'nome skill.  Works like Tinker (hold, pick a direction
-//      with the stick/keys, let go), but works on the weapon in the right
-//      hand instead of building something new.
+// <ZZ> Modify...  Class skill.  Works like Tinker (hold, pick a direction
+//      with the stick/keys, let go), but works on a held weapon instead of
+//      building something new.  Each class works on its own gear:
+//          G'nome  Tinker gear (Flamer, Gonne) in the right hand  "MODIFY"
+//          Elf     Plain bows (left hand)                          "FLETCH"
 //
 //      The directions are a compass of elements, clockwise from Up, in the
 //      same order as the game's enchantments (WEAPON_VARIANT_*):
@@ -26,13 +28,44 @@
 
 //-----------------------------------------------------------------------
 int GetName()
+  int binding
+  binding = FindBinding()
+  if(binding)
+    if(binding.class == CLASS_ELF)
+      STANDARD.ItemName("FLETCH", NULL, 255, 0, 0, 0, 0)
+      return TRUE
   STANDARD.ItemName("MODIFY", NULL, 255, 0, 0, 0, 0)
 
 //-----------------------------------------------------------------------
+// Each class works on its own kind of gear...  Which hand slot?
+//   G'nome:  Tinker gear (Flamer, Gonne) in the right hand
+//   Elf:     Bows (always in the left hand)
+int ModSlot(int self)
+  if(self.class == CLASS_ELF)
+    return 242
+  return MODIFY_SLOT
+
+//-----------------------------------------------------------------------
+// TRUE if the item is a bow (any enchantment)...
+int IsBow(int item)
+  item = item & 252
+  if(item == ITEM_BOW || item == ITEM_LONG_BOW)
+    return TRUE
+  return FALSE
+
+//-----------------------------------------------------------------------
 // What does element (1-7) turn the held weapon into?  NO_VARIANT if
-// nothing (yet)...  0 means the weapon's plain version...
+// nothing (yet)...  0 means the weapon's plain version...  Only plain
+// (unenchanted) weapons can be modified...
 int VariantFor(int self, int element)
-  if(self.eqright == ITEM_FLAMER)
+  int item
+  item = FileReadByte(self, ModSlot(self))
+  if(self.class == CLASS_ELF)
+    if(item == ITEM_BOW || item == ITEM_LONG_BOW)
+      if(element >= WEAPON_VARIANT_MAGIC && element <= WEAPON_VARIANT_UNHOLY)
+        return (XITEM_BOW_BASE + element)
+    return NO_VARIANT
+  if(item == ITEM_FLAMER)
     if(element == WEAPON_VARIANT_FIRE)
       return 0
     if(element == WEAPON_VARIANT_ICE)
@@ -47,7 +80,7 @@ int VariantFor(int self, int element)
       return XITEM_VENOM_SPRAY
     if(element == WEAPON_VARIANT_HOLY)
       return XITEM_SANCTIFIER
-  if(self.eqright == ITEM_GONNE)
+  if(item == ITEM_GONNE)
     if(element >= WEAPON_VARIANT_MAGIC && element <= WEAPON_VARIANT_UNHOLY)
       return (XITEM_GONNE_BASE + element)
   return NO_VARIANT
@@ -69,6 +102,8 @@ int ElementOfVariant(int variant)
     return WEAPON_VARIANT_HOLY
   if(variant > XITEM_GONNE_BASE && variant <= (XITEM_GONNE_BASE+7))
     return (variant - XITEM_GONNE_BASE)
+  if(variant > XITEM_BOW_BASE && variant <= (XITEM_BOW_BASE+7))
+    return (variant - XITEM_BOW_BASE)
   return 0
 
 //-----------------------------------------------------------------------
@@ -77,7 +112,13 @@ int ElementOfVariant(int variant)
 // and modded tinker weapons only...
 int SalvageElement(int self)
   int item
-  item = self.eqright
+  item = FileReadByte(self, ModSlot(self))
+  if(self.class == CLASS_ELF)
+    // Enchanted bows give their enchantment's core (Magic, Fire or Ice)...
+    if(IsBow(item))
+      if(item & 3)
+        return (item & 3)
+    return CoreInside(self)
   if(item >= ITEM_DAGGER && item <= (ITEM_WAR_HAMMER+7))
     return (item & 7)
   return CoreInside(self)
@@ -87,7 +128,7 @@ int SalvageElement(int self)
 // no real core (plain, or modded on Intelligence alone)...
 int CoreInside(int self)
   int ext
-  ext = XITEM.Get(self, MODIFY_SLOT)
+  ext = XITEM.Get(self, ModSlot(self))
   if(ext & XITEM_CORED)
     return ElementOfVariant(ext & 255)
   return 0
@@ -114,7 +155,7 @@ int ChanceOfWorking(int self, int expression)
   variant = VariantFor(self, expression)
   if(variant == NO_VARIANT)
     return 0
-  if(variant == (XITEM.Get(self, MODIFY_SLOT) & 255))
+  if(variant == (XITEM.Get(self, ModSlot(self)) & 255))
     return 0  // Already is that...
   if(variant == 0)
     return 100  // Going back to the plain version always works
@@ -188,21 +229,23 @@ int Event()
 //-----------------------------------------------------------------------
 // Breaks down the held weapon...  Returns TRUE if it worked...
 int Salvage(int self)
-  int element, variant
+  int element, variant, slot
   element = SalvageElement(self)
   if(element == 0)
     return FALSE
-  variant = XITEM.Get(self, MODIFY_SLOT) & 255
+  slot = ModSlot(self)
+  variant = XITEM.Get(self, slot) & 255
   if(ElementOfVariant(variant))
-    // Modded tinker weapon with a real core...  Strip the mod, keep the weapon, refund the core...
+    // Modded weapon with a real core...  Strip the mod, keep the weapon, refund the core...
     if(XITEM.GiveCore(self, element) == FALSE)
       return FALSE
-    XITEM.Set(self, MODIFY_SLOT, 0)
+    XITEM.Set(self, slot, 0)
   else
     // Enchanted weapon...  Gone, but we get its core...
     if(XITEM.GiveCore(self, element) == FALSE)
       return FALSE
-    self.eqright = ITEM_NONE
+    FileWriteByte(self, slot, ITEM_NONE)
+    XITEM.Set(self, slot, 0)
   return TRUE
 
 //-----------------------------------------------------------------------
@@ -284,7 +327,7 @@ int Unpressed()
       XITEM.GiveCore(self, oldcore)
     if(slot)
       variant = variant | XITEM_CORED
-    XITEM.Set(self, MODIFY_SLOT, variant)
+    XITEM.Set(self, ModSlot(self), variant)
     self.charge = 0
     SystemSet(SYS_CHARFASTFUNCTION, index, 0, FAST_FUNCTION_MODELSETUP)
     PSPARK.Effect(self.x, self.y, self.z+(self.height*0.5), 12, 4)

@@ -31,7 +31,54 @@ int GetName()
     damage_high = damage_high+2
   damage_low = damage_low + (strength/10)
   damage_high = damage_high + (strength/10)
+  name = VariantName(type, VariantElement(), name)
   STANDARD.ItemName(name, NULL, damage_type, damage_low, damage_high, 1, 1)
+
+//-----------------------------------------------------------------------
+// Element of a modded bow (Elf's Fletch), or 0...
+int VariantElement()
+  int ext
+  ext = (SystemGet(SYS_ITEMEXT, 0, 0) & 255)
+  if(ext > XITEM_BOW_BASE && ext <= (XITEM_BOW_BASE+7))
+    return (ext - XITEM_BOW_BASE)
+  return 0
+
+//-----------------------------------------------------------------------
+// Names of the modded bows...  The same core does something different in
+// a short bow than in a long bow...
+int VariantName(int type, int element, int name)
+  int longbow
+  longbow = (type == ITEM_LONG_BOW)
+  // Kept flat (no nested ifs), the compiler mangles some nested if/return chains...
+  if(!longbow && element == WEAPON_VARIANT_MAGIC)
+    return "SPLITTER"
+  if(!longbow && element == WEAPON_VARIANT_FIRE)
+    return "EMBER BOW"
+  if(!longbow && element == WEAPON_VARIANT_ICE)
+    return "FROSTBITE"
+  if(!longbow && element == WEAPON_VARIANT_VOLT)
+    return "STATIC BOW"
+  if(!longbow && element == WEAPON_VARIANT_POISON)
+    return "VENOM BOW"
+  if(!longbow && element == WEAPON_VARIANT_HOLY)
+    return "LIFEBINDER"
+  if(!longbow && element == WEAPON_VARIANT_UNHOLY)
+    return "LEECH BOW"
+  if(longbow && element == WEAPON_VARIANT_MAGIC)
+    return "SEEKER"
+  if(longbow && element == WEAPON_VARIANT_FIRE)
+    return "BLAST BOW"
+  if(longbow && element == WEAPON_VARIANT_ICE)
+    return "GLACIER"
+  if(longbow && element == WEAPON_VARIANT_VOLT)
+    return "STORMCALLER"
+  if(longbow && element == WEAPON_VARIANT_POISON)
+    return "PLAGUE BOW"
+  if(longbow && element == WEAPON_VARIANT_HOLY)
+    return "SUNSHOT"
+  if(longbow && element == WEAPON_VARIANT_UNHOLY)
+    return "SOUL REAVER"
+  return name
 
 //-----------------------------------------------------------------------
 // Called to put item in character's hand
@@ -60,6 +107,7 @@ int ModelSetup()
       ModelAssign(self+grip+12, "FILE:=HAMMER.RGB")
       ModelAssign(self+grip+16, "FILE:=ARROW.RGB")
       ModelAssign(self+grip+20, WHITE)
+      XITEM.WeaponModelSetup(self, grip)  // Modded bows get tinted limbs...
 
 
     // See if we've got a quiver somewhere...
@@ -96,6 +144,9 @@ int FrameEvent()
   child = PARROW.Effect(type, vx, vy, vz, TRUE)
   if(child)
     child.xhand = 1  // Bows are always left hand...  Lets artifact perks find the bow on hit...
+    if(VariantElement())
+      // Modded bow...  The arrow remembers its element, so it works even if the bow is swapped mid-flight...
+      child.xhand = XHAND_BOW_BASE + VariantElement()
 
 //-----------------------------------------------------------------------
 // Called when item is first used, to start proper animation

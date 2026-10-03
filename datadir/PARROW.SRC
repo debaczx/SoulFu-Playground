@@ -4,7 +4,7 @@
 int Event()
   int self, target, critical, dex, owner, damage, wound, critical
   int child, image0, image1, smoke_color, damage_type, defwoun
-  int owner
+  int owner, element
   float length, x, y, z
   float sx, sy, sl
 
@@ -120,9 +120,23 @@ int Event()
 
 
 
+      // Modded bows (Elf's Fletch)...
+      element = 0
+      if(self.xhand > XHAND_BOW_BASE && self.xhand <= (XHAND_BOW_BASE+7) && owner && target.team != self.team)
+        element = self.xhand - XHAND_BOW_BASE
+        self.xhand = 1  // Only once per arrow...
+        if(element == WEAPON_VARIANT_HOLY && (arrow_type & 4))
+          // Sunshot...  Undead can't resist its wounds...
+          if(target.defwoun < 128)
+            target.defwoun = -target.defwoun
+          wound++
+
+
       // Apply damage...
       DamageTarget(damage_type, damage, wound)
       target.defwoun = defwoun  // Undo funny vs. undead thing
+      if(element)
+        VariantHit(element, target)
       if((target.flags & CHAR_NO_STUCK_PARTS) || critical)
         // Don't stick into character, but still do damage...
         PSPARK.Effect(self.lastx, self.lasty, self.lastz, 10, 0)
@@ -145,6 +159,13 @@ int Event()
         self.evtimer = 800 + (RollDice(1, 100)*5)
         arrow_type = 255  // Means it's stuck...
     return TRUE
+  if(self.event == EVENT_HIT_WALL || self.event == EVENT_HIT_FLOOR)
+    if(self.xhand > XHAND_BOW_BASE && self.xhand <= (XHAND_BOW_BASE+7) && (arrow_type & 4))
+      // Long bow area effects go off on the ground too...
+      element = self.xhand - XHAND_BOW_BASE
+      self.xhand = 1
+      if(element == WEAPON_VARIANT_FIRE || element == WEAPON_VARIANT_ICE || element == WEAPON_VARIANT_POISON)
+        VariantHit(element, NULL)
   if(self.event == EVENT_HIT_WALL)
     PlaySound("FILE:-BOW02.RAW", 256, 255)
     PSPARK.Effect(self.lastx, self.lasty, self.lastz, 0, 4)
@@ -196,9 +217,10 @@ int Event()
           self.image = "FILE:=RED.RGB"
 
       // Set the refresh timer for magical arrows...
-      if(arrow_type & 3)
+      if((arrow_type & 3) || self.xhand > XHAND_BOW_BASE)
         // ...So we get nifty little trail effects...
         self.timer = 1
+      self.misc0 = 255  // Seeker's target (none yet)...
   if(self.event == EVENT_BLOCKED)
     PlaySound("FILE:BLOCK.RAW", 225 + RollDice(1, 50), 255)
     PSPARK.Effect(self.lastx, self.lasty, self.lastz, 4, 1)
@@ -264,6 +286,11 @@ int Refresh()
     image = "FILE:ICE0.RGB"
     smoke_color = (4239600)
     alpha = 50
+  if(self.xhand > XHAND_BOW_BASE && self.xhand <= (XHAND_BOW_BASE+7))
+    VariantSteer()
+    image = VariantSpark(self.xhand - XHAND_BOW_BASE)
+    smoke_color = 0
+    alpha = 70
 
 
 
@@ -317,6 +344,235 @@ int Refresh()
 
   self.timer = 1
 
+
+//-----------------------------------------------------------------------
+// Trail sparkle for each modded bow element...
+int VariantSpark(int element)
+  if(element == WEAPON_VARIANT_MAGIC)
+    return "FILE:SPARK6.RGB"
+  if(element == WEAPON_VARIANT_FIRE)
+    return "FILE:FIRE0.RGB"
+  if(element == WEAPON_VARIANT_ICE)
+    return "FILE:ICE0.RGB"
+  if(element == WEAPON_VARIANT_VOLT)
+    return "FILE:ZAPPY0.RGB"
+  if(element == WEAPON_VARIANT_POISON)
+    return "FILE:SPARK10.RGB"
+  if(element == WEAPON_VARIANT_HOLY)
+    return "FILE:SPARK4.RGB"
+  return "FILE:SPARK8.RGB"
+
+//-----------------------------------------------------------------------
+// Seeker (Magic long bow) arrows steer toward an enemy...
+int VariantSteer()
+  int self, target
+  float dx, dy, dz, distance, speed
+  self = FindSelf()
+  if(self.xhand != (XHAND_BOW_BASE + WEAPON_VARIANT_MAGIC) || !(arrow_type & 4))
+    return FALSE
+  if(self.misc0 == 255)
+    self.misc0 = AcquireTarget(ACQUIRE_SEE_ENEMY, NULL, 120.0) & 255
+    if(self.misc0 >= MAX_CHARACTER)
+      self.misc0 = 255
+      return FALSE
+  target = FindByIndex(self.misc0)
+  if(target == NULL)
+    self.misc0 = 255
+    return FALSE
+  dx = target.x - self.x
+  dy = target.y - self.y
+  dz = target.z + (target.height*0.5) - self.z
+  distance = sqrt(dx*dx + dy*dy + dz*dz)
+  speed = sqrt(self.vx*self.vx + self.vy*self.vy + self.vz*self.vz)
+  if(distance > 0.5)
+    speed = speed/distance
+    self.vx = (self.vx*0.80) + (dx*speed*0.20)
+    self.vy = (self.vy*0.80) + (dy*speed*0.20)
+    self.vz = (self.vz*0.80) + (dz*speed*0.20) + 0.02  // Fights gravity a little...
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Swaps self.target to each enemy within range of a point and calls the
+// matching area effect...  kind: 1 Glacier chill, 2 Sunshot turning...
+int AreaEffect(float x, float y, float range, int kind)
+  int self, i, who, old_target, count, defwoun
+  float dx, dy
+  self = FindSelf()
+  old_target = self.target
+  count = 0
+  i = 0
+  while(i < MAX_CHARACTER)
+    who = FindByIndex(i)
+    if(who)
+      if(who.team != self.team && who.team != TEAM_NEUTRAL && who.hits > 0)
+        dx = who.x - x
+        dy = who.y - y
+        if((dx*dx + dy*dy) < (range*range))
+          if(kind == 1)
+            XITEM.Chill(who, CHILL_TIME)
+            PSMOKE.Effect(who.x, who.y, who.z+1.0, 0.0, 0.0, 0.03, 1.5, 0.05, FALSE, (4239600), 200, 25)
+            count++
+          if(kind == 2 && who.defwoun > 0 && who.defwoun < 128)
+            // Undead...  Summoned ones are banished, the rest are knocked down...
+            self.target = i
+            PSPARK.Effect(who.x, who.y, who.z+1.0, 12, 4)
+            PEMBER.Effect(who.x, who.y, who.z+1.0, 0.0, 0.0, 0.05, 3.0, 255, 12, "FILE:SPARK4.RGB")
+            if(who.eflags & ENCHANT_FLAG_SUMMON_3)
+              GoPoof(POOF_TARGET)
+            else
+              who.combo = 4  // Knocks them down...
+              DamageTarget(DAMAGE_BASH, 1, 0)
+            count++
+    i++
+  self.target = old_target
+  return count
+
+//-----------------------------------------------------------------------
+// Spawns a short lightning bolt from a point toward a direction...
+int Zap(float x, float y, float z, float vx, float vy, int life)
+  int self, child
+  self = FindSelf()
+  SetSpawnTarget(65535)
+  SetSpawnOwner(self.owner)
+  SetSpawnTeam(self.team)
+  child = Spawn(PARTICLE, x, y, z, "FILE:PZAPPY.RUN")
+  if(child)
+    child.vx = vx
+    child.vy = vy
+    child.vz = 0.0
+    child.length = 3.0
+    child.width = 3.0
+    child.image = NULL
+    child.flags = PART_LIGHT_ON | PART_WALL_COLLISION_ON | PART_CHAR_COLLISION_ON
+    child.team = self.team
+    child.owner = self.owner
+    child.misc4 = 6
+    child.misc5 = 0
+    child.misc6 = life
+    child.misc7 = 48      // 2 damage per zap
+    child.evtimer = 1
+    child.target = 65535
+  return child
+
+//-----------------------------------------------------------------------
+// What a modded bow's arrow does when it hits (target is NULL when it hit
+// the ground)...  Short bows and long bows do different things...
+int VariantHit(int element, int target)
+  int self, owner, longbow, i, who, found, child
+  float x, y, z, sx, sy, sl, dx, dy, angle
+  self = FindSelf()
+  owner = FindOwner()
+  longbow = (arrow_type & 4)
+  x = self.lastx
+  y = self.lasty
+  z = self.lastz
+  if(target)
+    x = target.x
+    y = target.y
+    z = target.z + (target.height*0.5)
+
+
+  if(element == WEAPON_VARIANT_MAGIC && !longbow && target && owner)
+    // Splitter...  Bursts into two homing missiles, one to each side...
+    sx = self.vx
+    sy = self.vy
+    sl = sqrt((sx*sx) + (sy*sy))
+    if(sl < 0.01)
+      sx = owner.frontx
+      sy = owner.fronty
+      sl = 1.0
+    sx = sx / sl
+    sy = sy / sl
+    sl = (target.boxsize + 1.5)
+    PMISSILE.DirectedEffect(target.x - (sy*sl), target.y + (sx*sl), self.z, (sx*0.10) - (sy*0.25), (sy*0.10) + (sx*0.25), 0.0, self.owner, "FILE:SPARK5.RGB", "FILE:SPARK6.RGB")
+    PMISSILE.DirectedEffect(target.x + (sy*sl), target.y - (sx*sl), self.z, (sx*0.10) + (sy*0.25), (sy*0.10) - (sx*0.25), 0.0, self.owner, "FILE:SPARK5.RGB", "FILE:SPARK6.RGB")
+
+
+  if(element == WEAPON_VARIANT_FIRE)
+    if(longbow)
+      // Blast Bow...
+      PEXPLODE.Effect(x, y, z, 0.0, 0.0, 0.0, DAMAGE_FIRE, 3, 1, self.owner, self.team, "FILE:FIRE1.RGB", 128, 48)
+    else
+      // Ember Bow...  Sets the target burning (1 fire damage every half second, 4 times)...
+      if(target)
+        PGSHOT.Burn(FindIndex(target), self.owner, 4)
+
+
+  if(element == WEAPON_VARIANT_ICE)
+    if(longbow)
+      // Glacier...  Frost burst chills everything nearby...
+      PlaySound("FILE:-SPELL03.RAW", 200 + RollDice(1, 30), 255)
+      i = 0
+      while(i < 10)
+        angle = i * 36.0
+        PSMOKE.Effect(x, y, z, sin(angle)*0.25, sin(angle+90.0)*0.25, 0.0, 1.2, 0.08, FALSE, (4239600), 220, 20)
+        PEMBER.Effect(x, y, z, sin(angle)*0.3, sin(angle+90.0)*0.3, 0.02, 0.8, 255, 14, "FILE:ICE1.RGB")
+        i++
+      AreaEffect(x, y, 6.0, 1)
+    else
+      // Frostbite...
+      if(target)
+        XITEM.Chill(target, CHILL_TIME)
+
+
+  if(element == WEAPON_VARIANT_VOLT && target)
+    PlaySound("FILE:-SHOCK.RAW", 245 + RollDice(1, 20), 255)
+    if(longbow)
+      // Stormcaller...  A ring of lightning bursts out from the target...
+      i = 0
+      while(i < 8)
+        angle = (i * 45.0) + RollDice(1, 20)
+        Zap(x + sin(angle)*(target.boxsize+0.5), y + sin(angle+90.0)*(target.boxsize+0.5), z, sin(angle)*1.0, sin(angle+90.0)*1.0, 16)
+        i++
+    else
+      // Static Bow...  Lightning jumps to up to two other enemies nearby...
+      found = 0
+      i = 0
+      while(i < MAX_CHARACTER && found < 2)
+        who = FindByIndex(i)
+        if(who && who != target)
+          if(who.team != self.team && who.team != TEAM_NEUTRAL && who.hits > 0)
+            dx = who.x - x
+            dy = who.y - y
+            sl = sqrt(dx*dx + dy*dy)
+            if(sl < 12.0 && sl > 0.1)
+              Zap(x + (dx/sl)*(target.boxsize+0.5), y + (dy/sl)*(target.boxsize+0.5), z, (dx/sl)*1.2, (dy/sl)*1.2, 20)
+              found++
+        i++
+
+
+  if(element == WEAPON_VARIANT_POISON)
+    if(longbow)
+      // Plague Bow...  Leaves a poison cloud...
+      PPSNBALL.ShotEffect(x, y, z+0.5, 0.0, 0.0, -0.5, self.owner, 96)
+    else
+      // Venom Bow...
+      if(target)
+        STANDARD.PoisonCharacter(self.target, self.owner, 300)
+
+
+  if(element == WEAPON_VARIANT_HOLY && target && owner)
+    if(longbow)
+      // Sunshot...  Sometimes turns the undead around the target...
+      if(RollDice(1, 100) <= 25)
+        PlaySound("FILE:-SPELL01.RAW", 300 + RollDice(1, 20), 255)
+        PEMBER.Effect(x, y, z, 0.0, 0.0, 0.0, 8.0, 255, 10, "FILE:SPARK4.RGB")
+        AreaEffect(x, y, 8.0, 2)
+    else
+      // Lifebinder...  Releases two healing missiles that seek hurt allies...
+      PGSHOT.Effect(x, y, z+0.5, -self.vx*0.15, -self.vy*0.15, 0.15, self.owner, WEAPON_VARIANT_HOLY)
+      PGSHOT.Effect(x, y, z+0.5, -self.vy*0.15, self.vx*0.15, 0.15, self.owner, WEAPON_VARIANT_HOLY)
+
+
+  if(element == WEAPON_VARIANT_UNHOLY && target && owner)
+    if(!(target.flags & CHAR_NO_BACKSTAB))
+      // Leech Bow / Soul Reaver...  Drain a little life...
+      GENERIC.RestoreCharacterHits(owner, RollDice(1, 2), 0)
+      if(longbow && target.hits == 0)
+        // Soul Reaver...  A killing blow mends a hard wound...
+        GENERIC.RestoreCharacterHits(owner, 1, 1)
+    PEMBER.Effect(x, y, z, 0.0, 0.0, 0.05, 2.5, 255, 16, "FILE:SPARK8.RGB")
+  return TRUE
 
 //-----------------------------------------------------------------------
 int FullEffect(int type, float x, float y, float z, float vx, float vy, float vz, int team, int owner_index)
@@ -383,4 +639,3 @@ int Effect(int type, float vx, float vy, float vz, int cost_arrow)
   return child
 
 //-----------------------------------------------------------------------
-

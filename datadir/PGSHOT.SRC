@@ -17,6 +17,7 @@
 
 #define SECONDS_TO_LAST 6
 #define SMOKE_COLOR     (128)
+#define BURN_TICKER     200     // kind for Burn()'s invisible damage ticker
 #define SHOOTER_GRACE   30      // Frames before a mending missile may heal its shooter
 #define MENDING_TICKS   40      // Mending missiles check every 10 frames, so they last ~7 seconds
 
@@ -75,6 +76,32 @@ int Effect(float x, float y, float z, float vx, float vy, float vz, int owner_in
   return child
 
 //-----------------------------------------------------------------------
+// Sets a character ablaze for real: 1 fire damage every half second for
+// ticks times (the game's own burning is mostly for show)...  Uses an
+// invisible ticker particle (kind BURN_TICKER)...
+int Burn(int target_index, int owner_index, int ticks)
+  int child, owner, target
+  owner = FindByIndex(owner_index)
+  target = FindByIndex(target_index)
+  child = NULL
+  if(owner && target)
+    PBURNING.Effect(target, 2, owner_index)  // The flames...
+    SetSpawnTarget(65535)
+    SetSpawnOwner(owner_index)
+    SetSpawnTeam(owner.team)
+    child = Spawn(PARTICLE, target.x, target.y, target.z, 0)
+    if(child)
+      child.xhand = BURN_TICKER
+      child.image = NULL
+      child.flags = 0
+      child.target = target_index
+      child.owner = owner_index
+      child.team = owner.team
+      child.misc4 = ticks
+      child.evtimer = 30
+  return child
+
+//-----------------------------------------------------------------------
 // Index of the most hurt ally (soft or hard wounds) within reach, or
 // 65535 if nobody needs healing...  The shooter only counts once the
 // grace time is over...
@@ -127,6 +154,20 @@ int Event()
 
 
   self = FindSelf()
+  if(kind == BURN_TICKER)
+    if(self.event == EVENT_TIMER)
+      target = FindTarget()
+      if(target == NULL || age == 0)
+        GoPoof(POOF_SELF)
+        return 0
+      if(target.hits == 0 || ((target.flags & CHAR_IN_WATER) && RoomWaterType() == WATER_TYPE_WATER))
+        GoPoof(POOF_SELF)
+        return 0
+      if(target.deffire == 0 || target.deffire > 128)
+        DamageTarget(DAMAGE_FIRE, 1, 0)
+      age--
+      self.evtimer = 30
+    return 0
   if(self.event == EVENT_SPAWNED_IN_WATER)
     PDROWN.Effect(self.x, self.y, self.z, 4)
     GoPoof(POOF_SELF)
@@ -237,6 +278,10 @@ int Refresh()
 
   // Darts fly straight...
   if(kind == WEAPON_VARIANT_POISON)
+    return 0
+  // Mending missiles fly free until they've picked someone (the engine can
+  // leave a junk index in .target before that)...
+  if(kind == WEAPON_VARIANT_HOLY && age == 0)
     return 0
 
 

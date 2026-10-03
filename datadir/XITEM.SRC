@@ -79,8 +79,23 @@ int ArtifactTexture(int ext)
 // Texture used instead of the base weapon's shine/body texture (model slot
 // +4)...  Bows use this one for their limbs...
 int ArtifactShine(int ext)
+  ext = ext & 255
   if(ext == ARTIFACT_SPLITTER)
     return "FILE:WOODSPL.RGB"
+  if(ext == XITEM_BOW_BASE+WEAPON_VARIANT_MAGIC)
+    return "FILE:WOODSPL.RGB"
+  if(ext == XITEM_BOW_BASE+WEAPON_VARIANT_FIRE)
+    return "FILE:WOODB2.RGB"
+  if(ext == XITEM_BOW_BASE+WEAPON_VARIANT_ICE)
+    return "FILE:WOODB3.RGB"
+  if(ext == XITEM_BOW_BASE+WEAPON_VARIANT_VOLT)
+    return "FILE:WOODB4.RGB"
+  if(ext == XITEM_BOW_BASE+WEAPON_VARIANT_POISON)
+    return "FILE:WOODB5.RGB"
+  if(ext == XITEM_BOW_BASE+WEAPON_VARIANT_HOLY)
+    return "FILE:WOODB6.RGB"
+  if(ext == XITEM_BOW_BASE+WEAPON_VARIANT_UNHOLY)
+    return "FILE:WOODB7.RGB"
   return NULL
 
 //-----------------------------------------------------------------------
@@ -108,6 +123,44 @@ int ArtifactIcon(int ext)
   if(ext > XITEM_CORE_BASE && ext <= XITEM_CORE_BASE+7)
     return CoreIcon(ext-XITEM_CORE_BASE)
   return NULL
+
+//-----------------------------------------------------------------------
+// Inventory icon for an item with an extension...  Some variants look
+// different depending on the base item (short bow vs long bow)...
+int ItemIcon(int ext, int item_type)
+  int element, longbow
+  element = (ext & 255) - XITEM_BOW_BASE
+  if(element < WEAPON_VARIANT_MAGIC || element > WEAPON_VARIANT_UNHOLY)
+    return ArtifactIcon(ext)
+  // Bow variants...  Kept flat (no nested ifs), the compiler mangles some nested if/return chains...
+  longbow = ((item_type & 252) == ITEM_LONG_BOW)
+  if(longbow && element == WEAPON_VARIANT_MAGIC)
+    return "FILE:=ILB1.RGB"
+  if(longbow && element == WEAPON_VARIANT_FIRE)
+    return "FILE:=ILB2.RGB"
+  if(longbow && element == WEAPON_VARIANT_ICE)
+    return "FILE:=ILB3.RGB"
+  if(longbow && element == WEAPON_VARIANT_VOLT)
+    return "FILE:=ILB4.RGB"
+  if(longbow && element == WEAPON_VARIANT_POISON)
+    return "FILE:=ILB5.RGB"
+  if(longbow && element == WEAPON_VARIANT_HOLY)
+    return "FILE:=ILB6.RGB"
+  if(longbow)
+    return "FILE:=ILB7.RGB"
+  if(element == WEAPON_VARIANT_MAGIC)
+    return "FILE:=IBOWSPL.RGB"
+  if(element == WEAPON_VARIANT_FIRE)
+    return "FILE:=IBOW2.RGB"
+  if(element == WEAPON_VARIANT_ICE)
+    return "FILE:=IBOW3.RGB"
+  if(element == WEAPON_VARIANT_VOLT)
+    return "FILE:=IBOW4.RGB"
+  if(element == WEAPON_VARIANT_POISON)
+    return "FILE:=IBOW5.RGB"
+  if(element == WEAPON_VARIANT_HOLY)
+    return "FILE:=IBOW6.RGB"
+  return "FILE:=IBOW7.RGB"
 
 //-----------------------------------------------------------------------
 // Magic Cores...  Element is WEAPON_VARIANT_MAGIC (1) to WEAPON_VARIANT_UNHOLY (7)

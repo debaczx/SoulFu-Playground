@@ -1126,8 +1126,15 @@ int Spawn()
     self.item03 = ITEM_FOOD
     self.item04 = ITEM_TRIPE
     self.item05 = ITEM_TRIPE
-    self.item06 = ITEM_BOW
-    XITEM.Set(self, 230, 2)  // Test artifact: Splitter (see XITEM.SRC)
+    self.item06 = ITEM_MODIFY  // Fletch...  Modifies plain bows with Magic Cores
+    self.item07 = ITEM_BOW       // Test items (unique-testing branch): plain bows and cores to Fletch with
+    self.item08 = ITEM_LONG_BOW
+    self.item09 = ITEM_CORE
+    XITEM.Set(self, 233, XITEM_CORE_BASE+WEAPON_VARIANT_FIRE)
+    self.item10 = ITEM_CORE
+    XITEM.Set(self, 234, XITEM_CORE_BASE+WEAPON_VARIANT_HOLY)
+    self.item11 = ITEM_CORE
+    XITEM.Set(self, 235, XITEM_CORE_BASE+WEAPON_VARIANT_VOLT)
   if(self.class == CLASS_MYSTIC)
     self.eqright = ITEM_SHORT_SWORD
     if(RollDice(1, 100) < 50)
@@ -1138,7 +1145,6 @@ int Spawn()
   if(self.class == CLASS_DWARF)
     self.eqleft = ITEM_SHIELD
     self.eqright = ITEM_PICK_AXE
-    XITEM.Set(self, 243, 1)  // Test artifact: Beard's Delver (see XITEM.SRC)
     self.eqbody = ITEM_BODY_2
     self.item01 = ITEM_MEAT
     self.item02 = ITEM_GREMF_BOMB  // Test items (unique-testing branch)
