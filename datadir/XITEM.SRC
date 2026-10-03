@@ -93,7 +93,72 @@ int ArtifactIcon(int ext)
     return "FILE:=IFLLEE.RGB"
   if(ext == XITEM_LIGHTNING_CANNON)
     return "FILE:=IFLLIT.RGB"
+  if(ext > XITEM_CORE_BASE && ext <= XITEM_CORE_BASE+7)
+    return CoreIcon(ext-XITEM_CORE_BASE)
   return NULL
+
+//-----------------------------------------------------------------------
+// Magic Cores...  Element is WEAPON_VARIANT_MAGIC (1) to WEAPON_VARIANT_UNHOLY (7)
+int CoreIcon(int element)
+  if(element == WEAPON_VARIANT_MAGIC)
+    return "FILE:=ICORE1.RGB"
+  if(element == WEAPON_VARIANT_FIRE)
+    return "FILE:=ICORE2.RGB"
+  if(element == WEAPON_VARIANT_ICE)
+    return "FILE:=ICORE3.RGB"
+  if(element == WEAPON_VARIANT_VOLT)
+    return "FILE:=ICORE4.RGB"
+  if(element == WEAPON_VARIANT_POISON)
+    return "FILE:=ICORE5.RGB"
+  if(element == WEAPON_VARIANT_HOLY)
+    return "FILE:=ICORE6.RGB"
+  if(element == WEAPON_VARIANT_UNHOLY)
+    return "FILE:=ICORE7.RGB"
+  return "FILE:=TINKASK.RGB"
+
+//-----------------------------------------------------------------------
+int CoreName(int element)
+  if(element == WEAPON_VARIANT_MAGIC)
+    return "MAGIC CORE"
+  if(element == WEAPON_VARIANT_FIRE)
+    return "FIRE CORE"
+  if(element == WEAPON_VARIANT_ICE)
+    return "ICE CORE"
+  if(element == WEAPON_VARIANT_VOLT)
+    return "VOLT CORE"
+  if(element == WEAPON_VARIANT_POISON)
+    return "POISON CORE"
+  if(element == WEAPON_VARIANT_HOLY)
+    return "HOLY CORE"
+  if(element == WEAPON_VARIANT_UNHOLY)
+    return "UNHOLY CORE"
+  return "DEAD CORE"
+
+//-----------------------------------------------------------------------
+// Puts a core of the given element in the first free backpack slot...
+// Returns TRUE if there was room...
+int GiveCore(int who, int element)
+  int i
+  i = 224
+  while(i < 240)
+    if(FileReadByte(who, i) == ITEM_NONE)
+      FileWriteByte(who, i, ITEM_CORE)
+      Set(who, i, XITEM_CORE_BASE + element)
+      return TRUE
+    i++
+  return FALSE
+
+//-----------------------------------------------------------------------
+// Backpack slot holding a core of the given element, or 0 if none...
+int FindCore(int who, int element)
+  int i
+  i = 224
+  while(i < 240)
+    if(FileReadByte(who, i) == ITEM_CORE)
+      if(Get(who, i) == XITEM_CORE_BASE + element)
+        return i
+    i++
+  return 0
 
 //-----------------------------------------------------------------------
 // Extra damage per hit...

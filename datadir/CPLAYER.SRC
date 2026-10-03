@@ -1108,12 +1108,16 @@ int Spawn()
     self.item04 = ITEM_AMMO_10
     self.item05 = ITEM_FOOD
     self.item06 = ITEM_MODIFY
-    // Test kit for Modify (unique-testing branch): a Flamer in hand and one of each ingredient...
+    // Test kit for Modify (unique-testing branch): a Flamer in hand, three cores and a Fire Sword to salvage...
     self.eqright = ITEM_FLAMER
     self.item07 = ITEM_GONNE
-    self.item08 = ITEM_SPELL_ICEBALL
-    self.item09 = ITEM_SPELL_ANIMATE_DEAD
-    self.item10 = ITEM_SPELL_LIGHTNING_BOLT
+    self.item08 = ITEM_CORE
+    XITEM.Set(self, 232, XITEM_CORE_BASE+WEAPON_VARIANT_ICE)
+    self.item09 = ITEM_CORE
+    XITEM.Set(self, 233, XITEM_CORE_BASE+WEAPON_VARIANT_VOLT)
+    self.item10 = ITEM_CORE
+    XITEM.Set(self, 234, XITEM_CORE_BASE+WEAPON_VARIANT_UNHOLY)
+    self.item11 = ITEM_SWORD|WEAPON_VARIANT_FIRE  // To try Salvage on...
   if(self.class == CLASS_ELF)
     self.eqright = ITEM_DAGGER
     self.eqleft = ITEM_BOW|ARMOR_VARIANT_MAGIC

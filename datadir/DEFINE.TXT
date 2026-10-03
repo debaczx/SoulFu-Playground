@@ -1315,7 +1315,7 @@
 #define ITEM_COOKIE         130
 #define ITEM_TRIPE          131
 #define ITEM_MODIFY         132 // G'nome skill...  Rebuilds the weapon in the right hand into a variant
-// 133 is Unused
+#define ITEM_CORE           133 // Magic Core...  Element is in the item extension (XITEM_CORE_BASE + WEAPON_VARIANT_*)
 // 134 is Unused
 // 135 is Unused
 
@@ -1340,6 +1340,7 @@
 #define XITEM_FROST_THROWER      3   // Flamer variant: ice cone
 #define XITEM_LEECH_BEAM         4   // Flamer variant: draining ice beam
 #define XITEM_LIGHTNING_CANNON   5   // Flamer variant: hold to charge, release to fire a lightning bolt
+#define XITEM_CORE_BASE         16   // Magic Cores use 17-23: XITEM_CORE_BASE + element (WEAPON_VARIANT_MAGIC..UNHOLY)
 
 #define WEAPON_VARIANT_NONE    0
 #define WEAPON_VARIANT_MAGIC   1
