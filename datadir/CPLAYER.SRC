@@ -1107,6 +1107,13 @@ int Spawn()
     self.item03 = ITEM_AMMO_10
     self.item04 = ITEM_AMMO_10
     self.item05 = ITEM_FOOD
+    self.item06 = ITEM_MODIFY
+    // Test kit for Modify (unique-testing branch): a Flamer in hand and one of each ingredient...
+    self.eqright = ITEM_FLAMER
+    self.item07 = ITEM_GONNE
+    self.item08 = ITEM_SPELL_ICEBALL
+    self.item09 = ITEM_SPELL_ANIMATE_DEAD
+    self.item10 = ITEM_SPELL_LIGHTNING_BOLT
   if(self.class == CLASS_ELF)
     self.eqright = ITEM_DAGGER
     self.eqleft = ITEM_BOW|ARMOR_VARIANT_MAGIC

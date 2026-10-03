@@ -8,16 +8,28 @@
 
 
 #define SMOKE_COLOR 128
+#define ICE_SMOKE_COLOR (4239600)
 
 //-----------------------------------------------------------------------
 int GetName()
+  int ext
+  ext = SystemGet(SYS_ITEMEXT, 0, 0)
+  if(ext == XITEM_FROST_THROWER)
+    STANDARD.ItemName("FROST THROWER", NULL, DAMAGE_ICE, 1, 3, 0, 0)
+    return TRUE
+  if(ext == XITEM_LEECH_BEAM)
+    STANDARD.ItemName("LEECH BEAM", NULL, DAMAGE_ICE, 1, 2, 0, 0)
+    return TRUE
+  if(ext == XITEM_LIGHTNING_CANNON)
+    STANDARD.ItemName("LIGHTNING CANNON", "HOLD TO CHARGE", 255, 0, 0, 0, 0)
+    return TRUE
   STANDARD.ItemName("FLAMER", NULL, DAMAGE_FIRE, 1, 4, 0, 0)
 
 
 //-----------------------------------------------------------------------
 // Called to put item in character's hand
 int ModelSetup()
-  int self, grip
+  int self, grip, ext
 
   grip = SystemGet(SYS_WEAPONGRIP, 0, 0)
   if(grip == MODEL_RIGHT_FILE)
@@ -26,6 +38,13 @@ int ModelSetup()
     ModelAssign(self+grip, "FILE:FLAMER.RDY")
     ModelAssign(self+grip+4, "FILE:WHITE.RGB")
     ModelAssign(self+grip+8, "FILE:=FLAMER.RGB")
+    ext = SystemGet(SYS_ITEMEXT, 0, 0)
+    if(ext == XITEM_FROST_THROWER)
+      ModelAssign(self+grip+8, "FILE:=FLAMFRO.RGB")
+    if(ext == XITEM_LEECH_BEAM)
+      ModelAssign(self+grip+8, "FILE:=FLAMLEE.RGB")
+    if(ext == XITEM_LIGHTNING_CANNON)
+      ModelAssign(self+grip+8, "FILE:=FLAMLIT.RGB")
     ModelAssign(self+grip+12, "FILE:RED.RGB")
     ModelAssign(self+grip+16, "FILE:=FLAMER.RGB")
     ModelAssign(self+grip+20, WHITE)
@@ -43,7 +62,8 @@ int ModelSetup()
 //-----------------------------------------------------------------------
 // Called when attack particle is supposed to be spawned
 int FrameEvent()
-  int self
+  int self, power, dex
+  float vx, vy, vz
 
 
   self = FindSelf()
@@ -54,12 +74,25 @@ int FrameEvent()
         // Just in case we have high dexterity
         self.frame--
       self.charge++
-      self.charge++
+      if(SystemGet(SYS_ITEMEXT, 0, 0) != XITEM_LIGHTNING_CANNON)
+        self.charge++  // Lightning Cannon heats at half speed, to give time to aim the charge...
     if(self.charge & 128)
       self.frame = self.frame + 10
       self.charge = 255
   else
     self.frame = self.frame + 10
+    if(SystemGet(SYS_ITEMEXT, 0, 0) == XITEM_LIGHTNING_CANNON)
+      // Lightning Cannon...  Releasing the button fires the charged bolt...
+      if(!(self.charge & 128) && self.charge >= 24)
+        power = self.charge<<1
+        dex = self.dex
+        if(dex > 50)
+          dex = 50
+        AutoAim(5.0, 5.0, self.spin, self.team, dex, 8192 + (dex*164), AUTOAIM_CRUNCH)
+        vx = AutoAim(0.0, 0.0, 0, 0, 0, 0, AUTOAIM_X)
+        vy = AutoAim(0.0, 0.0, 0, 0, 0, 0, AUTOAIM_Y)
+        vz = AutoAim(0.0, 0.0, 0, 0, 0, 0, AUTOAIM_Z)
+        PZAPPY.ShotEffect(self.x+(self.frontx*1.5), self.y+(self.fronty*1.5), self.z+(self.height*0.55), vx, vy, vz, FindIndex(self), power)
 
 //-----------------------------------------------------------------------
 // Called when item is first used, to start proper animation
@@ -82,7 +115,7 @@ int Event()
 
 //-----------------------------------------------------------------------
 Refresh()
-  int enchantment, i
+  int enchantment, i, ext
   int self, owner_index, child
   int image1, image2, r, g, b, color
   int smoke_image1, smoke_image2, bone
@@ -90,9 +123,18 @@ Refresh()
 
 
   self = FindSelf()
+  ext = SystemGet(SYS_ITEMEXT, 0, 0)
   r = 255
   g = (127-(self.charge&127)) << 1
   b = g
+  // Heat glow in the variant's colour...
+  if(ext == XITEM_FROST_THROWER)
+    r = g
+    b = 255
+  if(ext == XITEM_LEECH_BEAM)
+    b = 255
+  if(ext == XITEM_LIGHTNING_CANNON)
+    g = 255
   color = (r<<16) | (g<<8) | (b)
   ModelAssign(self+MODEL_RIGHT_FILE+20, color)
   if(self.charge & 128)
@@ -118,7 +160,17 @@ Refresh()
         x = SystemGet(SYS_WEAPONREFRESHXYZ, 0, 0) * 0.001
         y = SystemGet(SYS_WEAPONREFRESHXYZ, 0, 1) * 0.001
         z = SystemGet(SYS_WEAPONREFRESHXYZ, 0, 2) * 0.001
-        PCONE.Effect(x, y, z, self.frontx, self.fronty, 0.05, DAMAGE_FIRE, RollDice(1, 4), 0, SPECIAL_FLAG_CHOP_THROUGH, ((self.charge>>1)&7) + 195, SMOKE_COLOR, "FILE:FIRE1.RGB")
+        if(ext == XITEM_FROST_THROWER)
+          // Cone of cold...
+          PCONE.Effect(x, y, z, self.frontx, self.fronty, 0.05, DAMAGE_ICE, RollDice(1, 3), 0, SPECIAL_FLAG_CHOP_THROUGH, ((self.charge>>1)&7) + 195, ICE_SMOKE_COLOR, "FILE:ICE1.RGB")
+        if(ext == XITEM_LEECH_BEAM)
+          // Draining beam (like the blue floating eye)...
+          PBEAM.Effect(self.frontx*0.5, self.fronty*0.5, 0.0, self.height*0.55, 1.0, 2193862, DAMAGE_ICE, RollDice(1, 2), 0, FindIndex(self), SPECIAL_FLAG_DRAIN)
+        if(ext == XITEM_LIGHTNING_CANNON)
+          // Charging ball...  Fires when the button is let go (see FrameEvent)...
+          PZAPPY.ChargeEffect(x, y, z, self.charge<<1)
+        if(ext != XITEM_FROST_THROWER && ext != XITEM_LEECH_BEAM && ext != XITEM_LIGHTNING_CANNON)
+          PCONE.Effect(x, y, z, self.frontx, self.fronty, 0.05, DAMAGE_FIRE, RollDice(1, 4), 0, SPECIAL_FLAG_CHOP_THROUGH, ((self.charge>>1)&7) + 195, SMOKE_COLOR, "FILE:FIRE1.RGB")
     else
       // Flamer doesn't have button held...
       if(self.charge > 0)
@@ -135,6 +187,15 @@ Refresh()
         image1 = "FILE:FIRE0.RGB"
         image2 = "FILE:FIRE1.RGB"
         color = WHITE
+        if(ext == XITEM_FROST_THROWER)
+          image1 = "FILE:ICE0.RGB"
+          image2 = "FILE:ICE1.RGB"
+        if(ext == XITEM_LEECH_BEAM)
+          image1 = "FILE:SPARK9.RGB"
+          image2 = "FILE:SPARK10.RGB"
+        if(ext == XITEM_LIGHTNING_CANNON)
+          image1 = "FILE:ZAPPY0.RGB"
+          image2 = "FILE:ZAPPY1.RGB"
         PENCHANT.Effect(x, y, z-0.2, 0.06, size, image1, image2, TRUE, color, owner_index)
 
         if((SystemGet(SYS_MAINGAMEFRAME, 0, 0) & 1) == 0)

@@ -18,6 +18,7 @@
 #define ARTIFACT_NONE           0
 #define ARTIFACT_BEARDS_DELVER  1
 #define ARTIFACT_SPLITTER       2
+// 3-5 are weapon variants made with the G'nome's Modify skill (XITEM_ defines in DEFINE.TXT)...
 
 
 //-----------------------------------------------------------------------
@@ -86,6 +87,12 @@ int ArtifactIcon(int ext)
     return "FILE:=IPICKAR.RGB"
   if(ext == ARTIFACT_SPLITTER)
     return "FILE:=IBOWSPL.RGB"
+  if(ext == XITEM_FROST_THROWER)
+    return "FILE:=IFLFRO.RGB"
+  if(ext == XITEM_LEECH_BEAM)
+    return "FILE:=IFLLEE.RGB"
+  if(ext == XITEM_LIGHTNING_CANNON)
+    return "FILE:=IFLLIT.RGB"
   return NULL
 
 //-----------------------------------------------------------------------

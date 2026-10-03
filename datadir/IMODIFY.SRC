@@ -1,0 +1,202 @@
+//-----------------------------------------------------------------------
+// <ZZ> Modify...  G'nome skill.  Works like Tinker (hold, pick a direction
+//      with the stick/keys, let go), but instead of building something new
+//      it rebuilds the weapon in the right hand into a variant.
+//
+//      Flamer:  Up    = Frost Thrower     (ingredient: Ice Ball orb)
+//               Right = Leech Beam        (ingredient: Animate Dead orb)
+//               Down  = Lightning Cannon  (ingredient: Lightning Bolt orb)
+//               Left  = plain Flamer      (always works)
+//
+//      Success chance comes from Intelligence.  A matching ingredient in the
+//      backpack is used up and makes it always work.  Failing blows up in
+//      the G'nome's face, like Tinker...
+//-----------------------------------------------------------------------
+#define SMOKE_COLOR 128
+#define MODIFY_SLOT 243     // Right hand
+
+//-----------------------------------------------------------------------
+int GetName()
+  STANDARD.ItemName("MODIFY", NULL, 255, 0, 0, 0, 0)
+
+//-----------------------------------------------------------------------
+// Which variant does this direction make for the held weapon?  -1 if none...
+int VariantFor(int self, int expression)
+  if((self.eqright) == ITEM_FLAMER)
+    if(expression == 1)
+      return XITEM_FROST_THROWER
+    if(expression == 3)
+      return XITEM_LEECH_BEAM
+    if(expression == 5)
+      return XITEM_LIGHTNING_CANNON
+    if(expression == 7)
+      return 0
+  return -1
+
+//-----------------------------------------------------------------------
+// Ingredient that guarantees success...  ITEM_NONE if there isn't one...
+int IngredientFor(int variant)
+  if(variant == XITEM_FROST_THROWER)
+    return ITEM_SPELL_ICEBALL
+  if(variant == XITEM_LEECH_BEAM)
+    return ITEM_SPELL_ANIMATE_DEAD
+  if(variant == XITEM_LIGHTNING_CANNON)
+    return ITEM_SPELL_LIGHTNING_BOLT
+  return ITEM_NONE
+
+//-----------------------------------------------------------------------
+// Backpack slot holding the ingredient, or 0 if not carried...
+int FindIngredient(int self, int item)
+  int i
+  if(item == ITEM_NONE)
+    return 0
+  i = 224
+  while(i < 240)
+    if(FileReadByte(self, i) == item)
+      return i
+    i++
+  return 0
+
+//-----------------------------------------------------------------------
+// Percent chance to work...
+int ChanceOfWorking(int self, int variant)
+  int chance
+  if(variant < 0)
+    return 0
+  if(variant == XITEM.Get(self, MODIFY_SLOT))
+    return 0  // Already is that...
+  if(variant == 0)
+    return 100  // Taking a mod back off always works
+  if(FindIngredient(self, IngredientFor(variant)))
+    return 100
+  chance = 30 + ((self.int - 20)*4)
+  if(chance > 90)
+    chance = 90
+  if(chance < 0)
+    chance = 0
+  return chance
+
+//-----------------------------------------------------------------------
+// Icon floating over the G'nome's head for each choice...
+int IconFor(int variant)
+  if(variant == XITEM_FROST_THROWER)
+    return "FILE:=OICE.RGB"
+  if(variant == XITEM_LEECH_BEAM)
+    return "FILE:=OUNHOLY.RGB"
+  if(variant == XITEM_LIGHTNING_CANNON)
+    return "FILE:=OVOLT.RGB"
+  if(variant == 0)
+    return "FILE:=TINKFLA.RGB"
+  return "FILE:=TINKASK.RGB"
+
+//-----------------------------------------------------------------------
+// Called when item is first used (and repeatedly while held)...
+int Event()
+  int self, child, expression, chance, variant
+  float z
+
+
+  self = FindSelf()
+  if(CharacterScriptFile(FindIndex(self)) != "FILE:CPLAYER.RUN")
+    return FALSE
+
+
+  if(self.action == ACTION_STAND || self.action == ACTION_WALK || self.action == ACTION_JUMP || self.action == ACTION_DOUBLE || self.action == ACTION_SPECIAL_10 || self.action == ACTION_SPECIAL_11)
+    if(self.daction != ACTION_SPECIAL_11)
+      PlaySound("FILE:-GNOME05.RAW", 256, 255)
+    self.daction = ACTION_SPECIAL_11
+    if(self.action != ACTION_SPECIAL_11)
+      self.action = ACTION_SPECIAL_10
+    else
+      PDUST.Effect(1)
+      z = self.z-0.5+self.height
+      child = PEXCLAIM.Effect(self.x, self.y, z, 2.0, TRUE)
+      if(child)
+        expression = ITALK.ExpressionFromAxis(self.baxis)
+        variant = -1
+        if(expression != 0)
+          variant = VariantFor(self, expression)
+        child.image = IconFor(variant)
+
+
+        // Chance bulb (same as Tinker)...
+        if(variant >= 0)
+          chance = ChanceOfWorking(self, variant)
+          child = PEXCLAIM.Effect(self.x, self.y, z, 3.5, TRUE)
+          if(child)
+            child.width = 1.0
+            child.length = 1.0
+            child.image = "FILE:=DIMBULB.RGB"
+          child = PEXCLAIM.Effect(self.x, self.y, z+0.15, 3.5, TRUE)
+          if(child)
+            child.width = 0.5 + (chance*0.01)
+            child.length = child.width
+            child.image = "FILE:LITESPRK.RGB"
+            child.flags = child.flags | PART_LIGHT_ON
+            child.alpha = (chance * 5) >> 1
+            if(chance >= 100)
+              child.alpha = 255
+              child.blue = 128
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Called when the button is let go...  Does the modification...
+int Unpressed()
+  int self, expression, variant, chance, ingredient, slot, oldtarget, index
+
+
+  self = FindSelf()
+  ButtonHandled()
+  if(CharacterScriptFile(FindIndex(self)) != "FILE:CPLAYER.RUN")
+    return FALSE
+
+
+  if(self.action == ACTION_SPECIAL_10)
+    // Too little time...
+    self.action = ACTION_SPECIAL_12
+    self.daction = ACTION_STAND
+    return FALSE
+
+
+  if(self.action == ACTION_SPECIAL_11)
+    self.action = ACTION_SPECIAL_12
+    self.daction = ACTION_STAND
+
+
+    expression = ITALK.ExpressionFromAxis(self.baxis)
+    if(expression == 0)
+      return FALSE
+    variant = VariantFor(self, expression)
+    chance = ChanceOfWorking(self, variant)
+    if(chance <= 0)
+      BuzzerSound()
+      return FALSE
+
+
+    // Use up the ingredient, if we have one...
+    ingredient = IngredientFor(variant)
+    slot = FindIngredient(self, ingredient)
+    if(slot)
+      FileWriteByte(self, slot, ITEM_NONE)
+
+
+    if((RollDice(1, 20)*5) > chance)
+      // Botched it...  Blows up in our face, weapon stays as it was...
+      PEXPLODE.Effect(self.x, self.y, self.z, 0.0, 0.0, 3.34, DAMAGE_FIRE, 0, 0, FindIndex(self), self.team, "FILE:FIRE1.RGB", SMOKE_COLOR, 200)
+      oldtarget = self.target
+      self.target = FindIndex(self)
+      DamageTarget(DAMAGE_BASH, 0, 4)
+      self.target = oldtarget
+      return FALSE
+
+
+    // It worked...
+    XITEM.Set(self, MODIFY_SLOT, variant)
+    self.charge = 0
+    index = FindIndex(self)
+    SystemSet(SYS_CHARFASTFUNCTION, index, 0, FAST_FUNCTION_MODELSETUP)
+    PSPARK.Effect(self.x, self.y, self.z+(self.height*0.5), 12, 4)
+    ButtonSound()
+  return TRUE
+
+//-----------------------------------------------------------------------

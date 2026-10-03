@@ -115,7 +115,7 @@ int Setup()
   RegisterItem(ITEM_FOOD,            "FILE:IFOOD.RUN",   "FILE:=IFOOD.RGB",    NULL,     60, ITEM_FLAG_ITEM, 0, 0, 0, 0, 0)
   RegisterItem(ITEM_COOKIE,          "FILE:ICOOKIE.RUN", "FILE:=ICOOKIE.RGB",  NULL,     10, ITEM_FLAG_ITEM, 0, 0, 0, 0, 0)
   RegisterItem(ITEM_TRIPE,           "FILE:ITRIPE.RUN",  "FILE:=ITRIPE.RGB",   NULL,     20, ITEM_FLAG_ITEM, 0, 0, 0, 0, 0)
-  // 132 is unused
+  RegisterItem(ITEM_MODIFY,          "FILE:IMODIFY.RUN", "FILE:=IMODIFY.RGB",  NULL,     -1, ITEM_FLAG_ITEM, 0, 0, 0, 0, 0)
   // 133 is unused
   // 134 is unused
   // 134 is unused
