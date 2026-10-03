@@ -13,8 +13,11 @@
 //      Core in the backpack is used up and makes it certain; otherwise the
 //      chance comes from Intelligence.  Failing blows up in your face...
 //
-//      Salvage breaks an enchanted weapon into a core of its element, or
-//      strips a modded tinker weapon back to normal and refunds its core.
+//      Re-modding swaps the energy source: the old core (if a real one was
+//      used) pops back into the backpack and the new one goes in.  Salvage
+//      breaks an enchanted weapon into a core of its element, or strips a
+//      modded tinker weapon back to normal and refunds its core.  Mods made
+//      on Intelligence alone hold no core, so they give nothing back...
 //-----------------------------------------------------------------------
 #define SMOKE_COLOR   128
 #define MODIFY_SLOT   243     // Right hand
@@ -60,7 +63,28 @@ int SalvageElement(int self)
   item = self.eqright
   if(item >= ITEM_DAGGER && item <= (ITEM_WAR_HAMMER+7))
     return (item & 7)
-  return ElementOfVariant(XITEM.Get(self, MODIFY_SLOT))
+  return CoreInside(self)
+
+//-----------------------------------------------------------------------
+// Element of the core powering the held modded weapon, or 0 if it holds
+// no real core (plain, or modded on Intelligence alone)...
+int CoreInside(int self)
+  int ext
+  ext = XITEM.Get(self, MODIFY_SLOT)
+  if(ext & XITEM_CORED)
+    return ElementOfVariant(ext & 255)
+  return 0
+
+//-----------------------------------------------------------------------
+// TRUE if the backpack has an empty slot...
+int HasRoom(int self)
+  int i
+  i = 224
+  while(i < 240)
+    if(FileReadByte(self, i) == ITEM_NONE)
+      return TRUE
+    i++
+  return FALSE
 
 //-----------------------------------------------------------------------
 // Percent chance to work...  0 means it can't be done...
@@ -73,7 +97,7 @@ int ChanceOfWorking(int self, int expression)
   variant = VariantFor(self, expression)
   if(variant == NO_VARIANT)
     return 0
-  if(variant == XITEM.Get(self, MODIFY_SLOT))
+  if(variant == (XITEM.Get(self, MODIFY_SLOT) & 255))
     return 0  // Already is that...
   if(variant == 0)
     return 100  // Going back to the plain version always works
@@ -151,9 +175,9 @@ int Salvage(int self)
   element = SalvageElement(self)
   if(element == 0)
     return FALSE
-  variant = XITEM.Get(self, MODIFY_SLOT)
+  variant = XITEM.Get(self, MODIFY_SLOT) & 255
   if(ElementOfVariant(variant))
-    // Modded tinker weapon...  Strip the mod, keep the weapon, refund the core...
+    // Modded tinker weapon with a real core...  Strip the mod, keep the weapon, refund the core...
     if(XITEM.GiveCore(self, element) == FALSE)
       return FALSE
     XITEM.Set(self, MODIFY_SLOT, 0)
@@ -167,7 +191,7 @@ int Salvage(int self)
 //-----------------------------------------------------------------------
 // Called when the button is let go...  Does the modification...
 int Unpressed()
-  int self, expression, variant, chance, slot, oldtarget, index
+  int self, expression, variant, chance, slot, oldtarget, index, oldcore
 
 
   self = FindSelf()
@@ -211,13 +235,21 @@ int Unpressed()
 
 
     variant = VariantFor(self, expression)
+    oldcore = CoreInside(self)
 
 
-    // Use up the core, if we have one...
+    // Use up the new core, if we have one...
+    slot = 0
     if(variant != 0)
       slot = XITEM.FindCore(self, expression)
       if(slot)
         FileWriteByte(self, slot, ITEM_NONE)
+
+
+    // Need somewhere to put the old core when swapping...
+    if(oldcore && !slot && !HasRoom(self))
+      BuzzerSound()
+      return FALSE
 
 
     if((RollDice(1, 20)*5) > chance)
@@ -230,7 +262,11 @@ int Unpressed()
       return FALSE
 
 
-    // It worked...
+    // It worked...  Swap the energy source...
+    if(oldcore)
+      XITEM.GiveCore(self, oldcore)
+    if(slot)
+      variant = variant | XITEM_CORED
     XITEM.Set(self, MODIFY_SLOT, variant)
     self.charge = 0
     SystemSet(SYS_CHARFASTFUNCTION, index, 0, FAST_FUNCTION_MODELSETUP)

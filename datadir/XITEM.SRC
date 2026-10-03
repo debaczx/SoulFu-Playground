@@ -24,13 +24,15 @@
 //-----------------------------------------------------------------------
 // Returns the extension value of a character's slot (224-248)...
 int Get(int who, int slot)
-  int offset
+  int offset, low, high
   if(!who)
     return 0
   if(slot < 224 || slot > 248)
     return 0
   offset = XITEM_OFFSET + ((slot-224)<<1)
-  return FileReadByte(who, offset) + (FileReadByte(who, offset+1)<<8)
+  low = FileReadByte(who, offset)
+  high = FileReadByte(who, offset+1)
+  return (low + (high<<8))  // Parentheses matter!  See NOTE at the end of this file...
 
 //-----------------------------------------------------------------------
 // Sets the extension value of a character's slot (224-248)...
@@ -83,6 +85,7 @@ int ArtifactShine(int ext)
 //-----------------------------------------------------------------------
 // Inventory icon used instead of the base item's icon...
 int ArtifactIcon(int ext)
+  ext = ext & 255  // Ignore the XITEM_CORED flag on modded weapons...
   if(ext == ARTIFACT_BEARDS_DELVER)
     return "FILE:=IPICKAR.RGB"
   if(ext == ARTIFACT_SPLITTER)
@@ -223,6 +226,8 @@ int WeaponModelSetup(int self, int grip)
 // NOTE: The script compiler doesn't close an if() block that sits on the
 // very last line of a file (its jump target is left at 0, which crashes).
 // Always end a file with a line at function level, like the return above.
+// NOTE: "return a + b" compiles as "return a" (the rest is silently lost).
+// Always wrap returned expressions in parentheses: return (a + b)
 // NOTE: Names are case-insensitive and #defines win over variables, so a
 // variable called "character" silently becomes CHARACTER (0)...  Check
 // DEFINE.TXT before picking variable names.
