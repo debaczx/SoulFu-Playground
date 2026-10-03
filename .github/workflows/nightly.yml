@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - unique-testing
   workflow_dispatch:
 
 jobs:
@@ -249,7 +250,7 @@ jobs:
   publish-latest:
     name: Publish latest pre-release
     needs: [debian-amd64, debian-arm64, linux-i386, windows-win64]
-    if: always()
+    if: always() && github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     permissions:
       contents: write
