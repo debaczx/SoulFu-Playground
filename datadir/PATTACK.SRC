@@ -174,6 +174,10 @@ int Event()
           // Chilling attacks (Frost Thrower etc.)...
           if(self.xhand == XHAND_CHILL && target.team != self.team)
             XITEM.Chill(target, CHILL_TIME)
+          // Tempered swords (Soldier's Temper)...  Only swings attached to the sword...
+          if((self.flags & PART_STUCK_ON) && target.team != self.team)
+            if(SWORDFX.IsSword(self.red))
+              SWORDFX.Hit(owner, target)
           // Allow free moving attack particles to burn guys automatically...
           if(!(self.flags & PART_STUCK_ON))
             if((damage_type & 15) == DAMAGE_FIRE)
@@ -350,7 +354,7 @@ int Effect(float x, float y, float z, float vx, float vy, float vz, int type, in
 //-----------------------------------------------------------------------
 // <ZZ> Use this function to spawn attached particles...
 int FrameEvent(int type, int damage, int wound, int grip, int weapon_range, float weapon_radius, int flags, int enchantment)
-  int self, index, child
+  int self, index, child, sword
   self = FindSelf()
 
 
@@ -386,6 +390,17 @@ int FrameEvent(int type, int damage, int wound, int grip, int weapon_range, floa
     flags = flags | XITEM.ArtifactFlags(index)
 
 
+  // Tempered swords...  Holy wounds undead, Unholy hits softer to pay for its drain...
+  sword = 0
+  if(SWORDFX.IsSword(index))
+    sword = index & 255
+    if(SWORDFX.SwordElement(sword) == WEAPON_VARIANT_HOLY)
+      flags = flags | SPECIAL_FLAG_INVERT_DEFWOUN
+    if(SWORDFX.SwordElement(sword) == WEAPON_VARIANT_UNHOLY)
+      if(damage > 1)
+        damage--
+
+
 
   // Random bonus for Luck...
   if(self.team == TEAM_GOOD)
@@ -418,6 +433,14 @@ int FrameEvent(int type, int damage, int wound, int grip, int weapon_range, floa
       child.xhand = 1
     child.width = weapon_radius
     child.length= weapon_radius
+    if(sword)
+      // Tempered sword...  Roll its chance once for the whole swing (see SWORDFX.SRC)...
+      child.red = sword
+      child.green = 0
+      if(RollDice(1, 100) <= SWORDFX.Chance(sword))
+        child.green = 1
+      child.blue = 0
+  return child
 
 //-----------------------------------------------------------------------
 

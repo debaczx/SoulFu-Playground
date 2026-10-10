@@ -1,0 +1,316 @@
+//-----------------------------------------------------------------------
+// <ZZ> Tempered swords (the Soldier's Temper, see IMODIFY.SRC)...
+//      A plain sword plus a Magic Core.  The extension is
+//      XITEM_SWORD_BASE + (tier*8) + element, so every sword gets its
+//      own seven effects:
+//          Short Sword  Stabs...  One enemy, a plain percent chance
+//          Sword        Swipes through a crowd...  Rolls once per swing
+//      PATTACK.FrameEvent() rolls the chance when the swing starts and
+//      stores it on the attack particle:
+//          red     The sword's variant (its extension)
+//          green   1 if the effect goes off this swing
+//          blue    1 once a once-per-swing effect has been used
+//      PATTACK.Event() calls Hit() for each enemy the swing touches...
+//-----------------------------------------------------------------------
+#define ICE_SMOKE_COLOR (4239600)
+
+
+//-----------------------------------------------------------------------
+// TRUE if ext is a tempered sword...
+int IsSword(int ext)
+  ext = ext & 255
+  if(ext > XITEM_SWORD_BASE && ext < (XITEM_SWORD_BASE+40))
+    if(ext & 7)
+      return TRUE
+  return FALSE
+
+//-----------------------------------------------------------------------
+// SWORD_TIER_ of a tempered sword...
+int SwordTier(int ext)
+  return (((ext & 255) - XITEM_SWORD_BASE) >> 3)
+
+//-----------------------------------------------------------------------
+// WEAPON_VARIANT_ element of a tempered sword...
+int SwordElement(int ext)
+  return (((ext & 255) - XITEM_SWORD_BASE) & 7)
+
+//-----------------------------------------------------------------------
+// Variant number for a sword item type and element, or -1 if the item
+// can't be tempered (only plain swords)...
+int VariantFor(int item, int element)
+  if(element < WEAPON_VARIANT_MAGIC || element > WEAPON_VARIANT_UNHOLY)
+    return (-1)
+  if(item == ITEM_SHORT_SWORD)
+    return (XITEM_SWORD_BASE + (SWORD_TIER_SHORT<<3) + element)
+  if(item == ITEM_SWORD)
+    return (XITEM_SWORD_BASE + (SWORD_TIER_SWORD<<3) + element)
+  return (-1)
+
+//-----------------------------------------------------------------------
+// Percent chance per swing...
+int Chance(int ext)
+  int tier, element
+  tier = SwordTier(ext)
+  element = SwordElement(ext)
+  if(tier == SWORD_TIER_SHORT)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return 20
+    if(element == WEAPON_VARIANT_FIRE)
+      return 25
+    if(element == WEAPON_VARIANT_ICE)
+      return 25
+    if(element == WEAPON_VARIANT_VOLT)
+      return 20
+    if(element == WEAPON_VARIANT_POISON)
+      return 35
+    if(element == WEAPON_VARIANT_HOLY)
+      return 20
+    return 30
+  if(element == WEAPON_VARIANT_FIRE)
+    return 25
+  if(element == WEAPON_VARIANT_HOLY)
+    return 15
+  if(element == WEAPON_VARIANT_UNHOLY)
+    return 100  // Leech Blade always drains (once per swing)...
+  return 20
+
+//-----------------------------------------------------------------------
+// Name of a tempered sword...
+int Name(int ext)
+  int tier, element
+  tier = SwordTier(ext)
+  element = SwordElement(ext)
+  if(tier == SWORD_TIER_SHORT)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return "SPELL NEEDLE"
+    if(element == WEAPON_VARIANT_FIRE)
+      return "BRAND"
+    if(element == WEAPON_VARIANT_ICE)
+      return "ICICLE"
+    if(element == WEAPON_VARIANT_VOLT)
+      return "LIGHTNING ROD"
+    if(element == WEAPON_VARIANT_POISON)
+      return "STING"
+    if(element == WEAPON_VARIANT_HOLY)
+      return "BLESSED POINT"
+    return "LEECH POINT"
+  if(element == WEAPON_VARIANT_MAGIC)
+    return "SPELLBLADE"
+  if(element == WEAPON_VARIANT_FIRE)
+    return "EMBER EDGE"
+  if(element == WEAPON_VARIANT_ICE)
+    return "FROST EDGE"
+  if(element == WEAPON_VARIANT_VOLT)
+    return "SPARK BLADE"
+  if(element == WEAPON_VARIANT_POISON)
+    return "VIPER EDGE"
+  if(element == WEAPON_VARIANT_HOLY)
+    return "BLESSED BLADE"
+  return "LEECH BLADE"
+
+//-----------------------------------------------------------------------
+// Second line of the name...
+int Tag(int ext)
+  int element
+  element = SwordElement(ext)
+  if(Chance(ext) >= 100)
+    return "DRAINS"
+  if(element == WEAPON_VARIANT_MAGIC)
+    return "CHANCE: MISSILE"
+  if(element == WEAPON_VARIANT_FIRE)
+    return "CHANCE: BURN"
+  if(element == WEAPON_VARIANT_ICE)
+    return "CHANCE: CHILL"
+  if(element == WEAPON_VARIANT_VOLT)
+    return "CHANCE: LIGHTNING"
+  if(element == WEAPON_VARIANT_POISON)
+    return "CHANCE: POISON"
+  if(element == WEAPON_VARIANT_HOLY)
+    return "CHANCE: HEAL"
+  return "CHANCE: DRAIN"
+
+//-----------------------------------------------------------------------
+// Inventory icon...
+int Icon(int ext)
+  int tier, element
+  tier = SwordTier(ext)
+  element = SwordElement(ext)
+  if(tier == SWORD_TIER_SHORT)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return "FILE:=ISSW1.RGB"
+    if(element == WEAPON_VARIANT_FIRE)
+      return "FILE:=ISSW2.RGB"
+    if(element == WEAPON_VARIANT_ICE)
+      return "FILE:=ISSW3.RGB"
+    if(element == WEAPON_VARIANT_VOLT)
+      return "FILE:=ISSW4.RGB"
+    if(element == WEAPON_VARIANT_POISON)
+      return "FILE:=ISSW5.RGB"
+    if(element == WEAPON_VARIANT_HOLY)
+      return "FILE:=ISSW6.RGB"
+    return "FILE:=ISSW7.RGB"
+  if(element == WEAPON_VARIANT_MAGIC)
+    return "FILE:=ISWD1.RGB"
+  if(element == WEAPON_VARIANT_FIRE)
+    return "FILE:=ISWD2.RGB"
+  if(element == WEAPON_VARIANT_ICE)
+    return "FILE:=ISWD3.RGB"
+  if(element == WEAPON_VARIANT_VOLT)
+    return "FILE:=ISWD4.RGB"
+  if(element == WEAPON_VARIANT_POISON)
+    return "FILE:=ISWD5.RGB"
+  if(element == WEAPON_VARIANT_HOLY)
+    return "FILE:=ISWD6.RGB"
+  return "FILE:=ISWD7.RGB"
+
+//-----------------------------------------------------------------------
+// Blade texture (tinted steel)...
+int Steel(int ext)
+  int element
+  element = SwordElement(ext)
+  if(element == WEAPON_VARIANT_MAGIC)
+    return "FILE:STEEL1.RGB"
+  if(element == WEAPON_VARIANT_FIRE)
+    return "FILE:STEEL2.RGB"
+  if(element == WEAPON_VARIANT_ICE)
+    return "FILE:STEEL3.RGB"
+  if(element == WEAPON_VARIANT_VOLT)
+    return "FILE:STEEL4.RGB"
+  if(element == WEAPON_VARIANT_POISON)
+    return "FILE:STEEL5.RGB"
+  if(element == WEAPON_VARIANT_HOLY)
+    return "FILE:STEEL6.RGB"
+  return "FILE:STEEL7.RGB"
+
+//-----------------------------------------------------------------------
+// Short lightning bolt from a point toward a direction (owner & team
+// come from the attack particle)...
+int Zap(float x, float y, float z, float vx, float vy, int life)
+  int self, child
+  self = FindSelf()
+  SetSpawnTarget(65535)
+  SetSpawnOwner(self.owner)
+  SetSpawnTeam(self.team)
+  child = Spawn(PARTICLE, x, y, z, "FILE:PZAPPY.RUN")
+  if(child)
+    child.vx = vx
+    child.vy = vy
+    child.vz = 0.0
+    child.length = 3.0
+    child.width = 3.0
+    child.image = NULL
+    child.flags = PART_LIGHT_ON | PART_WALL_COLLISION_ON | PART_CHAR_COLLISION_ON
+    child.team = self.team
+    child.owner = self.owner
+    child.misc4 = 6
+    child.misc5 = 0
+    child.misc6 = life
+    child.misc7 = 48      // 2 damage per zap
+    child.evtimer = 1
+    child.target = 65535
+  return child
+
+//-----------------------------------------------------------------------
+// Heals the owner a little, with a puff...
+int Mend(int owner, int image)
+  GENERIC.RestoreCharacterHits(owner, 1, 0)
+  PEMBER.Effect(owner.x, owner.y, owner.z+1.0, 0.0, 0.0, 0.05, 2.0, 255, 12, image)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// The attack particle (self) of a tempered sword hit an enemy...
+int Hit(int owner, int target)
+  int self, ext, tier, element, i, who, found
+  float x, y, z, fx, fy, dx, dy, sl
+
+
+  self = FindSelf()
+  ext = self.red
+  if(self.green == 0)
+    return FALSE  // No luck this swing...
+  tier = SwordTier(ext)
+  element = SwordElement(ext)
+  fx = owner.frontx
+  fy = owner.fronty
+  z = target.z + (target.height*0.5)
+
+
+  if(element == WEAPON_VARIANT_MAGIC && self.blue == 0)
+    self.blue = 1
+    if(tier == SWORD_TIER_SHORT)
+      // Spell Needle...  A bolt goes on through the target...
+      sl = target.boxsize + 1.0
+      PMISSILE.DirectedEffect(target.x + (fx*sl), target.y + (fy*sl), z, fx*0.3, fy*0.3, 0.0, self.owner, "FILE:SPARK5.RGB", "FILE:SPARK6.RGB")
+    else
+      // Spellblade...  A homing missile follows the swing...
+      PMISSILE.DirectedEffect(owner.x + (fx*1.5), owner.y + (fy*1.5), owner.z + (owner.height*0.6), fx*0.25, fy*0.25, 0.05, self.owner, "FILE:SPARK5.RGB", "FILE:SPARK6.RGB")
+
+
+  if(element == WEAPON_VARIANT_FIRE)
+    // Brand / Ember Edge...  Burning (every enemy the swing hits)...
+    PGSHOT.Burn(self.target, self.owner, 4)
+
+
+  if(element == WEAPON_VARIANT_ICE)
+    // Icicle / Frost Edge...
+    XITEM.Chill(target, CHILL_TIME)
+    PSMOKE.Effect(target.x, target.y, z, 0.0, 0.0, 0.03, 1.5, 0.05, FALSE, ICE_SMOKE_COLOR, 200, 25)
+
+
+  if(element == WEAPON_VARIANT_VOLT && self.blue == 0)
+    self.blue = 1
+    PlaySound("FILE:-SHOCK.RAW", 245 + RollDice(1, 20), 255)
+    if(tier == SWORD_TIER_SHORT)
+      // Lightning Rod...  Runs on through the target...
+      sl = target.boxsize + 0.5
+      Zap(target.x + (fx*sl), target.y + (fy*sl), z, fx*1.2, fy*1.2, 20)
+    else
+      // Spark Blade...  Jumps to the nearest other enemy...
+      found = 255
+      sl = 12.0
+      i = 0
+      while(i < MAX_CHARACTER)
+        who = FindByIndex(i)
+        if(who && who != target)
+          if(who.team != self.team && who.team != TEAM_NEUTRAL && who.hits > 0)
+            dx = who.x - target.x
+            dy = who.y - target.y
+            x = sqrt(dx*dx + dy*dy)
+            if(x < sl && x > 0.1)
+              sl = x
+              found = i
+        i++
+      who = NULL
+      if(found < MAX_CHARACTER)
+        who = FindByIndex(found)
+      if(who)
+        dx = (who.x - target.x)/sl
+        dy = (who.y - target.y)/sl
+        x = target.boxsize + 0.5
+        Zap(target.x + (dx*x), target.y + (dy*x), z, dx*1.2, dy*1.2, 20)
+
+
+  if(element == WEAPON_VARIANT_POISON)
+    // Sting / Viper Edge...
+    STANDARD.PoisonCharacter(self.target, self.owner, 300)
+
+
+  if(element == WEAPON_VARIANT_HOLY && self.blue == 0)
+    // Blessed Point / Blessed Blade...  Heals once per swing...
+    self.blue = 1
+    Mend(owner, "FILE:SPARK4.RGB")
+
+
+  if(element == WEAPON_VARIANT_UNHOLY && self.blue == 0)
+    // Leech Point / Leech Blade...  Drains once per swing...
+    if(!(target.flags & CHAR_NO_BACKSTAB))
+      self.blue = 1
+      Mend(owner, "FILE:SPARK8.RGB")
+  return TRUE
+
+//-----------------------------------------------------------------------
+// NOTE: Files must end with a function-level line (see XITEM.SRC)...
+int Unused()
+  return FALSE
+
+//-----------------------------------------------------------------------

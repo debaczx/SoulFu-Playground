@@ -4,6 +4,7 @@
 //      building something new.  Each class works on its own gear:
 //          G'nome  Tinker gear (Flamer, Gonne) in the right hand  "MODIFY"
 //          Elf     Plain bows (left hand)                          "FLETCH"
+//          Soldier Plain swords (right hand)                       "TEMPER"
 //
 //      The directions are a compass of elements, clockwise from Up, in the
 //      same order as the game's enchantments (WEAPON_VARIANT_*):
@@ -34,6 +35,9 @@ int GetName()
     if(binding.class == CLASS_ELF)
       STANDARD.ItemName("FLETCH", NULL, 255, 0, 0, 0, 0)
       return TRUE
+    if(binding.class == CLASS_SOLDIER)
+      STANDARD.ItemName("TEMPER", NULL, 255, 0, 0, 0, 0)
+      return TRUE
   STANDARD.ItemName("MODIFY", NULL, 255, 0, 0, 0, 0)
 
 //-----------------------------------------------------------------------
@@ -41,9 +45,12 @@ int GetName()
 //   G'nome:  Tinker gear (Flamer, Gonne) in the right hand
 //   Elf:     Bows (always in the left hand)
 //   G'nome:  ...or a Gronnade in either hand (right first)
+//   Soldier: Swords in the right hand
 int ModSlot(int self)
   if(self.class == CLASS_ELF)
     return 242
+  if(self.class == CLASS_SOLDIER)
+    return MODIFY_SLOT
   if(self.eqright != ITEM_FLAMER && self.eqright != ITEM_GONNE && self.eqright != ITEM_GRONNADE)
     if(self.eqleft == ITEM_GRONNADE)
       return 242
@@ -62,13 +69,19 @@ int IsBow(int item)
 // nothing (yet)...  0 means the weapon's plain version...  Only plain
 // (unenchanted) weapons can be modified...
 int VariantFor(int self, int element)
-  int item
+  int item, variant
   item = FileReadByte(self, ModSlot(self))
   if(self.class == CLASS_ELF)
     if(item == ITEM_BOW || item == ITEM_LONG_BOW)
       if(element >= WEAPON_VARIANT_MAGIC && element <= WEAPON_VARIANT_UNHOLY)
         return (XITEM_BOW_BASE + element)
     return NO_VARIANT
+  if(self.class == CLASS_SOLDIER)
+    // Plain Short Swords and Swords so far (SWORDFX.SRC)...
+    variant = SWORDFX.VariantFor(item, element)
+    if(variant < 0)
+      return NO_VARIANT
+    return variant
   if(item == ITEM_GRONNADE)
     // Gronnades are single use, so they always burn a real core (see ChanceOfWorking)...
     if(element >= WEAPON_VARIANT_MAGIC && element <= WEAPON_VARIANT_UNHOLY)
@@ -114,6 +127,8 @@ int ElementOfVariant(int variant)
     return (variant - XITEM_BOW_BASE)
   if(variant > XITEM_GRON_BASE && variant <= (XITEM_GRON_BASE+7))
     return (variant - XITEM_GRON_BASE)
+  if(SWORDFX.IsSword(variant))
+    return SWORDFX.SwordElement(variant)
   return 0
 
 //-----------------------------------------------------------------------
@@ -130,7 +145,8 @@ int SalvageElement(int self)
         return (item & 3)
     return CoreInside(self)
   if(item >= ITEM_DAGGER && item <= (ITEM_WAR_HAMMER+7))
-    return (item & 7)
+    if(item & 7)
+      return (item & 7)
   return CoreInside(self)
 
 //-----------------------------------------------------------------------
@@ -174,6 +190,8 @@ int ChanceOfWorking(int self, int expression)
   if(variant > XITEM_GRON_BASE && variant <= (XITEM_GRON_BASE+7))
     return 0  // Gronnades need a real core...
   chance = 30 + ((self.int - 20)*4)
+  if(self.class == CLASS_SOLDIER)
+    chance = 30 + ((self.str - 20)*4)  // Soldiers temper with brawn, not brains...
   if(chance > 90)
     chance = 90
   if(chance < 0)

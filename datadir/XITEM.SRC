@@ -19,8 +19,8 @@
 #define ARTIFACT_BEARDS_DELVER  1
 #define ARTIFACT_SPLITTER       2
 // 48 is the Testing Bracelet (XITEM_TESTING_BRACELET, a Magic Ring)...
-// 3-5 and 13-15 (Flamer), 6-12 (Gonne), 25-31 (Bows), 41-47 (Gronnades) are weapon variants made with the G'nome's
-// Modify skill (XITEM_ defines in DEFINE.TXT)...  17-23 are Magic Cores...
+// 3-5 and 13-15 (Flamer), 6-12 (Gonne), 25-31 (Bows), 41-47 (Gronnades), 49-87 (Swords, see SWORDFX.SRC) are
+// weapon variants made with the class Modify skill (XITEM_ defines in DEFINE.TXT)...  17-23 are Magic Cores...
 
 
 //-----------------------------------------------------------------------
@@ -83,6 +83,8 @@ int ArtifactTexture(int ext)
 // +4)...  Bows use this one for their limbs...
 int ArtifactShine(int ext)
   ext = ext & 255
+  if(SWORDFX.IsSword(ext))
+    return SWORDFX.Steel(ext)  // Tempered swords get a tinted blade...
   if(ext == ARTIFACT_SPLITTER)
     return "FILE:WOODSPL.RGB"
   if(ext == XITEM_BOW_BASE+WEAPON_VARIANT_MAGIC)
@@ -129,6 +131,8 @@ int ArtifactIcon(int ext)
     return GronIcon(ext-XITEM_GRON_BASE)
   if(ext > XITEM_CORE_BASE && ext <= XITEM_CORE_BASE+7)
     return CoreIcon(ext-XITEM_CORE_BASE)
+  if(SWORDFX.IsSword(ext))
+    return SWORDFX.Icon(ext)
   return NULL
 
 //-----------------------------------------------------------------------

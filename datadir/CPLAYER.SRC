@@ -1073,6 +1073,16 @@ int Spawn()
     self.item04 = ITEM_GREMF_BOMB  // Test items (unique-testing branch)
     self.item05 = ITEM_GREMF_BOMB
     self.item06 = ITEM_GREMF_BOMB
+    self.item07 = ITEM_MODIFY  // Temper...  Modifies plain swords with Magic Cores
+    self.item08 = ITEM_SWORD   // Test items (unique-testing branch): a plain Sword and cores to Temper with
+    self.item09 = ITEM_CORE
+    XITEM.Set(self, 233, XITEM_CORE_BASE+WEAPON_VARIANT_FIRE)
+    self.item10 = ITEM_CORE
+    XITEM.Set(self, 234, XITEM_CORE_BASE+WEAPON_VARIANT_VOLT)
+    self.item11 = ITEM_CORE
+    XITEM.Set(self, 235, XITEM_CORE_BASE+WEAPON_VARIANT_MAGIC)
+    self.item12 = ITEM_CORE
+    XITEM.Set(self, 236, XITEM_CORE_BASE+WEAPON_VARIANT_UNHOLY)
   if(self.class == CLASS_WIZARD)
     self.eqright = ITEM_DAGGER
     if(RollDice(1, 100) < 50)

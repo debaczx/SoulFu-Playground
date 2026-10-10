@@ -1360,6 +1360,12 @@
 #define XHAND_CHILL              3   // Particle xhand value: this attack chills what it hits
 #define XITEM_CORE_BASE         16   // Magic Cores use 17-23: XITEM_CORE_BASE + element (WEAPON_VARIANT_MAGIC..UNHOLY)
 #define XITEM_TESTING_BRACELET  48   // Ring artifact (test kit): using it gives 50 stat points
+#define XITEM_SWORD_BASE        48   // Sword variants (Soldier's Temper) use 49-87 (48 itself is the Testing Bracelet): XITEM_SWORD_BASE + (tier*8) + element
+#define SWORD_TIER_SHORT         0   // Short Sword (stab)    49-55
+#define SWORD_TIER_SWORD         1   // Sword (swipe)         57-63
+#define SWORD_TIER_GREAT         2   // Great Sword           65-71 (not yet)
+#define SWORD_TIER_OBSIDIAN      3   // Obsidian Blade        73-79 (not yet)
+#define SWORD_TIER_DRAGON        4   // Dragon Sword          81-87 (not yet)
 
 #define WEAPON_VARIANT_NONE    0
 #define WEAPON_VARIANT_MAGIC   1
