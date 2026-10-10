@@ -1161,6 +1161,7 @@ int Spawn()
   self.eqspec1 = ITEM_JUMP
   self.eqspec2 = ITEM_TALK
   self.item00 = ITEM_PRAY
+  XITEM.GiveArtifact(self, ITEM_RING, XITEM_TESTING_BRACELET)  // Test item (unique-testing branch): 50 stat points
   self.food = MAX_FOOD - (RollDice(1, 30)*30)  // Ten minutes before hunger...
 
   ModelSetup()

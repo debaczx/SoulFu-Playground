@@ -3,7 +3,10 @@
 
 //-----------------------------------------------------------------------
 int GetName()
-  STANDARD.ItemName("MAGIC RING", NULL, 255, 0, 0, 0, 0)
+  if(XITEM.Current() == XITEM_TESTING_BRACELET)
+    STANDARD.ItemName("MAGIC RING", "GIVES 50 STAT POINTS", 255, 0, 0, 0, 0)
+  else
+    STANDARD.ItemName("MAGIC RING", NULL, 255, 0, 0, 0, 0)
 
 //-----------------------------------------------------------------------
 // What this item does when used...
@@ -16,6 +19,12 @@ int Effect(int self)
     PFLASH.BlossomEffect(self.x, self.y, self.z, 4.0, "FILE:SPARK4.RGB", 20)
     if(self.action == ACTION_STAND || self.action == ACTION_WALK)
       self.action = ACTION_SPECIAL_2
+    if(XITEM.Current() == XITEM_TESTING_BRACELET)
+      // Testing Bracelet (unique-testing test kit)...  Lots of points to try things with...
+      self.statpts = self.statpts + 50
+      if(self.statpts > 250)
+        self.statpts = 250
+      return TRUE
     if(CHEAT)
       if(SUPER_CHEAT)
         self.hitsmax = 30
