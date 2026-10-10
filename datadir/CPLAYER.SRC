@@ -1109,6 +1109,7 @@ int Spawn()
     self.item03 = ITEM_HEAL
     self.item04 = ITEM_HEAL
     self.item05 = ITEM_FOOD
+    self.item06 = ITEM_MODIFY  // Hallow...  Modifies plain hammers and maces with Magic Cores
   if(self.class == CLASS_GNOME)
     self.eqleft = ITEM_HAMMER
     self.eqright = ITEM_GONNE
@@ -1162,12 +1163,14 @@ int Spawn()
     self.item02 = ITEM_GREMF_BOMB  // Test items (unique-testing branch)
     self.item03 = ITEM_GREMF_BOMB
     self.item04 = ITEM_GREMF_BOMB
+    self.item05 = ITEM_MODIFY  // Forge...  Modifies plain picks, axes and shields with Magic Cores
   if(self.class == CLASS_HUBBIN)
     self.eqright = ITEM_DAGGER|WEAPON_VARIANT_POISON
     self.eqleft = ITEM_HIDE
     self.item01 = ITEM_FISH
     self.item02 = ITEM_FISH
     self.item03 = ITEM_RING // ITEM_FISHING_POLE
+    self.item04 = ITEM_MODIFY  // Hone...  Modifies plain daggers with Magic Cores
   self.eqspec1 = ITEM_JUMP
   self.eqspec2 = ITEM_TALK
   self.item00 = ITEM_PRAY

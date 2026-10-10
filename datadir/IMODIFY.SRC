@@ -1,10 +1,15 @@
 //-----------------------------------------------------------------------
 // <ZZ> Modify...  Class skill.  Works like Tinker (hold, pick a direction
 //      with the stick/keys, let go), but works on a held weapon instead of
-//      building something new.  Each class works on its own gear:
-//          G'nome  Tinker gear (Flamer, Gonne) in the right hand  "MODIFY"
-//          Elf     Plain bows (left hand)                          "FLETCH"
-//          Soldier Plain swords (right hand)                       "TEMPER"
+//      building something new.  Each class works on its own gear, in
+//      whichever hand holds it, and calls the skill its own name:
+//          G'nome   MODIFY   Flamer, Gonne, Gronnade
+//          Elf      FLETCH   Bow, Long Bow
+//          Soldier  TEMPER   Swords
+//          Hubbin   HONE     Daggers
+//          D'warf   FORGE    Picks, axes and shields
+//          Healer   HALLOW   Hammers and maces
+//      (Wizard and Mystic get theirs later, through a rune item.)
 //
 //      The directions are a compass of elements, clockwise from Up, in the
 //      same order as the game's enchantments (WEAPON_VARIANT_*):
@@ -12,18 +17,21 @@
 //          Up-right   2 Fire           Down-left  6 Holy
 //          Right      3 Ice            Left       7 Unholy
 //          Down-right 4 Volt           Up-left    8 SALVAGE
-//      The held weapon decides what each element does.  A matching Magic
+//      The held item decides what each element does.  A matching Magic
 //      Core in the backpack is used up and makes it certain; otherwise the
-//      chance comes from Intelligence.  Failing blows up in your face...
+//      chance comes from the class's stat (SkillStat()).  Failing blows up in your face...
+//      Only plain items can be modified, and modded items can't be
+//      enchanted (IBRAND.SRC), so each item takes one road or the other.
 //
 //      Re-modding swaps the energy source: the old core (if a real one was
 //      used) pops back into the backpack and the new one goes in.  Salvage
-//      breaks an enchanted weapon into a core of its element, or strips a
-//      modded tinker weapon back to normal and refunds its core.  Mods made
-//      on Intelligence alone hold no core, so they give nothing back...
+//      strips a mod back to the plain item (refunding its core, if it has a
+//      real one), or breaks an enchanted item into a core of its element...
+//
+//      Adding a class wheel:  list its gear in ClassTool(), give each item a
+//      XITEM_*_BASE in DEFINE.TXT and turn it on in FamilyBase()...
 //-----------------------------------------------------------------------
 #define SMOKE_COLOR   128
-#define MODIFY_SLOT   243     // Right hand
 #define SALVAGE_DIR   8       // Compass direction (Up-left)
 #define NO_VARIANT    (-1)
 
@@ -32,60 +40,118 @@ int GetName()
   int binding
   binding = FindBinding()
   if(binding)
-    if(binding.class == CLASS_ELF)
-      STANDARD.ItemName("FLETCH", NULL, 255, 0, 0, 0, 0)
-      return TRUE
-    if(binding.class == CLASS_SOLDIER)
-      STANDARD.ItemName("TEMPER", NULL, 255, 0, 0, 0, 0)
-      return TRUE
+    STANDARD.ItemName(SkillName(binding.class), NULL, 255, 0, 0, 0, 0)
+    return TRUE
   STANDARD.ItemName("MODIFY", NULL, 255, 0, 0, 0, 0)
 
 //-----------------------------------------------------------------------
-// Each class works on its own kind of gear...  Which hand slot?
-//   G'nome:  Tinker gear (Flamer, Gonne) in the right hand
-//   Elf:     Bows (always in the left hand)
-//   G'nome:  ...or a Gronnade in either hand (right first)
-//   Soldier: Swords in the right hand
-int ModSlot(int self)
-  if(self.class == CLASS_ELF)
-    return 242
-  if(self.class == CLASS_SOLDIER)
-    return MODIFY_SLOT
-  if(self.eqright != ITEM_FLAMER && self.eqright != ITEM_GONNE && self.eqright != ITEM_GRONNADE)
-    if(self.eqleft == ITEM_GRONNADE)
-      return 242
-  return MODIFY_SLOT
+// Per class...  What the skill is called...
+int SkillName(int kind)
+  if(kind == CLASS_ELF)
+    return "FLETCH"
+  if(kind == CLASS_SOLDIER)
+    return "TEMPER"
+  if(kind == CLASS_HUBBIN)
+    return "HONE"
+  if(kind == CLASS_DWARF)
+    return "FORGE"
+  if(kind == CLASS_HEALER)
+    return "HALLOW"
+  return "MODIFY"
 
 //-----------------------------------------------------------------------
-// TRUE if the item is a bow (any enchantment)...
-int IsBow(int item)
-  item = item & 252
-  if(item == ITEM_BOW || item == ITEM_LONG_BOW)
-    return TRUE
+// Per class...  TRUE if the (plain) item type is this class's own gear...
+int ClassTool(int kind, int item)
+  if(kind == CLASS_GNOME)
+    if(item == ITEM_FLAMER || item == ITEM_GONNE || item == ITEM_GRONNADE)
+      return TRUE
+  if(kind == CLASS_ELF)
+    if(item == ITEM_BOW || item == ITEM_LONG_BOW)
+      return TRUE
+  if(kind == CLASS_SOLDIER)
+    if(item == ITEM_SHORT_SWORD || item == ITEM_SWORD || item == ITEM_GREAT_SWORD || item == ITEM_OBSIDIAN_BLADE || item == ITEM_DRAGON_SWORD)
+      return TRUE
+  if(kind == CLASS_HUBBIN)
+    if(item == ITEM_DAGGER)
+      return TRUE
+  if(kind == CLASS_DWARF)
+    if(item == ITEM_PICK_AXE || item == ITEM_HATCHET || item == ITEM_BROAD_AXE || item == ITEM_SHIELD || item == ITEM_MIRROR_SHIELD)
+      return TRUE
+  if(kind == CLASS_HEALER)
+    if(item == ITEM_HAMMER || item == ITEM_MACE || item == ITEM_WAR_HAMMER)
+      return TRUE
   return FALSE
 
 //-----------------------------------------------------------------------
-// What does element (1-7) turn the held weapon into?  NO_VARIANT if
-// nothing (yet)...  0 means the weapon's plain version...  Only plain
-// (unenchanted) weapons can be modified...
-int VariantFor(int self, int element)
-  int item, variant
-  item = FileReadByte(self, ModSlot(self))
-  if(self.class == CLASS_ELF)
-    if(item == ITEM_BOW || item == ITEM_LONG_BOW)
-      if(element >= WEAPON_VARIANT_MAGIC && element <= WEAPON_VARIANT_UNHOLY)
-        return (XITEM_BOW_BASE + element)
-    return NO_VARIANT
-  if(self.class == CLASS_SOLDIER)
-    // Plain Short Swords and Swords so far (SWORDFX.SRC)...
-    variant = SWORDFX.VariantFor(item, element)
-    if(variant < 0)
-      return NO_VARIANT
-    return variant
+// Per class...  Stat that sets the chance without a core...
+int SkillStat(int self)
+  if(self.class == CLASS_SOLDIER || self.class == CLASS_DWARF)
+    return self.str  // Brawn, not brains...
+  if(self.class == CLASS_HUBBIN)
+    return self.dex
+  return self.int
+
+//-----------------------------------------------------------------------
+// Per item...  Extension base of its variants (variant = base + element),
+// or 0 if its wheel isn't built yet...  (The Flamer has its own table, see
+// VariantFor())...
+int FamilyBase(int item)
+  if(item == ITEM_GONNE)
+    return XITEM_GONNE_BASE
   if(item == ITEM_GRONNADE)
-    // Gronnades are single use, so they always burn a real core (see ChanceOfWorking)...
-    if(element >= WEAPON_VARIANT_MAGIC && element <= WEAPON_VARIANT_UNHOLY)
-      return (XITEM_GRON_BASE + element)
+    return XITEM_GRON_BASE
+  if(item == ITEM_BOW || item == ITEM_LONG_BOW)
+    return XITEM_BOW_BASE
+  if(item == ITEM_SHORT_SWORD)
+    return (XITEM_SWORD_BASE + (SWORD_TIER_SHORT<<3))  // Effects in SWORDFX.SRC
+  if(item == ITEM_SWORD)
+    return (XITEM_SWORD_BASE + (SWORD_TIER_SWORD<<3))
+  // Wheels still to build (bases in DEFINE.TXT)...  Add each one as its effects go in:
+  //   Great Sword, Obsidian Blade, Dragon Sword    XITEM_SWORD_BASE + (SWORD_TIER_*<<3)
+  //   Dagger                                       XITEM_DAGGER_BASE
+  //   Pick Axe, Hatchet, Broad Axe                 XITEM_PICK_AXE_BASE, XITEM_HATCHET_BASE, XITEM_BROAD_AXE_BASE
+  //   Shield, Mirror Shield                        XITEM_SHIELD_BASE, XITEM_MIRROR_BASE
+  //   Hammer, Mace, War Hammer                     XITEM_HAMMER_BASE, XITEM_MACE_BASE, XITEM_WAR_HAMMER_BASE
+  return 0
+
+//-----------------------------------------------------------------------
+// Item type without its enchantment...
+int PlainOf(int item)
+  if(item >= ITEM_DAGGER)
+    return (item & 248)
+  if(item >= ITEM_SHIELD && item < ITEM_FISH)
+    return (item & 252)
+  return item
+
+//-----------------------------------------------------------------------
+// Which hand slot gets worked on?  Whichever hand holds the class's own
+// gear, right hand first...  With nothing to work on, the usual hand
+// (left for the Elf's bow, right for everyone else)...
+int ModSlot(int self)
+  if(ClassTool(self.class, PlainOf(self.eqright)))
+    return 243
+  if(ClassTool(self.class, PlainOf(self.eqleft)))
+    return 242
+  if(self.class == CLASS_ELF)
+    return 242
+  return 243
+
+//-----------------------------------------------------------------------
+// What does element (1-7) turn the held item into?  NO_VARIANT if
+// nothing (yet)...  0 means the item's plain version...  Only plain
+// (unenchanted) gear of the class's own kind can be modified, and never
+// an artifact...
+int VariantFor(int self, int element)
+  int item, slot, ext, base
+  slot = ModSlot(self)
+  item = FileReadByte(self, slot)
+  ext = XITEM.Get(self, slot) & 255
+  if(ext && !ElementOfVariant(ext))
+    return NO_VARIANT  // Artifact...  Has its own powers...
+  if(!ClassTool(self.class, item))
+    return NO_VARIANT
+  if(element < WEAPON_VARIANT_MAGIC || element > WEAPON_VARIANT_UNHOLY)
+    return NO_VARIANT
   if(item == ITEM_FLAMER)
     if(element == WEAPON_VARIANT_FIRE)
       return 0
@@ -99,15 +165,15 @@ int VariantFor(int self, int element)
       return XITEM_ARCANE_BEAM
     if(element == WEAPON_VARIANT_POISON)
       return XITEM_VENOM_SPRAY
-    if(element == WEAPON_VARIANT_HOLY)
-      return XITEM_SANCTIFIER
-  if(item == ITEM_GONNE)
-    if(element >= WEAPON_VARIANT_MAGIC && element <= WEAPON_VARIANT_UNHOLY)
-      return (XITEM_GONNE_BASE + element)
-  return NO_VARIANT
+    return XITEM_SANCTIFIER
+  base = FamilyBase(item)
+  if(base == 0)
+    return NO_VARIANT
+  return (base + element)
 
 //-----------------------------------------------------------------------
-// Which element is a modded tinker weapon?  0 if it isn't one...
+// Which element is a modded item?  0 if it isn't one (plain, artifact or
+// core)...
 int ElementOfVariant(int variant)
   if(variant == XITEM_FROST_THROWER)
     return WEAPON_VARIANT_ICE
@@ -123,34 +189,33 @@ int ElementOfVariant(int variant)
     return WEAPON_VARIANT_HOLY
   if(variant > XITEM_GONNE_BASE && variant <= (XITEM_GONNE_BASE+7))
     return (variant - XITEM_GONNE_BASE)
+  // Every other wheel sits on a multiple of 8 (bows 24, gronnades 40, melee 48-159),
+  // and its base value itself is never a variant (48 is the Testing Bracelet)...
   if(variant > XITEM_BOW_BASE && variant <= (XITEM_BOW_BASE+7))
-    return (variant - XITEM_BOW_BASE)
-  if(variant > XITEM_GRON_BASE && variant <= (XITEM_GRON_BASE+7))
-    return (variant - XITEM_GRON_BASE)
-  if(SWORDFX.IsSword(variant))
-    return SWORDFX.SwordElement(variant)
+    return (variant & 7)
+  if(variant > XITEM_GRON_BASE && variant < (XITEM_WAR_HAMMER_BASE+8))
+    return (variant & 7)
   return 0
 
 //-----------------------------------------------------------------------
-// Element Salvage would get from the held weapon, or 0 if it can't be
-// salvaged...  Enchanted weapons (not bows/armor, which aren't right hand)
-// and modded tinker weapons only...
+// Element Salvage would get from the held item, or 0 if it can't be
+// salvaged...  Modded gear is stripped (its core comes back if it has a
+// real one), enchanted weapons, shields and bows break into a core...
 int SalvageElement(int self)
-  int item
-  item = FileReadByte(self, ModSlot(self))
-  if(self.class == CLASS_ELF)
-    // Enchanted bows give their enchantment's core (Magic, Fire or Ice)...
-    if(IsBow(item))
-      if(item & 3)
-        return (item & 3)
-    return CoreInside(self)
-  if(item >= ITEM_DAGGER && item <= (ITEM_WAR_HAMMER+7))
-    if(item & 7)
-      return (item & 7)
-  return CoreInside(self)
+  int item, slot, element
+  slot = ModSlot(self)
+  item = FileReadByte(self, slot)
+  element = ElementOfVariant(XITEM.Get(self, slot) & 255)
+  if(element)
+    return element
+  if(item >= ITEM_DAGGER && (item & 7))
+    return (item & 7)
+  if(item >= ITEM_SHIELD && item <= (ITEM_LONG_BOW+3) && (item & 3))
+    return (item & 3)
+  return 0
 
 //-----------------------------------------------------------------------
-// Element of the core powering the held modded weapon, or 0 if it holds
+// Element of the core powering the held modded item, or 0 if it holds
 // no real core (plain, or modded on Intelligence alone)...
 int CoreInside(int self)
   int ext
@@ -189,9 +254,7 @@ int ChanceOfWorking(int self, int expression)
     return 100
   if(variant > XITEM_GRON_BASE && variant <= (XITEM_GRON_BASE+7))
     return 0  // Gronnades need a real core...
-  chance = 30 + ((self.int - 20)*4)
-  if(self.class == CLASS_SOLDIER)
-    chance = 30 + ((self.str - 20)*4)  // Soldiers temper with brawn, not brains...
+  chance = 30 + ((SkillStat(self) - 20)*4)
   if(chance > 90)
     chance = 90
   if(chance < 0)
@@ -199,12 +262,17 @@ int ChanceOfWorking(int self, int expression)
   return chance
 
 //-----------------------------------------------------------------------
-// Icon floating over the G'nome's head for each choice...
+// Icon floating over the head for each choice...  For Salvage it shows
+// what comes back: a core, or the Modify icon when the mod holds none...
 int IconFor(int self, int expression)
+  int element
   if(expression == SALVAGE_DIR)
-    if(SalvageElement(self))
+    element = SalvageElement(self)
+    if(element == 0)
+      return "FILE:=TINKASK.RGB"
+    if(ElementOfVariant(XITEM.Get(self, ModSlot(self)) & 255) && !CoreInside(self))
       return "FILE:=IMODIFY.RGB"
-    return "FILE:=TINKASK.RGB"
+    return XITEM.CoreIcon(element)
   if(expression > 0 && VariantFor(self, expression) != NO_VARIANT)
     return XITEM.CoreIcon(expression)
   return "FILE:=TINKASK.RGB"
@@ -257,21 +325,21 @@ int Event()
   return TRUE
 
 //-----------------------------------------------------------------------
-// Breaks down the held weapon...  Returns TRUE if it worked...
+// Breaks down the held item...  Returns TRUE if it worked...
 int Salvage(int self)
-  int element, variant, slot
+  int element, slot
   element = SalvageElement(self)
   if(element == 0)
     return FALSE
   slot = ModSlot(self)
-  variant = XITEM.Get(self, slot) & 255
-  if(ElementOfVariant(variant))
-    // Modded weapon with a real core...  Strip the mod, keep the weapon, refund the core...
-    if(XITEM.GiveCore(self, element) == FALSE)
-      return FALSE
+  if(ElementOfVariant(XITEM.Get(self, slot) & 255))
+    // Modded...  Strip the mod, keep the item, refund the core if it has a real one...
+    if(CoreInside(self))
+      if(XITEM.GiveCore(self, element) == FALSE)
+        return FALSE
     XITEM.Set(self, slot, 0)
   else
-    // Enchanted weapon...  Gone, but we get its core...
+    // Enchanted...  Gone, but we get its core...
     if(XITEM.GiveCore(self, element) == FALSE)
       return FALSE
     FileWriteByte(self, slot, ITEM_NONE)
@@ -360,6 +428,7 @@ int Unpressed()
     XITEM.Set(self, ModSlot(self), variant)
     self.charge = 0
     SystemSet(SYS_CHARFASTFUNCTION, index, 0, FAST_FUNCTION_MODELSETUP)
+    SystemSet(SYS_CHARFASTFUNCTION, index, 0, FAST_FUNCTION_DEFENSERATING)
     PSPARK.Effect(self.x, self.y, self.z+(self.height*0.5), 12, 4)
     ButtonSound()
   return TRUE
