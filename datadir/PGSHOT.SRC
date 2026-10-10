@@ -78,13 +78,28 @@ int Effect(float x, float y, float z, float vx, float vy, float vz, int owner_in
 //-----------------------------------------------------------------------
 // Sets a character ablaze for real: 1 fire damage every half second for
 // ticks times (the game's own burning is mostly for show)...  Uses an
-// invisible ticker particle (kind BURN_TICKER)...
+// invisible ticker particle (kind BURN_TICKER)...  A character that's
+// already burning just has its burn topped up, so burns don't stack...
 int Burn(int target_index, int owner_index, int ticks)
-  int child, owner, target
+  int child, owner, target, i
   owner = FindByIndex(owner_index)
   target = FindByIndex(target_index)
   child = NULL
   if(owner && target)
+    // Already burning?
+    i = 0
+    while(i < MAX_PARTICLE)
+      child = FindParticle(i)
+      if(child)
+        if(child.xhand == BURN_TICKER && child.target == target_index)
+          if(SystemGet(SYS_PARTICLESCRIPTFILE, 0, i) == "FILE:PGSHOT.RUN")
+            if(child.misc4 < ticks)
+              child.misc4 = ticks
+              PBURNING.Effect(target, 1, owner_index)  // Keep it looking lit...
+            child.owner = owner_index
+            return child
+      i++
+    child = NULL
     PBURNING.Effect(target, 2, owner_index)  // The flames...
     SetSpawnTarget(65535)
     SetSpawnOwner(owner_index)
@@ -100,6 +115,29 @@ int Burn(int target_index, int owner_index, int ticks)
       child.misc4 = ticks
       child.evtimer = 30
   return child
+
+//-----------------------------------------------------------------------
+// One burn tick...  Works like poison or drowning: hits just drop, with a
+// little number, so the target doesn't flinch, get knocked down, or get
+// the brief invincibility of a real hit...  Only a killing tick goes
+// through DamageTarget, so death and experience work as normal...
+int BurnTick(int target)
+  int amount, child
+  amount = 1
+  if(target.deffire > 128)
+    amount = 2  // Weak to fire...
+  if(target.hits > amount)
+    target.hits = target.hits - amount
+    if(target.hitsmax < 255)
+      child = Spawn(PARTICLE, target.x, target.y, target.z + target.height - 1.0, "FILE:PNUMBER.RUN")
+      if(child)
+        child.red = 255
+        child.green = 128
+        child.blue = 0
+        child.number = amount
+  else
+    DamageTarget(DAMAGE_FIRE, 1, 0)
+  return 0
 
 //-----------------------------------------------------------------------
 // Index of the most hurt ally (soft or hard wounds) within reach, or
@@ -164,7 +202,7 @@ int Event()
         GoPoof(POOF_SELF)
         return 0
       if(target.deffire == 0 || target.deffire > 128)
-        DamageTarget(DAMAGE_FIRE, 1, 0)
+        BurnTick(target)
       age--
       self.evtimer = 30
     return 0
