@@ -2,9 +2,13 @@
 // <ZZ> Tempered swords (the Soldier's Temper, see IMODIFY.SRC)...
 //      A plain sword plus a Magic Core.  The extension is
 //      XITEM_SWORD_BASE + (tier*8) + element, so every sword gets its
-//      own seven effects:
-//          Short Sword  Stabs...  One enemy, a plain percent chance
-//          Sword        Swipes through a crowd...  Rolls once per swing
+//      own seven effects (design: sword-wheel-ideas.md):
+//          Short Sword     Stabs...  One enemy, a plain percent chance
+//          Sword           Swipes through a crowd...  Rolls once per swing
+//          Great Sword     Sets up and pays off (burning, chilled, poisoned
+//                          enemies take more), and kills do things
+//          Obsidian Blade  Quick tricks that come up often
+//          Dragon Sword    Rare, big moments
 //      PATTACK.FrameEvent() rolls the chance when the swing starts and
 //      stores it on the attack particle:
 //          red     The sword's variant (its extension)
@@ -13,6 +17,9 @@
 //      PATTACK.Event() calls Hit() for each enemy the swing touches...
 //-----------------------------------------------------------------------
 #define ICE_SMOKE_COLOR (4239600)
+#define UNHOLY_COLOR    (8388608)
+#define BURN_TICKER     200       // PGSHOT's burn ticker (xhand)
+#define STRIP_FLAGS     (ENCHANT_FLAG_LEVITATE | ENCHANT_FLAG_INVISIBLE | ENCHANT_FLAG_DEFLECT | ENCHANT_FLAG_HASTE)
 
 
 //-----------------------------------------------------------------------
@@ -35,19 +42,7 @@ int SwordElement(int ext)
   return (((ext & 255) - XITEM_SWORD_BASE) & 7)
 
 //-----------------------------------------------------------------------
-// Variant number for a sword item type and element, or -1 if the item
-// can't be tempered (only plain swords)...
-int VariantFor(int item, int element)
-  if(element < WEAPON_VARIANT_MAGIC || element > WEAPON_VARIANT_UNHOLY)
-    return (-1)
-  if(item == ITEM_SHORT_SWORD)
-    return (XITEM_SWORD_BASE + (SWORD_TIER_SHORT<<3) + element)
-  if(item == ITEM_SWORD)
-    return (XITEM_SWORD_BASE + (SWORD_TIER_SWORD<<3) + element)
-  return (-1)
-
-//-----------------------------------------------------------------------
-// Percent chance per swing...
+// Percent chance per swing (0 means it only goes off another way)...
 int Chance(int ext)
   int tier, element
   tier = SwordTier(ext)
@@ -65,14 +60,69 @@ int Chance(int ext)
       return 35
     if(element == WEAPON_VARIANT_HOLY)
       return 20
-    return 30
-  if(element == WEAPON_VARIANT_FIRE)
-    return 25
-  if(element == WEAPON_VARIANT_HOLY)
-    return 15
-  if(element == WEAPON_VARIANT_UNHOLY)
-    return 100  // Leech Blade always drains (once per swing)...
-  return 20
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return 30
+  if(tier == SWORD_TIER_SWORD)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return 20
+    if(element == WEAPON_VARIANT_FIRE)
+      return 25
+    if(element == WEAPON_VARIANT_ICE)
+      return 20
+    if(element == WEAPON_VARIANT_VOLT)
+      return 20
+    if(element == WEAPON_VARIANT_POISON)
+      return 20
+    if(element == WEAPON_VARIANT_HOLY)
+      return 15
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return 100
+  if(tier == SWORD_TIER_GREAT)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return 100
+    if(element == WEAPON_VARIANT_FIRE)
+      return 25
+    if(element == WEAPON_VARIANT_ICE)
+      return 25
+    if(element == WEAPON_VARIANT_VOLT)
+      return 100
+    if(element == WEAPON_VARIANT_POISON)
+      return 25
+    if(element == WEAPON_VARIANT_HOLY)
+      return 25
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return 100
+  if(tier == SWORD_TIER_OBSIDIAN)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return 20
+    if(element == WEAPON_VARIANT_FIRE)
+      return 30
+    if(element == WEAPON_VARIANT_ICE)
+      return 25
+    if(element == WEAPON_VARIANT_VOLT)
+      return 30
+    if(element == WEAPON_VARIANT_POISON)
+      return 30
+    if(element == WEAPON_VARIANT_HOLY)
+      return 20
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return 100
+  if(tier == SWORD_TIER_DRAGON)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return 25
+    if(element == WEAPON_VARIANT_FIRE)
+      return 100
+    if(element == WEAPON_VARIANT_ICE)
+      return 100
+    if(element == WEAPON_VARIANT_VOLT)
+      return 0
+    if(element == WEAPON_VARIANT_POISON)
+      return 25
+    if(element == WEAPON_VARIANT_HOLY)
+      return 100
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return 0
+  return 0
 
 //-----------------------------------------------------------------------
 // Name of a tempered sword...
@@ -93,41 +143,69 @@ int Name(int ext)
       return "STING"
     if(element == WEAPON_VARIANT_HOLY)
       return "BLESSED POINT"
-    return "LEECH POINT"
-  if(element == WEAPON_VARIANT_MAGIC)
-    return "SPELLBLADE"
-  if(element == WEAPON_VARIANT_FIRE)
-    return "EMBER EDGE"
-  if(element == WEAPON_VARIANT_ICE)
-    return "FROST EDGE"
-  if(element == WEAPON_VARIANT_VOLT)
-    return "SPARK BLADE"
-  if(element == WEAPON_VARIANT_POISON)
-    return "VIPER EDGE"
-  if(element == WEAPON_VARIANT_HOLY)
-    return "BLESSED BLADE"
-  return "LEECH BLADE"
-
-//-----------------------------------------------------------------------
-// Second line of the name...
-int Tag(int ext)
-  int element
-  element = SwordElement(ext)
-  if(Chance(ext) >= 100)
-    return "DRAINS"
-  if(element == WEAPON_VARIANT_MAGIC)
-    return "CHANCE: MISSILE"
-  if(element == WEAPON_VARIANT_FIRE)
-    return "CHANCE: BURN"
-  if(element == WEAPON_VARIANT_ICE)
-    return "CHANCE: CHILL"
-  if(element == WEAPON_VARIANT_VOLT)
-    return "CHANCE: LIGHTNING"
-  if(element == WEAPON_VARIANT_POISON)
-    return "CHANCE: POISON"
-  if(element == WEAPON_VARIANT_HOLY)
-    return "CHANCE: HEAL"
-  return "CHANCE: DRAIN"
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return "LEECH POINT"
+  if(tier == SWORD_TIER_SWORD)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return "SPELLBLADE"
+    if(element == WEAPON_VARIANT_FIRE)
+      return "EMBER EDGE"
+    if(element == WEAPON_VARIANT_ICE)
+      return "FROST EDGE"
+    if(element == WEAPON_VARIANT_VOLT)
+      return "SPARK BLADE"
+    if(element == WEAPON_VARIANT_POISON)
+      return "VIPER EDGE"
+    if(element == WEAPON_VARIANT_HOLY)
+      return "BLESSED BLADE"
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return "LEECH BLADE"
+  if(tier == SWORD_TIER_GREAT)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return "ARC CLEAVER"
+    if(element == WEAPON_VARIANT_FIRE)
+      return "CINDER CLEAVER"
+    if(element == WEAPON_VARIANT_ICE)
+      return "SHATTER"
+    if(element == WEAPON_VARIANT_VOLT)
+      return "THUNDER CLEAVER"
+    if(element == WEAPON_VARIANT_POISON)
+      return "PLAGUE CLEAVER"
+    if(element == WEAPON_VARIANT_HOLY)
+      return "JUDGEMENT"
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return "REAPER"
+  if(tier == SWORD_TIER_OBSIDIAN)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return "SPELLBREAKER"
+    if(element == WEAPON_VARIANT_FIRE)
+      return "FLARE"
+    if(element == WEAPON_VARIANT_ICE)
+      return "BLACK ICE"
+    if(element == WEAPON_VARIANT_VOLT)
+      return "CHAIN EDGE"
+    if(element == WEAPON_VARIANT_POISON)
+      return "NIGHTSHADE"
+    if(element == WEAPON_VARIANT_HOLY)
+      return "AEGIS"
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return "HUNGERING EDGE"
+  if(tier == SWORD_TIER_DRAGON)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return "ARCANE WRATH"
+    if(element == WEAPON_VARIANT_FIRE)
+      return "WYRMFANG"
+    if(element == WEAPON_VARIANT_ICE)
+      return "WINTERS EDGE"
+    if(element == WEAPON_VARIANT_VOLT)
+      return "STORMBRINGER"
+    if(element == WEAPON_VARIANT_POISON)
+      return "MIASMA"
+    if(element == WEAPON_VARIANT_HOLY)
+      return "DAWNBRINGER"
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return "SOULRENDER"
+  return NULL
 
 //-----------------------------------------------------------------------
 // Inventory icon...
@@ -148,39 +226,221 @@ int Icon(int ext)
       return "FILE:=ISSW5.RGB"
     if(element == WEAPON_VARIANT_HOLY)
       return "FILE:=ISSW6.RGB"
-    return "FILE:=ISSW7.RGB"
-  if(element == WEAPON_VARIANT_MAGIC)
-    return "FILE:=ISWD1.RGB"
-  if(element == WEAPON_VARIANT_FIRE)
-    return "FILE:=ISWD2.RGB"
-  if(element == WEAPON_VARIANT_ICE)
-    return "FILE:=ISWD3.RGB"
-  if(element == WEAPON_VARIANT_VOLT)
-    return "FILE:=ISWD4.RGB"
-  if(element == WEAPON_VARIANT_POISON)
-    return "FILE:=ISWD5.RGB"
-  if(element == WEAPON_VARIANT_HOLY)
-    return "FILE:=ISWD6.RGB"
-  return "FILE:=ISWD7.RGB"
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return "FILE:=ISSW7.RGB"
+  if(tier == SWORD_TIER_SWORD)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return "FILE:=ISWD1.RGB"
+    if(element == WEAPON_VARIANT_FIRE)
+      return "FILE:=ISWD2.RGB"
+    if(element == WEAPON_VARIANT_ICE)
+      return "FILE:=ISWD3.RGB"
+    if(element == WEAPON_VARIANT_VOLT)
+      return "FILE:=ISWD4.RGB"
+    if(element == WEAPON_VARIANT_POISON)
+      return "FILE:=ISWD5.RGB"
+    if(element == WEAPON_VARIANT_HOLY)
+      return "FILE:=ISWD6.RGB"
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return "FILE:=ISWD7.RGB"
+  if(tier == SWORD_TIER_GREAT)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return "FILE:=IGSW1.RGB"
+    if(element == WEAPON_VARIANT_FIRE)
+      return "FILE:=IGSW2.RGB"
+    if(element == WEAPON_VARIANT_ICE)
+      return "FILE:=IGSW3.RGB"
+    if(element == WEAPON_VARIANT_VOLT)
+      return "FILE:=IGSW4.RGB"
+    if(element == WEAPON_VARIANT_POISON)
+      return "FILE:=IGSW5.RGB"
+    if(element == WEAPON_VARIANT_HOLY)
+      return "FILE:=IGSW6.RGB"
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return "FILE:=IGSW7.RGB"
+  if(tier == SWORD_TIER_OBSIDIAN)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return "FILE:=IOBL1.RGB"
+    if(element == WEAPON_VARIANT_FIRE)
+      return "FILE:=IOBL2.RGB"
+    if(element == WEAPON_VARIANT_ICE)
+      return "FILE:=IOBL3.RGB"
+    if(element == WEAPON_VARIANT_VOLT)
+      return "FILE:=IOBL4.RGB"
+    if(element == WEAPON_VARIANT_POISON)
+      return "FILE:=IOBL5.RGB"
+    if(element == WEAPON_VARIANT_HOLY)
+      return "FILE:=IOBL6.RGB"
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return "FILE:=IOBL7.RGB"
+  if(tier == SWORD_TIER_DRAGON)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return "FILE:=IDSW1.RGB"
+    if(element == WEAPON_VARIANT_FIRE)
+      return "FILE:=IDSW2.RGB"
+    if(element == WEAPON_VARIANT_ICE)
+      return "FILE:=IDSW3.RGB"
+    if(element == WEAPON_VARIANT_VOLT)
+      return "FILE:=IDSW4.RGB"
+    if(element == WEAPON_VARIANT_POISON)
+      return "FILE:=IDSW5.RGB"
+    if(element == WEAPON_VARIANT_HOLY)
+      return "FILE:=IDSW6.RGB"
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return "FILE:=IDSW7.RGB"
+  return NULL
 
 //-----------------------------------------------------------------------
-// Blade texture (tinted steel)...
+// Blade texture (tinted steel, dark steel for the Obsidian Blade)...
 int Steel(int ext)
-  int element
+  int tier, element
+  tier = SwordTier(ext)
   element = SwordElement(ext)
-  if(element == WEAPON_VARIANT_MAGIC)
-    return "FILE:STEEL1.RGB"
-  if(element == WEAPON_VARIANT_FIRE)
-    return "FILE:STEEL2.RGB"
-  if(element == WEAPON_VARIANT_ICE)
-    return "FILE:STEEL3.RGB"
-  if(element == WEAPON_VARIANT_VOLT)
-    return "FILE:STEEL4.RGB"
-  if(element == WEAPON_VARIANT_POISON)
-    return "FILE:STEEL5.RGB"
-  if(element == WEAPON_VARIANT_HOLY)
-    return "FILE:STEEL6.RGB"
-  return "FILE:STEEL7.RGB"
+  if(tier == SWORD_TIER_SHORT)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return "FILE:STEEL1.RGB"
+    if(element == WEAPON_VARIANT_FIRE)
+      return "FILE:STEEL2.RGB"
+    if(element == WEAPON_VARIANT_ICE)
+      return "FILE:STEEL3.RGB"
+    if(element == WEAPON_VARIANT_VOLT)
+      return "FILE:STEEL4.RGB"
+    if(element == WEAPON_VARIANT_POISON)
+      return "FILE:STEEL5.RGB"
+    if(element == WEAPON_VARIANT_HOLY)
+      return "FILE:STEEL6.RGB"
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return "FILE:STEEL7.RGB"
+  if(tier == SWORD_TIER_SWORD)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return "FILE:STEEL1.RGB"
+    if(element == WEAPON_VARIANT_FIRE)
+      return "FILE:STEEL2.RGB"
+    if(element == WEAPON_VARIANT_ICE)
+      return "FILE:STEEL3.RGB"
+    if(element == WEAPON_VARIANT_VOLT)
+      return "FILE:STEEL4.RGB"
+    if(element == WEAPON_VARIANT_POISON)
+      return "FILE:STEEL5.RGB"
+    if(element == WEAPON_VARIANT_HOLY)
+      return "FILE:STEEL6.RGB"
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return "FILE:STEEL7.RGB"
+  if(tier == SWORD_TIER_GREAT)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return "FILE:STEEL1.RGB"
+    if(element == WEAPON_VARIANT_FIRE)
+      return "FILE:STEEL2.RGB"
+    if(element == WEAPON_VARIANT_ICE)
+      return "FILE:STEEL3.RGB"
+    if(element == WEAPON_VARIANT_VOLT)
+      return "FILE:STEEL4.RGB"
+    if(element == WEAPON_VARIANT_POISON)
+      return "FILE:STEEL5.RGB"
+    if(element == WEAPON_VARIANT_HOLY)
+      return "FILE:STEEL6.RGB"
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return "FILE:STEEL7.RGB"
+  if(tier == SWORD_TIER_OBSIDIAN)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return "FILE:DSTEEL1.RGB"
+    if(element == WEAPON_VARIANT_FIRE)
+      return "FILE:DSTEEL2.RGB"
+    if(element == WEAPON_VARIANT_ICE)
+      return "FILE:DSTEEL3.RGB"
+    if(element == WEAPON_VARIANT_VOLT)
+      return "FILE:DSTEEL4.RGB"
+    if(element == WEAPON_VARIANT_POISON)
+      return "FILE:DSTEEL5.RGB"
+    if(element == WEAPON_VARIANT_HOLY)
+      return "FILE:DSTEEL6.RGB"
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return "FILE:DSTEEL7.RGB"
+  if(tier == SWORD_TIER_DRAGON)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return "FILE:STEEL1.RGB"
+    if(element == WEAPON_VARIANT_FIRE)
+      return "FILE:STEEL2.RGB"
+    if(element == WEAPON_VARIANT_ICE)
+      return "FILE:STEEL3.RGB"
+    if(element == WEAPON_VARIANT_VOLT)
+      return "FILE:STEEL4.RGB"
+    if(element == WEAPON_VARIANT_POISON)
+      return "FILE:STEEL5.RGB"
+    if(element == WEAPON_VARIANT_HOLY)
+      return "FILE:STEEL6.RGB"
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return "FILE:STEEL7.RGB"
+  return NULL
+
+//-----------------------------------------------------------------------
+// TRUE if the sword hits a little softer to pay for draining...
+int Soft(int ext)
+  if(SwordElement(ext) == WEAPON_VARIANT_UNHOLY)
+    if(SwordTier(ext) != SWORD_TIER_GREAT && SwordTier(ext) != SWORD_TIER_DRAGON)
+      return TRUE
+  return FALSE
+
+//-----------------------------------------------------------------------
+// TRUE if the character is undead (high wound defense)...
+int Undead(int who)
+  if(who.defwoun > 0 && who.defwoun < 128)
+    return TRUE
+  return FALSE
+
+//-----------------------------------------------------------------------
+// TRUE if the character has a burn ticker on it (PGSHOT.Burn)...
+int Burning(int index)
+  int i, child
+  i = 0
+  while(i < MAX_PARTICLE)
+    child = FindParticle(i)
+    if(child)
+      if(child.xhand == BURN_TICKER && child.target == index)
+        if(SystemGet(SYS_PARTICLESCRIPTFILE, 0, i) == "FILE:PGSHOT.RUN")
+          return TRUE
+    i++
+  return FALSE
+
+//-----------------------------------------------------------------------
+// Frames left of a character's chill...
+int Chilled(int who)
+  return ((FileReadByte(who, CHILL_OFFSET+1)<<8) | FileReadByte(who, CHILL_OFFSET))
+
+//-----------------------------------------------------------------------
+// Decides whether a swing's effect goes off (called by PATTACK.FrameEvent
+// as the swing starts, with self being the character)...  Stormbringer
+// goes off after blocking, Soulrender once five souls are stored (both
+// are only spent when the swing connects, see DragonHit)...
+int SwingProc(int self, int ext)
+  int tier, element
+  tier = SwordTier(ext)
+  element = SwordElement(ext)
+  if(tier == SWORD_TIER_DRAGON && element == WEAPON_VARIANT_VOLT)
+    if(FileReadByte(self, SWORD_STORM_OFFSET))
+      return 1
+    return 0
+  if(tier == SWORD_TIER_DRAGON && element == WEAPON_VARIANT_UNHOLY)
+    if(FileReadByte(self, SWORD_SOULS_OFFSET) >= 5)
+      return 1
+    return 0
+  if(RollDice(1, 100) <= Chance(ext))
+    return 1
+  return 0
+
+//-----------------------------------------------------------------------
+// The holder of a sword just blocked a hit (PATTACK.Event)...  Charges
+// Stormbringer...
+int Blocked(int who)
+  int ext
+  ext = XITEM.Get(who, 243)
+  if(IsSword(ext))
+    if(SwordTier(ext) == SWORD_TIER_DRAGON && SwordElement(ext) == WEAPON_VARIANT_VOLT)
+      if(FileReadByte(who, SWORD_STORM_OFFSET) == 0)
+        FileWriteByte(who, SWORD_STORM_OFFSET, 1)
+        PFLASH.Effect(who, "FILE:LITESPRK.RGB", YELLOW, TRUE, 1.2)
+        PlaySound("FILE:-SHOCK.RAW", 300, 160)
+  return TRUE
 
 //-----------------------------------------------------------------------
 // Short lightning bolt from a point toward a direction (owner & team
@@ -218,16 +478,226 @@ int Mend(int owner, int image)
   return TRUE
 
 //-----------------------------------------------------------------------
+// Spawns a free moving attack particle (a bolt of fire, an arcane
+// crescent)...
+int Bolt(int owner_index, int team, float x, float y, float z, float vx, float vy, int dtype, int damage, int wound, int flags, int life, int image)
+  int child
+  SetSpawnTarget(65535)
+  SetSpawnOwner(owner_index)
+  SetSpawnTeam(team)
+  child = Spawn(PARTICLE, x, y, z, "FILE:PATTACK.RUN")
+  if(child)
+    child.vx = vx
+    child.vy = vy
+    child.vz = 0.0
+    child.misc6 = damage
+    child.dtype = dtype
+    child.misc7 = wound
+    child.width = 1.4
+    child.length = 1.4
+    child.misc0 = 128
+    child.evtimer = life
+    child.number = flags
+    child.image = image
+    child.flags = child.flags | PART_LIGHT_ON
+  return child
+
+//-----------------------------------------------------------------------
+// Lightning jumps from the target to up to count other enemies, nearest
+// first (within 12 feet)...
+int Chain(int target, int count)
+  int self, i, who, found, done, best, used0, used1, used2
+  float x, y, z, dx, dy, sl, bestsl
+  self = FindSelf()
+  z = target.z + (target.height*0.5)
+  PlaySound("FILE:-SHOCK.RAW", 245 + RollDice(1, 20), 255)
+  done = 0
+  used0 = 255
+  used1 = 255
+  used2 = 255
+  while(done < count)
+    best = 255
+    bestsl = 12.0
+    i = 0
+    while(i < MAX_CHARACTER)
+      who = FindByIndex(i)
+      if(who && who != target && i != used0 && i != used1 && i != used2)
+        if(who.team != self.team && who.team != TEAM_NEUTRAL && who.hits > 0)
+          dx = who.x - target.x
+          dy = who.y - target.y
+          sl = sqrt(dx*dx + dy*dy)
+          if(sl < bestsl && sl > 0.1)
+            bestsl = sl
+            best = i
+      i++
+    if(best >= MAX_CHARACTER)
+      return done
+    who = FindByIndex(best)
+    dx = (who.x - target.x)/bestsl
+    dy = (who.y - target.y)/bestsl
+    x = target.boxsize + 0.5
+    Zap(target.x + (dx*x), target.y + (dy*x), z, dx*1.2, dy*1.2, 22)
+    if(done == 0)
+      used0 = best
+    if(done == 1)
+      used1 = best
+    if(done == 2)
+      used2 = best
+    done++
+  return done
+
+//-----------------------------------------------------------------------
+// Does something to everyone near a point...
+//   kind 1: chill enemies    kind 2: set enemies burning
+//   kind 3: heal allies (and the holder)
+int Area(float x, float y, float range, int kind, int skip)
+  int self, i, who, count
+  float dx, dy
+  self = FindSelf()
+  count = 0
+  i = 0
+  while(i < MAX_CHARACTER)
+    who = FindByIndex(i)
+    if(who && i != skip)
+      dx = who.x - x
+      dy = who.y - y
+      if((dx*dx + dy*dy) < (range*range) && who.hits > 0 && who.team != TEAM_NEUTRAL)
+        if(who.team != self.team)
+          if(kind == 1)
+            XITEM.Chill(who, CHILL_TIME)
+            PSMOKE.Effect(who.x, who.y, who.z+1.0, 0.0, 0.0, 0.03, 1.5, 0.05, FALSE, ICE_SMOKE_COLOR, 200, 25)
+            count++
+          if(kind == 2)
+            PGSHOT.Burn(i, self.owner, 4)
+            count++
+        else
+          if(kind == 3)
+            GENERIC.RestoreCharacterHits(who, 2, 0)
+            PEMBER.Effect(who.x, who.y, who.z+1.0, 0.0, 0.0, 0.06, 3.0, 255, 10, "FILE:SPARK4.RGB")
+            count++
+    i++
+  return count
+
+//-----------------------------------------------------------------------
+// Ring of ice puffs...
+int FrostRing(float x, float y, float z)
+  int i
+  float angle
+  PlaySound("FILE:-SPELL03.RAW", 200 + RollDice(1, 30), 255)
+  i = 0
+  while(i < 10)
+    angle = i * 36.0
+    PSMOKE.Effect(x, y, z, sin(angle)*0.25, sin(angle+90.0)*0.25, 0.0, 1.2, 0.08, FALSE, ICE_SMOKE_COLOR, 220, 20)
+    PEMBER.Effect(x, y, z, sin(angle)*0.3, sin(angle+90.0)*0.3, 0.02, 0.8, 255, 14, "FILE:ICE1.RGB")
+    i++
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Wyrmfang...  The Dragon Sword breathes fire when the attack button is
+// held through the swing (IDSWORD.FrameEvent, self is the character)...
+int Breath(int self)
+  int index, i
+  float x, y, z, a, sx, sy
+  index = FindIndex(self)
+  x = self.x + (self.frontx*1.5)
+  y = self.y + (self.fronty*1.5)
+  z = self.z + (self.height*0.6)
+  sx = -self.fronty
+  sy = self.frontx
+  PlaySound("FILE:-SPELL03.RAW", 150 + RollDice(1, 20), 255)
+  i = 0
+  while(i < 5)
+    a = (i-2)*0.22
+    Bolt(index, self.team, x, y, z, (self.frontx + (sx*a))*0.7, (self.fronty + (sy*a))*0.7, DAMAGE_FIRE, 3, 1, SPECIAL_FLAG_CHOP_THROUGH, 14, "FILE:FIRE1.RGB")
+    PEMBER.Effect(x, y, z, (self.frontx + (sx*a))*0.5, (self.fronty + (sy*a))*0.5, 0.02, 1.6, 255, 16, "FILE:FIRE0.RGB")
+    i++
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Nightshade (Obsidian Blade, Poison)...  Called every frame while held
+// (IOBLADE.Refresh, self is the character): the holder shrugs off poison,
+// and poisoned enemies nearby are slowed...
+int Nightshade(int self)
+  int i, who
+  float dx, dy
+  if(self.pstimer > 0)
+    self.pstimer = 0
+  if((SystemGet(SYS_MAINGAMEFRAME, 0, 0) & 15) == 0)
+    i = 0
+    while(i < MAX_CHARACTER)
+      who = FindByIndex(i)
+      if(who)
+        if(who.team != self.team && who.team != TEAM_NEUTRAL && who.hits > 0 && who.pstimer > 0)
+          dx = who.x - self.x
+          dy = who.y - self.y
+          if((dx*dx + dy*dy) < 144.0)
+            XITEM.Chill(who, 30)
+      i++
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Called by PATTACK.Event just before a tempered sword's damage...  Can
+// knock the target down, returns bonus damage + (bonus wounds<<4)...
+int PreHit(int owner, int target)
+  int self, ext, tier, element, bonus
+  self = FindSelf()
+  ext = self.red
+  tier = SwordTier(ext)
+  element = SwordElement(ext)
+  bonus = 0
+  if(tier == SWORD_TIER_GREAT)
+    if(element == WEAPON_VARIANT_FIRE)
+      // Cinder Cleaver...  Burning enemies take more...
+      if(Burning(self.target))
+        bonus = 2
+    if(element == WEAPON_VARIANT_ICE)
+      // Shatter...  Chilled enemies take a wound and go down...
+      if(Chilled(target))
+        bonus = 16
+        target.combo = 4
+        PSPARK.Effect(target.x, target.y, target.z+(target.height*0.5), 12, 4)
+    if(element == WEAPON_VARIANT_POISON)
+      // Plague Cleaver...  Poisoned enemies take a wound...
+      if(target.pstimer > 0)
+        bonus = 16
+    if(element == WEAPON_VARIANT_HOLY)
+      // Judgement...  Undead go down...
+      if(Undead(target))
+        target.combo = 4
+  if(tier == SWORD_TIER_OBSIDIAN && element == WEAPON_VARIANT_ICE && self.green)
+    // Black Ice...  Frozen stiff, down they go...
+    target.combo = 4
+  if(tier == SWORD_TIER_DRAGON && element == WEAPON_VARIANT_HOLY)
+    // Dawnbringer...  Undead are blasted back...
+    if(Undead(target))
+      target.combo = 4
+  return bonus
+
+//-----------------------------------------------------------------------
 // The attack particle (self) of a tempered sword hit an enemy...
 int Hit(int owner, int target)
+  int self, tier
+  self = FindSelf()
+  tier = SwordTier(self.red)
+  if(tier == SWORD_TIER_GREAT)
+    return GreatHit(owner, target)
+  if(tier == SWORD_TIER_OBSIDIAN)
+    return ObsidianHit(owner, target)
+  if(tier == SWORD_TIER_DRAGON)
+    return DragonHit(owner, target)
+  if(self.green)
+    return BasicHit(owner, target)
+  return FALSE
+
+//-----------------------------------------------------------------------
+// Short Sword and Sword...  Only called when the swing's chance came up...
+int BasicHit(int owner, int target)
   int self, ext, tier, element, i, who, found
   float x, y, z, fx, fy, dx, dy, sl
 
 
   self = FindSelf()
   ext = self.red
-  if(self.green == 0)
-    return FALSE  // No luck this swing...
   tier = SwordTier(ext)
   element = SwordElement(ext)
   fx = owner.frontx
@@ -306,6 +776,260 @@ int Hit(int owner, int target)
     if(!(target.flags & CHAR_NO_BACKSTAB))
       self.blue = 1
       Mend(owner, "FILE:SPARK8.RGB")
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Great Sword...
+int GreatHit(int owner, int target)
+  int self, element, killed, count, i
+  float x, y, z, fx, fy, angle
+
+
+  self = FindSelf()
+  element = SwordElement(self.red)
+  fx = owner.frontx
+  fy = owner.fronty
+  x = target.x
+  y = target.y
+  z = target.z + (target.height*0.5)
+  killed = FALSE
+  if(target.hits == 0)
+    killed = TRUE
+
+
+  if(element == WEAPON_VARIANT_MAGIC && self.blue == 0)
+    // Arc Cleaver...  Every swing that connects sends a crescent onward...
+    self.blue = 1
+    PlaySound("FILE:BAD3.RAW", 300 + RollDice(1, 40), 200)
+    Bolt(self.owner, self.team, owner.x + (fx*2.0), owner.y + (fy*2.0), owner.z + (owner.height*0.5), fx*0.6, fy*0.6, DAMAGE_BASH, 2, 1, SPECIAL_FLAG_CHOP_THROUGH | SPECIAL_FLAG_INVERT_DEFWOUN, 20, "FILE:SPARK6.RGB")
+
+
+  if(element == WEAPON_VARIANT_FIRE)
+    // Cinder Cleaver...  Sets them burning, and burning foes burst when they die...
+    if(killed)
+      if(Burning(self.target))
+        PEXPLODE.Effect(x, y, z, 0.0, 0.0, 0.0, DAMAGE_FIRE, 3, 1, self.owner, self.team, "FILE:FIRE1.RGB", 128, 48)
+    else
+      if(self.green)
+        PGSHOT.Burn(self.target, self.owner, 4)
+
+
+  if(element == WEAPON_VARIANT_ICE && self.green)
+    // Shatter...  Chills (chilled enemies shatter, see PreHit)...
+    XITEM.Chill(target, CHILL_TIME)
+    PSMOKE.Effect(x, y, z, 0.0, 0.0, 0.03, 1.5, 0.05, FALSE, ICE_SMOKE_COLOR, 200, 25)
+
+
+  if(element == WEAPON_VARIANT_VOLT && self.blue == 0)
+    // Thunder Cleaver...  Static builds with every swing that connects...
+    self.blue = 1
+    count = FileReadByte(owner, SWORD_STATIC_OFFSET) + 1
+    if(count >= 4)
+      count = 0
+      PlaySound("FILE:-SHOCK.RAW", 220 + RollDice(1, 20), 255)
+      i = 0
+      angle = RollDice(1, 45)
+      while(i < 8)
+        Zap(x + sin(angle)*(target.boxsize+0.5), y + sin(angle+90.0)*(target.boxsize+0.5), z, sin(angle)*1.0, sin(angle+90.0)*1.0, 16)
+        angle = angle + 45.0
+        i++
+    else
+      PSPARK.Effect(owner.x, owner.y, owner.z+(owner.height*0.6), 4, 4)
+    FileWriteByte(owner, SWORD_STATIC_OFFSET, count)
+
+
+  if(element == WEAPON_VARIANT_POISON)
+    // Plague Cleaver...  Poisons, and poisoned foes leave a cloud when they die...
+    if(killed)
+      if(target.pstimer > 0)
+        PPSNBALL.ShotEffect(x, y, z+0.5, 0.0, 0.0, -0.5, self.owner, 96)
+    else
+      if(self.green)
+        STANDARD.PoisonCharacter(self.target, self.owner, 300)
+
+
+  if(element == WEAPON_VARIANT_HOLY && self.green)
+    // Judgement...  Summoned undead may be banished outright...
+    if(Undead(target) && (target.eflags & ENCHANT_FLAG_SUMMON_3))
+      PSPARK.Effect(x, y, z, 12, 4)
+      PEMBER.Effect(x, y, z, 0.0, 0.0, 0.05, 3.0, 255, 12, "FILE:SPARK4.RGB")
+      GoPoof(POOF_TARGET)
+
+
+  if(element == WEAPON_VARIANT_UNHOLY && killed)
+    // Reaper...  A kill mends a hard wound...
+    if(!(target.flags & CHAR_NO_BACKSTAB))
+      GENERIC.RestoreCharacterHits(owner, 1, 1)
+      PEMBER.Effect(owner.x, owner.y, owner.z+1.0, 0.0, 0.0, 0.05, 2.5, 255, 16, "FILE:SPARK8.RGB")
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Obsidian Blade...
+int ObsidianHit(int owner, int target)
+  int self, element, i, child
+  float x, y, z, fx, fy, sx, sy, a
+
+
+  self = FindSelf()
+  element = SwordElement(self.red)
+  fx = owner.frontx
+  fy = owner.fronty
+  x = target.x
+  y = target.y
+  z = target.z + (target.height*0.5)
+
+
+  if(element == WEAPON_VARIANT_MAGIC)
+    // Spellbreaker...  Strips buffs, and sometimes raises a deflecting sphere...
+    target.eflags = target.eflags & (255-STRIP_FLAGS)
+    if(self.green && self.blue == 0)
+      self.blue = 1
+      if(!(owner.eflags & ENCHANT_FLAG_DEFLECT))
+        owner.eflags = owner.eflags | ENCHANT_FLAG_DEFLECT
+        child = PDFLECT.Effect(owner, TRUE)
+        if(child)
+          child.misc7 = 200  // Fragile...  Shatters after a few deflections...
+
+
+  if(element == WEAPON_VARIANT_FIRE && self.green && self.blue == 0)
+    // Flare...  A short burst of flame out of the swing...
+    self.blue = 1
+    sx = -fy
+    sy = fx
+    PlaySound("FILE:-SPELL03.RAW", 180 + RollDice(1, 20), 220)
+    x = owner.x + (fx*1.5)
+    y = owner.y + (fy*1.5)
+    z = owner.z + (owner.height*0.5)
+    i = 0
+    while(i < 3)
+      a = (i-1)*0.3
+      Bolt(self.owner, self.team, x, y, z, (fx + (sx*a))*0.6, (fy + (sy*a))*0.6, DAMAGE_FIRE, 2, 0, SPECIAL_FLAG_CHOP_THROUGH, 12, "FILE:FIRE1.RGB")
+      i++
+
+
+  if(element == WEAPON_VARIANT_ICE && self.green)
+    // Black Ice...  Frozen stiff (long chill, knocked down in PreHit)...
+    XITEM.Chill(target, CHILL_TIME*3)
+    FrostRing(x, y, z)
+
+
+  if(element == WEAPON_VARIANT_VOLT && self.green && self.blue == 0)
+    // Chain Edge...
+    self.blue = 1
+    Chain(target, 3)
+
+
+  if(element == WEAPON_VARIANT_POISON && self.green)
+    // Nightshade...  (Also see Nightshade(), for while it's held)...
+    STANDARD.PoisonCharacter(self.target, self.owner, 300)
+
+
+  if(element == WEAPON_VARIANT_HOLY && self.green && self.blue == 0)
+    // Aegis...  A moment where nothing can touch the holder...
+    self.blue = 1
+    if(owner.intimer < 45)
+      owner.intimer = 45
+    PFLASH.Effect(owner, "FILE:LITESPRK.RGB", WHITE, TRUE, 1.5)
+
+
+  if(element == WEAPON_VARIANT_UNHOLY && self.blue < 3)
+    // Hungering Edge...  Drains every enemy hit, up to three a swing...
+    if(!(target.flags & CHAR_NO_BACKSTAB))
+      self.blue = self.blue + 1
+      Mend(owner, "FILE:SPARK8.RGB")
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Dragon Sword...
+int DragonHit(int owner, int target)
+  int self, element, i, killed, was_cold, souls
+  float x, y, z, fx, fy, sx, sy, a
+
+
+  self = FindSelf()
+  element = SwordElement(self.red)
+  fx = owner.frontx
+  fy = owner.fronty
+  x = target.x
+  y = target.y
+  z = target.z + (target.height*0.5)
+  killed = FALSE
+  if(target.hits == 0)
+    killed = TRUE
+
+
+  if(element == WEAPON_VARIANT_MAGIC && self.green && self.blue == 0)
+    // Arcane Wrath...  Three homing missiles...
+    self.blue = 1
+    sx = -fy
+    sy = fx
+    PlaySound("FILE:BAD3.RAW", 300 + RollDice(1, 40), 200)
+    i = 0
+    while(i < 3)
+      a = (i-1)*0.5
+      PMISSILE.DirectedEffect(owner.x + (fx*1.5), owner.y + (fy*1.5), owner.z + (owner.height*0.6), (fx + (sx*a))*0.3, (fy + (sy*a))*0.3, 0.05, self.owner, "FILE:SPARK5.RGB", "FILE:SPARK6.RGB")
+      i++
+
+
+  if(element == WEAPON_VARIANT_FIRE && killed)
+    // Wyrmfang...  A kill spreads the fire to everyone nearby (breath: see Breath())...
+    PEXPLODE.Effect(x, y, z, 0.0, 0.0, 0.0, DAMAGE_FIRE, 0, 0, self.owner, self.team, "FILE:FIRE1.RGB", 128, 48)
+    Area(x, y, 6.0, 2, self.target)
+
+
+  if(element == WEAPON_VARIANT_ICE)
+    // Winter's Edge...  Every hit chills, a chilled foe's death sets off a frost nova...
+    was_cold = Chilled(target)
+    XITEM.Chill(target, CHILL_TIME)
+    if(killed && was_cold)
+      FrostRing(x, y, z)
+      PEMBER.Effect(x, y, z, 0.0, 0.0, 0.0, 8.0, 255, 10, "FILE:ICE1.RGB")
+      Area(x, y, 8.0, 1, self.target)
+
+
+  if(element == WEAPON_VARIANT_VOLT && self.green && self.blue == 0)
+    // Stormbringer...  A blocked hit charged the blade...
+    self.blue = 1
+    FileWriteByte(owner, SWORD_STORM_OFFSET, 0)
+    Chain(target, 3)
+    PSPARK.Effect(x, y, z, 12, 4)
+
+
+  if(element == WEAPON_VARIANT_POISON && self.green && self.blue == 0)
+    // Miasma...  A big poison cloud...
+    self.blue = 1
+    i = 0
+    a = RollDice(1, 120)
+    while(i < 3)
+      PPSNBALL.ShotEffect(x + sin(a)*2.5, y + sin(a+90.0)*2.5, z + 1.0, 0.0, 0.0, -0.5, self.owner, 160)
+      a = a + 120.0
+      i++
+
+
+  if(element == WEAPON_VARIANT_HOLY)
+    // Dawnbringer...  Undead are blasted back, kills heal everyone nearby...
+    if(Undead(target))
+      target.vx = fx*0.8
+      target.vy = fy*0.8
+      target.vz = 0.4
+      PEMBER.Effect(x, y, z, 0.0, 0.0, 0.05, 3.0, 255, 12, "FILE:SPARK4.RGB")
+    if(killed)
+      PlaySound("FILE:-SPELL01.RAW", 280 + RollDice(1, 20), 255)
+      Area(owner.x, owner.y, 10.0, 3, 65535)
+
+
+  if(element == WEAPON_VARIANT_UNHOLY)
+    // Soulrender...  Kills store souls, five of them make the next hit burst...
+    if(self.green && self.blue == 0)
+      self.blue = 1
+      FileWriteByte(owner, SWORD_SOULS_OFFSET, 0)
+      PEXPLODE.Effect(x, y, z, 0.0, 0.0, 2.3, DAMAGE_BASH, 5, 2, self.owner, self.team, "FILE:SPARK8.RGB", UNHOLY_COLOR, 160)
+      GENERIC.RestoreCharacterHits(owner, 3, 0)
+    if(killed && !(target.flags & CHAR_NO_BACKSTAB))
+      souls = FileReadByte(owner, SWORD_SOULS_OFFSET)
+      if(souls < 5)
+        FileWriteByte(owner, SWORD_SOULS_OFFSET, souls+1)
+        PEMBER.Effect(x, y, z, (owner.x-x)*0.05, (owner.y-y)*0.05, 0.05, 2.0, 255, 20, "FILE:SPARK8.RGB")
   return TRUE
 
 //-----------------------------------------------------------------------

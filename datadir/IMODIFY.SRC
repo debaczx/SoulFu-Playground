@@ -106,8 +106,13 @@ int FamilyBase(int item)
     return (XITEM_SWORD_BASE + (SWORD_TIER_SHORT<<3))  // Effects in SWORDFX.SRC
   if(item == ITEM_SWORD)
     return (XITEM_SWORD_BASE + (SWORD_TIER_SWORD<<3))
+  if(item == ITEM_GREAT_SWORD)
+    return (XITEM_SWORD_BASE + (SWORD_TIER_GREAT<<3))
+  if(item == ITEM_OBSIDIAN_BLADE)
+    return (XITEM_SWORD_BASE + (SWORD_TIER_OBSIDIAN<<3))
+  if(item == ITEM_DRAGON_SWORD)
+    return (XITEM_SWORD_BASE + (SWORD_TIER_DRAGON<<3))
   // Wheels still to build (bases in DEFINE.TXT)...  Add each one as its effects go in:
-  //   Great Sword, Obsidian Blade, Dragon Sword    XITEM_SWORD_BASE + (SWORD_TIER_*<<3)
   //   Dagger                                       XITEM_DAGGER_BASE
   //   Pick Axe, Hatchet, Broad Axe                 XITEM_PICK_AXE_BASE, XITEM_HATCHET_BASE, XITEM_BROAD_AXE_BASE
   //   Shield, Mirror Shield                        XITEM_SHIELD_BASE, XITEM_MIRROR_BASE

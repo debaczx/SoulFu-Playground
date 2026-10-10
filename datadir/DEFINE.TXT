@@ -1367,9 +1367,12 @@
 #define XITEM_SWORD_BASE        48   // Sword variants (Soldier's Temper) use 49-87 (48 itself is the Testing Bracelet): XITEM_SWORD_BASE + (tier*8) + element
 #define SWORD_TIER_SHORT         0   // Short Sword (stab)    49-55
 #define SWORD_TIER_SWORD         1   // Sword (swipe)         57-63
-#define SWORD_TIER_GREAT         2   // Great Sword           65-71 (not yet)
-#define SWORD_TIER_OBSIDIAN      3   // Obsidian Blade        73-79 (not yet)
-#define SWORD_TIER_DRAGON        4   // Dragon Sword          81-87 (not yet)
+#define SWORD_TIER_GREAT         2   // Great Sword           65-71
+#define SWORD_TIER_OBSIDIAN      3   // Obsidian Blade        73-79
+#define SWORD_TIER_DRAGON        4   // Dragon Sword          81-87
+#define SWORD_STATIC_OFFSET    668   // Character data (unsaved): Thunder Cleaver static count
+#define SWORD_SOULS_OFFSET     669   // Character data (unsaved): Soulrender stored souls
+#define SWORD_STORM_OFFSET     670   // Character data (unsaved): Stormbringer charged by a block
 // Other class wheels: 8 values per item type, base + element (1-7)...
 #define XITEM_DAGGER_BASE       88   // Hubbin (Hone)              89-95 (not yet)
 #define XITEM_PICK_AXE_BASE     96   // D'warf (Forge)             97-103 (not yet)

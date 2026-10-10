@@ -6,6 +6,12 @@
 
 //-----------------------------------------------------------------------
 int GetName()
+  int ext
+  ext = SystemGet(SYS_ITEMEXT, 0, 0)
+  if(SWORDFX.IsSword(ext))
+    // Tempered by the Soldier...
+    STANDARD.ItemName(SWORDFX.Name(ext), NULL, DAMAGE_TYPE, DAMAGE_LOW, DAMAGE_HIGH, WOUND_LOW, WOUND_HIGH)
+    return TRUE
   STANDARD.ItemName("OBSIDIAN BLADE", NULL, DAMAGE_TYPE, DAMAGE_LOW, DAMAGE_HIGH, WOUND_LOW, WOUND_HIGH)
 
 //-----------------------------------------------------------------------
@@ -47,7 +53,14 @@ int ModelSetup()
 // item's enchantment effect.  Must manually check if item
 // is enchanted or not...
 int Refresh()
+  int ext
   STANDARD.WeaponRefresh(100, 1.0)
+  // Nightshade keeps its holder free of poison and slows poisoned foes...
+  ext = SystemGet(SYS_ITEMEXT, 0, 0)
+  if(SWORDFX.IsSword(ext))
+    if(SWORDFX.SwordTier(ext) == SWORD_TIER_OBSIDIAN && SWORDFX.SwordElement(ext) == WEAPON_VARIANT_POISON)
+      SWORDFX.Nightshade(FindSelf())
+  return TRUE
 
 //-----------------------------------------------------------------------
 

@@ -6,12 +6,18 @@
 
 //-----------------------------------------------------------------------
 int GetName()
+  int ext
+  ext = SystemGet(SYS_ITEMEXT, 0, 0)
+  if(SWORDFX.IsSword(ext))
+    // Tempered by the Soldier...
+    STANDARD.ItemName(SWORDFX.Name(ext), NULL, DAMAGE_TYPE, DAMAGE_LOW, DAMAGE_HIGH, WOUND_LOW, WOUND_HIGH)
+    return TRUE
   STANDARD.ItemName("DRAGON SWORD", NULL, DAMAGE_TYPE, DAMAGE_LOW, DAMAGE_HIGH, WOUND_LOW, WOUND_HIGH)
 
 //-----------------------------------------------------------------------
 // Called when attack particle is supposed to be spawned
 int FrameEvent()
-  int grip, damage, wound, self
+  int grip, damage, wound, self, ext
 
   self = FindSelf()
   grip = SystemGet(SYS_WEAPONGRIP, 0, 0)
@@ -19,6 +25,19 @@ int FrameEvent()
   wound = RollDice(1, WOUND_HIGH-WOUND_LOW+1)+WOUND_LOW-1
   PATTACK.FrameEvent(DAMAGE_TYPE, damage, wound, grip, WEAPON_RANGE_LONG, WEAPON_RADIUS_LARGE, SPECIAL_FLAG_CHOP_THROUGH, SystemGet(SYS_ITEMINDEX, 0, 0)&7)
   PlaySound("FILE:SWIPE.RAW", 225 + RollDice(1, 50), 255)
+  // Wyrmfang breathes fire if the attack button is still held (baxis high bits are buttons down)...
+  ext = SystemGet(SYS_ITEMEXT, 0, 0)
+  if(SWORDFX.IsSword(ext))
+    if(SWORDFX.SwordTier(ext) == SWORD_TIER_DRAGON && SWORDFX.SwordElement(ext) == WEAPON_VARIANT_FIRE)
+      if(grip == MODEL_LEFT_FILE)
+        if(self.baxis & 16)
+          SWORDFX.Breath(self)
+          self.rltimer = self.rltimer + 60
+      else
+        if(self.baxis & 32)
+          SWORDFX.Breath(self)
+          self.rrtimer = self.rrtimer + 60
+  return TRUE
 
 //-----------------------------------------------------------------------
 // Called when item is first used, to start proper animation

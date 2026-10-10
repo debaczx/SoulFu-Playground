@@ -7,7 +7,7 @@
 int Event()
   int self, owner, target, drain_amount, child, target_script
   int temp_damage_amount, temp_wound_amount
-  int dex, str, critical, rider, old_target, defwoun, mending, drain_cap
+  int dex, str, critical, rider, old_target, defwoun, mending, drain_cap, sword_bonus
   float x, y, z, dot, scale
 
 
@@ -59,6 +59,7 @@ int Event()
               owner.action = ACTION_ATTACK_FAIL
               owner.daction = ACTION_STAND
             PSPARK.Effect(self.x, self.y, self.z, 10, 1)
+            SWORDFX.Blocked(target)  // Charges Stormbringer...
             self.evtimer = 1  // Poof after all collisions checked...
             return 0
           else
@@ -160,6 +161,12 @@ int Event()
                 // Damage rider, not mount...
                 rider.combo = 4
                 self.target = target.rider
+          // Tempered swords can hit harder or knock down (SWORDFX.PreHit)...
+          if((self.flags & PART_STUCK_ON) && target.team != self.team)
+            if(SWORDFX.IsSword(self.red))
+              sword_bonus = SWORDFX.PreHit(owner, target)
+              temp_damage_amount = temp_damage_amount + (sword_bonus & 15)
+              temp_wound_amount = temp_wound_amount + (sword_bonus>>4)
           // Some weapons can hurt characters that have high wound defense...
           defwoun = target.defwoun
           if(special_flags & SPECIAL_FLAG_INVERT_DEFWOUN)
@@ -396,7 +403,7 @@ int FrameEvent(int type, int damage, int wound, int grip, int weapon_range, floa
     sword = index & 255
     if(SWORDFX.SwordElement(sword) == WEAPON_VARIANT_HOLY)
       flags = flags | SPECIAL_FLAG_INVERT_DEFWOUN
-    if(SWORDFX.SwordElement(sword) == WEAPON_VARIANT_UNHOLY)
+    if(SWORDFX.Soft(sword))
       if(damage > 1)
         damage--
 
@@ -436,9 +443,7 @@ int FrameEvent(int type, int damage, int wound, int grip, int weapon_range, floa
     if(sword)
       // Tempered sword...  Roll its chance once for the whole swing (see SWORDFX.SRC)...
       child.red = sword
-      child.green = 0
-      if(RollDice(1, 100) <= SWORDFX.Chance(sword))
-        child.green = 1
+      child.green = SWORDFX.SwingProc(self, sword)
       child.blue = 0
   return child
 
