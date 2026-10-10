@@ -35,7 +35,7 @@ int GetName()
 int EnchantUsage()
   int self, min_int, item_type, index, worked
   int target, target_item, target_item_type, new_item_type
-  int mana_cost, mana_tap, old_target
+  int mana_cost, mana_tap, old_target, modded
 
 
   self = FindSelf()
@@ -86,6 +86,9 @@ int EnchantUsage()
       if(EnchantItemCheck(target, target_item))
         target_item_type = FileReadByte(target, target_item)
         new_item_type = target_item_type
+        // Modded and artifact items are technologically advanced...  Enchanting
+        // and modifying are two separate ways up, so they can't be enchanted...
+        modded = XITEM.Get(target, target_item)
 
         if(item_type == ITEM_SPELL_ENCHANT)
           // Enchant allows the manufacture of Super Potions...
@@ -108,10 +111,10 @@ int EnchantUsage()
               PEXPLODE.Effect(target.x, target.y, target.z, 0.0, 0.0, 3.34, DAMAGE_ICE, 7, 1, FindIndex(self), self.team, "FILE:ICE0.RGB", ICE_COLOR, 255)
               DamageTarget(DAMAGE_ICE, 7, 1)
             self.target = old_target
-        if(target_item_type >= ITEM_SHIELD && target_item_type <= ITEM_LEGS_5 && (target_item_type & 3) == 0)
+        if(target_item_type >= ITEM_SHIELD && target_item_type <= ITEM_LEGS_5 && (target_item_type & 3) == 0 && modded == 0)
           // Trying to enchant some armor...
           new_item_type = target_item_type | (item_type&3)
-        if(target_item_type >= ITEM_DAGGER && target_item_type <= ITEM_WAR_HAMMER && (target_item_type & 7) == 0)
+        if(target_item_type >= ITEM_DAGGER && target_item_type <= ITEM_WAR_HAMMER && (target_item_type & 7) == 0 && modded == 0)
           // Trying to enchant a weapon...
           new_item_type = target_item_type | (item_type&3)
         if(new_item_type != target_item_type)
