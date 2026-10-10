@@ -1,7 +1,7 @@
 // Gronnade particle...
 #define hit_count   self.misc7
 #define SMOKE_COLOR (128)
-#define BOMBLET     100   // xhand of a Cluster gronnade's bomblets (cored gronnades keep their element in xhand)
+#define BOMBLET     100   // xhand of a Cluster gronnade's bomblets (cored gronnades keep XHAND_ELEMENT_BASE + element in xhand)
 //-----------------------------------------------------------------------
 int Effect(float x, float y, float z, float vx, float vy, float vz)
   int child
@@ -18,7 +18,7 @@ int Effect(float x, float y, float z, float vx, float vy, float vz)
 // Colours a cored gronnade by its element (kept in xhand)...
 int Tint(int child)
   int element
-  element = child.xhand
+  element = child.xhand - XHAND_ELEMENT_BASE
   if(element == WEAPON_VARIANT_MAGIC)
     child.red = 200
     child.green = 90
@@ -259,8 +259,8 @@ int Refresh()
     PEXPLODE.Effect(self.lastx, self.lasty, self.lastz, 0.0, 0.0, 2.3, DAMAGE_FIRE, 3, 1, self.owner, self.team, "FILE:FIRE1.RGB", SMOKE_COLOR, 100)
     GoPoof(POOF_SELF)
     return TRUE
-  if(self.xhand >= WEAPON_VARIANT_MAGIC && self.xhand <= WEAPON_VARIANT_UNHOLY)
-    if(CoredBlast(self.xhand))
+  if(self.xhand >= (XHAND_ELEMENT_BASE + WEAPON_VARIANT_MAGIC) && self.xhand <= (XHAND_ELEMENT_BASE + WEAPON_VARIANT_UNHOLY))
+    if(CoredBlast(self.xhand - XHAND_ELEMENT_BASE))
       GoPoof(POOF_SELF)
     return TRUE
   damage = 2+RollDice(1, 3)

@@ -1,6 +1,6 @@
 //-----------------------------------------------------------------------
 // <ZZ> Special Gonne shots (G'nome's Modify skill)...
-//      The shot kind is kept in self.xhand (an element number):
+//      The shot kind is kept in self.xhand (XHAND_ELEMENT_BASE + element):
 //        WEAPON_VARIANT_FIRE    Homing rocket...  Locks on fast, steers
 //                               hard, explodes on whatever it touches.
 //        WEAPON_VARIANT_POISON  Venom dart...  Flies straight, poisons.
@@ -9,7 +9,6 @@
 //                               and heals it.  Passes through enemies.
 //      The Magic volley just uses PMISSILE...
 //-----------------------------------------------------------------------
-#define kind      self.xhand
 #define age       self.misc4
 #define offx      self.misc5
 #define offy      self.misc6
@@ -33,7 +32,7 @@ int Effect(float x, float y, float z, float vx, float vy, float vz, int owner_in
     SetSpawnTeam(owner.team)
     child = Spawn(PARTICLE, x, y, z, 0)
     if(child)
-      child.xhand = shot_kind
+      child.xhand = XHAND_ELEMENT_BASE + shot_kind
       child.team = owner.team
       child.owner = owner_index
       child.target = 65535
@@ -187,12 +186,13 @@ int Mend(int target)
 
 //-----------------------------------------------------------------------
 int Event()
-  int self, target
+  int self, target, kind
   float vx
 
 
   self = FindSelf()
-  if(kind == BURN_TICKER)
+  kind = self.xhand - XHAND_ELEMENT_BASE
+  if(self.xhand == BURN_TICKER)
     if(self.event == EVENT_TIMER)
       target = FindTarget()
       if(target == NULL || age == 0)
@@ -294,11 +294,12 @@ int Event()
 
 //-----------------------------------------------------------------------
 int Refresh()
-  int self, child, target
+  int self, child, target, kind
   float dx, dy, dz, distance, scale, keep
 
 
   self = FindSelf()
+  kind = self.xhand - XHAND_ELEMENT_BASE
   self.timer = 2
 
 

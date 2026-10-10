@@ -64,7 +64,9 @@ int Event()
       child = PGRON.Effect(self.x, self.y, self.z+(self.height*0.5), vx, vy, vz)
       if(child)
         // Cored gronnade...  The core goes with it...
-        child.xhand = VariantElement()
+        child.xhand = 0
+        if(VariantElement())
+          child.xhand = XHAND_ELEMENT_BASE + VariantElement()
         PGRON.Tint(child)
       grip = SystemGet(SYS_WEAPONGRIP, 0, 0)
       STANDARD.AutoReload(self, grip)

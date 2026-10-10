@@ -97,7 +97,7 @@ int FrameEvent()
     // Normal bullet...  Leech rounds are normal bullets that drain...
     child = PGONNE.FrameEvent(vx, vy, vz)
     if(child && element)
-      child.xhand = WEAPON_VARIANT_UNHOLY
+      child.xhand = XHAND_ELEMENT_BASE + WEAPON_VARIANT_UNHOLY
     return TRUE
   SpecialShot(self, element, vx, vy, vz)
   return TRUE

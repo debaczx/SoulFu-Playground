@@ -31,13 +31,13 @@ int AmmoEffect(int do_damage_to_target)
   if(do_damage_to_target)
     damage = RollDice(1, 3)+1
     wound = RollDice(1, 3)
-    if(self.xhand == WEAPON_VARIANT_UNHOLY)
+    if(self.xhand == (XHAND_ELEMENT_BASE + WEAPON_VARIANT_UNHOLY))
       // Leech rounds hit softer, to pay for the drain...
       damage = RollDice(1, 3)
       wound = RollDice(1, 2)
     DamageTarget(DAMAGE_EDGE, damage, wound)
     // Leech rounds (modded Gonne) drain a little life back to the shooter...
-    if(self.xhand == WEAPON_VARIANT_UNHOLY)
+    if(self.xhand == (XHAND_ELEMENT_BASE + WEAPON_VARIANT_UNHOLY))
       target = FindTarget()
       owner = FindOwner()
       if(target && owner)

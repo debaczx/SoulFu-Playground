@@ -1358,6 +1358,10 @@
 #define CHILL_OFFSET           666   // Character data: frames left of the Chilled status (slower moves & animation, blue tint)
 #define CHILL_TIME             180   // Default chill length (~3 seconds)
 #define XHAND_CHILL              3   // Particle xhand value: this attack chills what it hits
+#define XHAND_ELEMENT_BASE      16   // Particle xhand: XHAND_ELEMENT_BASE + element marks a Gonne/gronnade/special shot's element (17-23)
+// Particle xhand (byte 85) ranges...  Keep them apart so one script never reads another's meaning:
+//   0 none, 1-2 weapon hand (artifact perks), 3 XHAND_CHILL, 17-23 element (XHAND_ELEMENT_BASE),
+//   33-39 modded-bow arrow (XHAND_BOW_BASE), 100 Cluster bomblet (PGRON), 200 burn ticker (PGSHOT)
 #define XITEM_CORE_BASE         16   // Magic Cores use 17-23: XITEM_CORE_BASE + element (WEAPON_VARIANT_MAGIC..UNHOLY)
 #define XITEM_TESTING_BRACELET  48   // Ring artifact (test kit): using it gives 50 stat points
 #define XITEM_SWORD_BASE        48   // Sword variants (Soldier's Temper) use 49-87 (48 itself is the Testing Bracelet): XITEM_SWORD_BASE + (tier*8) + element
