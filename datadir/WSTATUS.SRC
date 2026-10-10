@@ -1251,7 +1251,7 @@ int SpecialDragDropStuff()
               target = FindByIndex(last_item)
               if(target && target != binding)
                 if(SystemGet(SYS_ITEMREGISTRYPRICE, item_type, 0) >= 0)
-                  if(GiveItemToCharacter(target, item_type))
+                  if(GiveItemToCharacterExt(target, item_type, XITEM.Get(binding, icon_pick)))
                     FileWriteByte(binding, icon_pick, ITEM_NONE)
 
                     // Switched some icons...  Need to call the binding's

@@ -461,6 +461,14 @@ int CharacterHasItem(int target, int item, int remove_it)
 int GiveItemToCharacter(int target, int item)
   // Character is a pointer, not an index...  Returns TRUE if it worked...
   // Should then spawn PITEM manually to show what it was...
+  // The new item is always a plain one (no artifact/mod extension)...
+  return GiveItemToCharacterExt(target, item, 0)
+
+//-----------------------------------------------------------------------
+int GiveItemToCharacterExt(int target, int item, int ext)
+  // Same as GiveItemToCharacter, but the item gets the given extension...
+  // Set explicitly, because the slot scan below reads other items and the
+  // engine would otherwise copy the extension of a matching item...
   int slot, old_item, num_slot
 
 
@@ -473,6 +481,7 @@ int GiveItemToCharacter(int target, int item)
     old_item = FileReadByte(target, slot+224)
     if(old_item == ITEM_NONE)
       FileWriteByte(target, slot+224, item)
+      XITEM.Set(target, slot+224, ext)
       return TRUE
     slot++
   // No empty slots...
