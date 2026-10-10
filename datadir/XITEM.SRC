@@ -289,9 +289,19 @@ int FindCore(int who, int element)
 //-----------------------------------------------------------------------
 // Chills a character for the given number of frames (if longer than what
 // it has left)...  Chilled characters move and animate slower (engine)...
+// Ice resistance shortens the chill by 1/8 per point (8 or more is immune),
+// and ice weakness lengthens it the same way...
 int Chill(int who, int frames)
-  int now
+  int now, resist
   if(!who)
+    return FALSE
+  resist = who.defice
+  if(resist > 127)
+    resist = resist - 256
+  if(resist >= 8)
+    return FALSE
+  frames = (frames * (8 - resist)) / 8
+  if(frames < 1)
     return FALSE
   if(frames > 65535)
     frames = 65535
