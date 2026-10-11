@@ -1247,6 +1247,7 @@ int BumpDamageEvent(int damage_type, int damage_amount, int wound_amount, int kn
                 if(knock_down)
                   target.combo = 4
                 DamageTarget(damage_type, damage_amount, wound_amount)
+                RUNEFX.Bite(self, target)  // Mystic monster forms (and their pack)...
                 x = (self.x + target.x)*0.5
                 y = (self.y + target.y)*0.5
                 z = self.z + 1.0

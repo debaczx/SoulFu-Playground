@@ -9,7 +9,11 @@
 //          Hubbin   HONE     Daggers
 //          D'warf   FORGE    Picks, axes and shields
 //          Healer   HALLOW   Hammers and maces
-//      (Wizard and Mystic get theirs later, through a rune item.)
+//          Wizard   INSCRIBE Runes (attack spells)
+//          Mystic   INVOKE   Runes (turrets and monster forms)
+//      Runes work a little differently: a blank rune takes 1 core of an
+//      element (always works), then ranks up with 2 more and 3 more cores
+//      of the same element.  Salvage gives back every core (RUNEFX.SRC)...
 //
 //      The directions are a compass of elements, clockwise from Up, in the
 //      same order as the game's enchantments (WEAPON_VARIANT_*):
@@ -57,6 +61,10 @@ int SkillName(int kind)
     return "FORGE"
   if(kind == CLASS_HEALER)
     return "HALLOW"
+  if(kind == CLASS_WIZARD)
+    return "INSCRIBE"
+  if(kind == CLASS_MYSTIC)
+    return "INVOKE"
   return "MODIFY"
 
 //-----------------------------------------------------------------------
@@ -79,6 +87,9 @@ int ClassTool(int kind, int item)
       return TRUE
   if(kind == CLASS_HEALER)
     if(item == ITEM_HAMMER || item == ITEM_MACE || item == ITEM_WAR_HAMMER)
+      return TRUE
+  if(kind == CLASS_WIZARD || kind == CLASS_MYSTIC)
+    if(item == ITEM_RUNE)
       return TRUE
   return FALSE
 
@@ -184,10 +195,53 @@ int VariantFor(int self, int element)
     if(element == WEAPON_VARIANT_POISON)
       return XITEM_VENOM_SPRAY
     return XITEM_SANCTIFIER
+  if(item == ITEM_RUNE)
+    return RuneVariant(self, ext, element)
   base = FamilyBase(item)
   if(base == 0)
     return NO_VARIANT
   return (base + element)
+
+//-----------------------------------------------------------------------
+// A rune...  Blank takes any element (Rank I), an inscribed/invoked rune
+// of the caster's own kind only ranks up in its own element...
+int RuneVariant(int self, int ext, int element)
+  int base
+  base = XITEM_RUNE_WIZARD_BASE
+  if(self.class == CLASS_MYSTIC)
+    base = XITEM_RUNE_MYSTIC_BASE
+  if(ext == 0)
+    return (base + element)
+  if(ext <= base || ext >= (base + 24))
+    return NO_VARIANT  // The other class's rune...
+  if((ext & 7) != element || RUNEFX.RuneRank(ext) >= 2)
+    return NO_VARIANT
+  return (ext + 8)
+
+//-----------------------------------------------------------------------
+// Cores of an element in the backpack...
+int CoreCount(int self, int element)
+  int i, count
+  count = 0
+  i = 224
+  while(i < 240)
+    if(FileReadByte(self, i) == ITEM_CORE)
+      if(XITEM.Get(self, i) == XITEM_CORE_BASE + element)
+        count++
+    i++
+  return count
+
+//-----------------------------------------------------------------------
+// Empty backpack slots...
+int FreeSlots(int self)
+  int i, count
+  count = 0
+  i = 224
+  while(i < 240)
+    if(FileReadByte(self, i) == ITEM_NONE)
+      count++
+    i++
+  return count
 
 //-----------------------------------------------------------------------
 // Which element is a modded item?  0 if it isn't one (plain, artifact or
@@ -211,8 +265,8 @@ int ElementOfVariant(int variant)
   // and its base value itself is never a variant (48 is the Testing Bracelet)...
   if(variant > XITEM_BOW_BASE && variant <= (XITEM_BOW_BASE+7))
     return (variant & 7)
-  if(variant > XITEM_GRON_BASE && variant < (XITEM_WAR_HAMMER_BASE+8))
-    return (variant & 7)
+  if(variant > XITEM_GRON_BASE && variant < (XITEM_RUNE_MYSTIC_BASE+24))
+    return (variant & 7)  // Melee 49-159, runes 161-207...
   return 0
 
 //-----------------------------------------------------------------------
@@ -268,6 +322,11 @@ int ChanceOfWorking(int self, int expression)
     return 0  // Already is that...
   if(variant == 0)
     return 100  // Going back to the plain version always works
+  if(FileReadByte(self, ModSlot(self)) == ITEM_RUNE)
+    // Runes need every core in the backpack, and then always work...
+    if(CoreCount(self, expression) > RUNEFX.RuneRank(variant))
+      return 100
+    return 0
   if(XITEM.FindCore(self, expression))
     return 100
   if(variant > XITEM_GRON_BASE && variant <= (XITEM_GRON_BASE+7))
@@ -345,11 +404,21 @@ int Event()
 //-----------------------------------------------------------------------
 // Breaks down the held item...  Returns TRUE if it worked...
 int Salvage(int self)
-  int element, slot
+  int element, slot, count
   element = SalvageElement(self)
   if(element == 0)
     return FALSE
   slot = ModSlot(self)
+  if(RUNEFX.IsRune(XITEM.Get(self, slot)))
+    // A rune...  Back to blank, every core comes back...
+    count = RUNEFX.CoresSpent(XITEM.Get(self, slot))
+    if(FreeSlots(self) < count)
+      return FALSE
+    while(count > 0)
+      XITEM.GiveCore(self, element)
+      count--
+    XITEM.Set(self, slot, 0)
+    return TRUE
   if(ElementOfVariant(XITEM.Get(self, slot) & 255))
     // Modded...  Strip the mod, keep the item, refund the core if it has a real one...
     if(CoreInside(self))
@@ -367,7 +436,7 @@ int Salvage(int self)
 //-----------------------------------------------------------------------
 // Called when the button is let go...  Does the modification...
 int Unpressed()
-  int self, expression, variant, chance, slot, oldtarget, index, oldcore
+  int self, expression, variant, chance, slot, oldtarget, index, oldcore, count
 
 
   self = FindSelf()
@@ -411,6 +480,21 @@ int Unpressed()
 
 
     variant = VariantFor(self, expression)
+    if(FileReadByte(self, ModSlot(self)) == ITEM_RUNE)
+      // Runes use up every core the rank needs (ChanceOfWorking checked
+      // they're all there)...
+      count = RUNEFX.RuneRank(variant) + 1
+      while(count > 0)
+        slot = XITEM.FindCore(self, expression)
+        if(slot)
+          FileWriteByte(self, slot, ITEM_NONE)
+          XITEM.Set(self, slot, 0)
+        count--
+      XITEM.Set(self, ModSlot(self), variant | XITEM_CORED)
+      PSPARK.Effect(self.x, self.y, self.z+(self.height*0.5), 12, 4)
+      PEMBER.Effect(self.x, self.y, self.z+self.height, 0.0, 0.0, 0.05, 3.0, 255, 12, "FILE:LITESPRK.RGB")
+      ButtonSound()
+      return TRUE
     oldcore = CoreInside(self)
 
 

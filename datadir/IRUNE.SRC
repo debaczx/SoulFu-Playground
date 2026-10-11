@@ -1,0 +1,24 @@
+//-----------------------------------------------------------------------
+// <ZZ> Rune...  The Wizard's and Mystic's class item.  Starts blank; the
+//      Wizard's Inscribe and the Mystic's Invoke (IMODIFY.SRC) turn it
+//      into a spell with Magic Cores and rank it up with more of them.
+//      The spell is in the item extension (RUNEFX.SRC)...
+//-----------------------------------------------------------------------
+int GetName()
+  int ext
+  ext = SystemGet(SYS_ITEMEXT, 0, 0)
+  if(RUNEFX.IsRune(ext))
+    STANDARD.ItemName(RUNEFX.Name(ext), RUNEFX.RankName(ext), 255, 0, 0, 0, 0)
+    return TRUE
+  STANDARD.ItemName("BLANK RUNE", "INSCRIBE OR INVOKE", 255, 0, 0, 0, 0)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Called when item is first used...
+int Event()
+  RUNEFX.Cast(FindSelf(), XITEM.Current())
+  return TRUE
+
+//-----------------------------------------------------------------------
+int Unused()
+  return FALSE

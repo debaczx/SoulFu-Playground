@@ -165,7 +165,7 @@ int Event()
 
 //-----------------------------------------------------------------------
 int FrameEvent()
-  int self, subtype, two_heads, child
+  int self, subtype, two_heads, child, helpers, pack
   int image, type, damage, wound, smoke_color, special_flags
   float x, y, z, frontx, fronty
 
@@ -174,7 +174,12 @@ int FrameEvent()
   if(self.event & 8)
     if(self.action == ACTION_EXTRA && subtype == 1)
       // Summon a helper Wuff...
-      if(ChildCount(self) < MaxHelpers(self, 2))
+      // A Mystic's Dire Wuff form (RUNEFX.SRC) has its own pack size...
+      helpers = MaxHelpers(self, 2)
+      pack = RUNEFX.PackSize(self)
+      if(pack)
+        helpers = pack + ChildCount(self) - RUNEFX.PackCount(self)
+      if(ChildCount(self) < helpers)
         SystemSet(SYS_GLOBALSPAWN, 0, GLOBAL_SPAWN_TEAM, self.team)
         SystemSet(SYS_GLOBALSPAWN, 0, GLOBAL_SPAWN_SUBTYPE, 0)
         SystemSet(SYS_GLOBALSPAWN, 0, GLOBAL_SPAWN_OWNER, FindIndex(self))
@@ -188,6 +193,8 @@ int FrameEvent()
           child.aitimer = 30
           child.spin = self.spin
           SetupTargetMatrix(child)
+          if(pack)
+            RUNEFX.PackJoined(self, child)
     if(self.action == ACTION_THRUST_LEFT)
       // Spawn a flame thrower/snow blower particle for the Wuff...
       if(subtype == 2 || subtype == 3)

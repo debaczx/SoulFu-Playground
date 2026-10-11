@@ -1315,9 +1315,9 @@
 #define ITEM_FOOD           129
 #define ITEM_COOKIE         130
 #define ITEM_TRIPE          131
-#define ITEM_MODIFY         132 // Class skill (Modify, Fletch, Temper, Hone, Forge, Hallow)...  Rebuilds the class's own gear into a variant
+#define ITEM_MODIFY         132 // Class skill (Modify, Fletch, Temper, Hone, Forge, Hallow, Inscribe, Invoke)...  Rebuilds the class's own gear into a variant
 #define ITEM_CORE           133 // Magic Core...  Element is in the item extension (XITEM_CORE_BASE + WEAPON_VARIANT_*)
-// 134 is Unused
+#define ITEM_RUNE           134 // Rune (Wizard and Mystic)...  Blank until Inscribed/Invoked, spell is in the item extension (RUNEFX.SRC)
 // 135 is Unused
 
 
@@ -1385,6 +1385,9 @@
 #define XITEM_HAMMER_BASE      136   // Healer (Hallow)           137-143 (HEALFX.SRC)
 #define XITEM_MACE_BASE        144   // Healer (Hallow)           145-151 (HEALFX.SRC)
 #define XITEM_WAR_HAMMER_BASE  152   // Healer (Hallow)           153-159 (HEALFX.SRC)
+#define XITEM_RUNE_WIZARD_BASE 160   // Wizard (Inscribe) runes   161-183: base + (rank*8) + element, rank 0-2 (RUNEFX.SRC)
+#define XITEM_RUNE_MYSTIC_BASE 184   // Mystic (Invoke) runes     185-207: base + (rank*8) + element, rank 0-2 (RUNEFX.SRC)
+#define RUNE_FORM_OFFSET       669   // Character data (unsaved): on a Mystic's monster form, the rune that made it (RUNEFX.SRC)
 
 #define WEAPON_VARIANT_NONE    0
 #define WEAPON_VARIANT_MAGIC   1
