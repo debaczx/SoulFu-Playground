@@ -1098,23 +1098,23 @@ int Spawn()
     self.item02 = RANDOM.SpellOrb(2)
     self.item03 = ITEM_MANA
     self.item04 = ITEM_MANA
-    self.item05 = ITEM_MODIFY  // Inscribe...  Turns the Blank Rune into an attack spell with Magic Cores
-    self.item06 = ITEM_RUNE
-    self.item07 = ITEM_CORE  // Test items (unique-testing branch): cores to Inscribe a rune up to Rank III
-    XITEM.Set(self, 231, XITEM_CORE_BASE+WEAPON_VARIANT_MAGIC)
-    self.item08 = ITEM_CORE
-    XITEM.Set(self, 232, XITEM_CORE_BASE+WEAPON_VARIANT_MAGIC)
-    self.item09 = ITEM_CORE
-    XITEM.Set(self, 233, XITEM_CORE_BASE+WEAPON_VARIANT_MAGIC)
-    self.item10 = ITEM_CORE
+    self.item05 = ITEM_MANA
+    self.item06 = ITEM_BOOK_4
+    self.item07 = ITEM_FOOD
+    self.item08 = ITEM_MODIFY  // Inscribe...  Turns the Blank Rune into an attack spell with Magic Cores
+    self.item09 = ITEM_RUNE
+    self.item10 = ITEM_CORE  // Test items (unique-testing branch): cores to Inscribe a rune up to Rank III
     XITEM.Set(self, 234, XITEM_CORE_BASE+WEAPON_VARIANT_MAGIC)
     self.item11 = ITEM_CORE
     XITEM.Set(self, 235, XITEM_CORE_BASE+WEAPON_VARIANT_MAGIC)
     self.item12 = ITEM_CORE
     XITEM.Set(self, 236, XITEM_CORE_BASE+WEAPON_VARIANT_MAGIC)
-    self.item05 = ITEM_MANA
-    self.item06 = ITEM_BOOK_4
-    self.item07 = ITEM_FOOD
+    self.item13 = ITEM_CORE
+    XITEM.Set(self, 237, XITEM_CORE_BASE+WEAPON_VARIANT_MAGIC)
+    self.item14 = ITEM_CORE
+    XITEM.Set(self, 238, XITEM_CORE_BASE+WEAPON_VARIANT_MAGIC)
+    self.item15 = ITEM_CORE
+    XITEM.Set(self, 239, XITEM_CORE_BASE+WEAPON_VARIANT_MAGIC)
   if(self.class == CLASS_HEALER)
     self.eqright = ITEM_HAMMER
     self.eqleft = ITEM_SHIELD
