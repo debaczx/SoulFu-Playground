@@ -1,0 +1,26 @@
+//-----------------------------------------------------------------------
+// <ZZ> Unique items...  Found, not crafted.  Each one is a normal item
+//      type (which supplies the model and base stats) plus an extension
+//      value from XITEM_UNIQUE_BASE up (see DEFINE.TXT and XITEM.SRC).
+//-----------------------------------------------------------------------
+// Archmage Robe...  A Leather Cuirass with its own name, colors and
+// ROBE_MANA_REGEN percent faster mana regeneration (MREGEN.SRC)...
+int IsRobe(int ext)
+  return ((ext & 255) == XITEM_ARCHMAGE_ROBE)
+
+//-----------------------------------------------------------------------
+int WearingRobe(int who)
+  if((who.eqbody & 252) != ITEM_BODY_1)
+    return FALSE
+  return IsRobe(XITEM.Get(who, 247))
+
+//-----------------------------------------------------------------------
+// Appended to the robe's name...  Reads the define so the tooltip
+// always matches the real number...
+int RobeName()
+  StringAppend(NAME_STRING, " (MANA REGEN +", 256)
+  StringAppendNumber(NAME_STRING, ROBE_MANA_REGEN, 256)
+  StringAppend(NAME_STRING, "%)", 256)
+  return TRUE
+
+//-----------------------------------------------------------------------

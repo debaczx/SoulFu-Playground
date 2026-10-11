@@ -1,6 +1,8 @@
 //-----------------------------------------------------------------------
 int GetName()
   STANDARD.ItemName("LEATHER CUIRASS", NULL, 255, 0, 0, 0, 0)
+  if(UNIQUE.IsRobe(XITEM.Current()))
+    UNIQUE.RobeName()
 
 //-----------------------------------------------------------------------
 // Called to get item's defense ratings

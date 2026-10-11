@@ -67,6 +67,8 @@ int ArtifactName(int ext)
     return "SPLITTER"
   if(ext == XITEM_TESTING_BRACELET)
     return "TESTING BRACELET"
+  if(UNIQUE.IsRobe(ext))
+    return "ARCHMAGE ROBE"
   return NULL
 
 //-----------------------------------------------------------------------
@@ -119,6 +121,8 @@ int ArtifactIcon(int ext)
     return "FILE:=IBOWSPL.RGB"
   if(ext == XITEM_TESTING_BRACELET)
     return "FILE:=ITBRACE.RGB"
+  if(UNIQUE.IsRobe(ext))
+    return "FILE:=IROBE.RGB"
   if(ext == XITEM_FROST_THROWER)
     return "FILE:=IFLFRO.RGB"
   if(ext == XITEM_LEECH_BEAM)

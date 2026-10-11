@@ -12,10 +12,30 @@ int Event()
 int PlayerManaTimer()
   int self
   self = FindSelf()
+  self.tetimer = TimerFor(self)
+
+//-----------------------------------------------------------------------
+// Frames between mana points...  The Archmage Robe (UNIQUE.SRC) speeds it up...
+int TimerFor(int self)
+  int timer
   if(self.class == CLASS_WIZARD)
-    self.tetimer = (1800-(self.int*15))
+    timer = (1800-(self.int*15))
   else
-    self.tetimer = (1800-(self.int*10))
+    timer = (1800-(self.int*10))
+  if(UNIQUE.WearingRobe(self))
+    timer = (timer*100) / (100+ROBE_MANA_REGEN)
+  if(timer < 1)
+    timer = 1
+  return timer
+
+//-----------------------------------------------------------------------
+// Called when armor changes, so putting the robe on works right away
+// instead of after the old (slow) countdown...
+int CheckTimer(int self)
+  int timer
+  timer = TimerFor(self)
+  if(self.tetimer > timer)
+    self.tetimer = timer
 
 //-----------------------------------------------------------------------
 int PlayerManaNumber()

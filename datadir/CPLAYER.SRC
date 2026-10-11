@@ -406,6 +406,11 @@ int ModelSetup()
       ModelAssign(self+MODEL_ARMS_TEX2, limb_color_dull)
       ModelAssign(self+MODEL_ARMS_TEX3, "FILE:=ARMOR.RGB")
       ModelAssign(self+MODEL_ARMS_COLOR, WHITE)
+      if(UNIQUE.WearingRobe(self))
+        // Archmage Robe...  Purple cloth instead of the chosen color...
+        ModelAssign(self+MODEL_CHEST_TEX2, "FILE:NPURPLE.RGB")
+        ModelAssign(self+MODEL_PADS_COLOR, 8405184)  // Purple (128, 64, 192)
+        ModelAssign(self+MODEL_ARMS_TEX2, "FILE:DPURPLE.RGB")
     if(armor_type == ITEM_BODY_2)
       // Stuff for armor type 2
       ModelAssign(self+MODEL_CHEST_FILE, "FILE:PLRBODY1.RDY")
@@ -855,6 +860,7 @@ int ModelSetup()
 //-----------------------------------------------------------------------
 int DefenseRating()
   STANDARD.DefenseRating()
+  MREGEN.CheckTimer(FindSelf())  // Armor changed...  The Archmage Robe speeds up mana right away
 
 //-----------------------------------------------------------------------
 int ButtonEvent()
@@ -1101,6 +1107,8 @@ int Spawn()
     self.item05 = ITEM_MANA
     self.item06 = ITEM_BOOK_4
     self.item07 = ITEM_FOOD
+    self.eqbody = ITEM_BODY_1  // Test item (unique-testing branch): Archmage Robe
+    XITEM.Set(self, 247, XITEM_ARCHMAGE_ROBE)
     self.item08 = ITEM_MODIFY  // Inscribe...  Turns the Blank Rune into an attack spell with Magic Cores
     self.item09 = ITEM_RUNE
     self.item10 = ITEM_CORE  // Test items (unique-testing branch): cores to Inscribe a rune up to Rank III
@@ -1179,6 +1187,8 @@ int Spawn()
     else
       self.eqleft = ITEM_SPELL_DISENCHANT
     self.item01 = ITEM_FOOD
+    self.eqbody = ITEM_BODY_1  // Test item (unique-testing branch): Archmage Robe
+    XITEM.Set(self, 247, XITEM_ARCHMAGE_ROBE)
     self.item02 = ITEM_MODIFY  // Invoke...  Turns the Blank Rune into a turret or monster form with Magic Cores
     self.item03 = ITEM_RUNE
     self.item04 = ITEM_CORE  // Test items (unique-testing branch): cores to Invoke a rune up to Rank III, and a Shrine

@@ -1387,6 +1387,9 @@
 #define XITEM_WAR_HAMMER_BASE  152   // Healer (Hallow)           153-159 (HEALFX.SRC)
 #define XITEM_RUNE_WIZARD_BASE 160   // Wizard (Inscribe) runes   161-183: base + (rank*8) + element, rank 0-2 (RUNEFX.SRC)
 #define XITEM_RUNE_MYSTIC_BASE 184   // Mystic (Invoke) runes     185-207: base + (rank*8) + element, rank 0-2 (RUNEFX.SRC)
+#define XITEM_UNIQUE_BASE      208   // Unique items (found, not crafted) use 208 and up (UNIQUE.SRC)
+#define XITEM_ARCHMAGE_ROBE    208   // Unique body armor (Leather Cuirass base): faster mana regeneration
+#define ROBE_MANA_REGEN        1600  // Archmage Robe: extra mana regeneration in percent (1600 = 17x as fast; plan is 300 after testing)
 #define RUNE_FORM_OFFSET       669   // Character data (unsaved): on a Mystic's monster form, the rune that made it (RUNEFX.SRC)
 
 #define WEAPON_VARIANT_NONE    0
