@@ -1,7 +1,12 @@
 #define GREY 8421504
 //-----------------------------------------------------------------------
 int GetName()
-  int type
+  int type, ext
+  ext = SystemGet(SYS_ITEMEXT, 0, 0)
+  if(DWARFFX.IsForged(ext))
+    // Forged by the D'warf...
+    STANDARD.ItemName(DWARFFX.Name(ext), "LEFT HAND", 255, 0, 0, 0, 0)
+    return TRUE
   type = SystemGet(SYS_ITEMINDEX, 0, 0) & 252
   if(type == ITEM_MIRROR_SHIELD)
     STANDARD.ItemName("MIRROR SHIELD", "LEFT HAND", 255, 0, 0, 0, 0)
@@ -25,6 +30,8 @@ int ModelSetup()
       ModelAssign(self+grip, "FILE:MSHIELD.RDY")
       ModelAssign(self+grip+4, "FILE:GOLD.RGB")
       ModelAssign(self+grip+8, "FILE:STEEL.RGB")
+      if(DWARFFX.IsForged(SystemGet(SYS_ITEMEXT, 0, 0)))
+        ModelAssign(self+grip+8, DWARFFX.Steel(SystemGet(SYS_ITEMEXT, 0, 0)))  // Forged...  Tinted mirror...
       ModelAssign(self+grip+12, "FILE:DGOLD.RGB")
       ModelAssign(self+grip+16, "FILE:=SHIELD5.RGB")
 
@@ -44,6 +51,8 @@ int ModelSetup()
       // Normal steel shield...
       ModelAssign(self+grip, "FILE:SHIELD.RDY")
       ModelAssign(self+grip+4, "FILE:STEEL.RGB")
+      if(DWARFFX.IsForged(SystemGet(SYS_ITEMEXT, 0, 0)))
+        ModelAssign(self+grip+4, DWARFFX.Steel(SystemGet(SYS_ITEMEXT, 0, 0)))  // Forged...  Tinted rim...
       if(owner)
         ModelAssign(self+grip+8, DullColor(owner.eqcol23>>4))
       else

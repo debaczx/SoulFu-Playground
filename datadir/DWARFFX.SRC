@@ -1,0 +1,818 @@
+//-----------------------------------------------------------------------
+// <ZZ> Forged gear (the D'warf's Forge, see IMODIFY.SRC)...
+//      A plain Pick Axe, Hatchet, Broad Axe, Shield or Mirror Shield plus
+//      a Magic Core.  The extension is base + element:
+//          97-103   Pick Axe       Simple chances
+//          105-111  Hatchet        Crowd control on a wide swing
+//          113-119  Broad Axe      Rare, big moments
+//          121-127  Shield         Small effects when blocking
+//          129-135  Mirror Shield  Big effects when blocking
+//      The D'warf is a tank, so it's about staying alive, controlling
+//      crowds and protecting...  Many effects get stronger at Last Stand
+//      (below half health).  Design: dwarf-wheel-ideas.md
+//      PATTACK.FrameEvent() stores on a weapon's attack particle:
+//          red     The variant (its extension)
+//          green   1 if the effect goes off this swing (SwingProc)
+//          blue    Once-per-swing counter
+//      PATTACK.Event() calls Hit() for each enemy hit, Hurt() for each
+//      character hurt (Grudge), and Blocked() when a hit is blocked...
+//-----------------------------------------------------------------------
+#define ICE_SMOKE_COLOR (4239600)
+#define UNHOLY_COLOR    (8388608)
+#define FORGE_PICK      0
+#define FORGE_HATCHET   1
+#define FORGE_BROAD     2
+#define FORGE_SHIELD    3
+#define FORGE_MIRROR    4
+#define GRUDGE_OFFSET   671   // Character data (unsaved): Grudge hatchet's stored hits
+
+
+//-----------------------------------------------------------------------
+// TRUE if ext is forged gear...
+int IsForged(int ext)
+  ext = ext & 255
+  if(ext > XITEM_PICK_AXE_BASE && ext < (XITEM_MIRROR_BASE+8))
+    if(ext & 7)
+      return TRUE
+  return FALSE
+
+//-----------------------------------------------------------------------
+// FORGE_ kind of forged gear...
+int ForgeKind(int ext)
+  return (((ext & 255) - XITEM_PICK_AXE_BASE) >> 3)
+
+//-----------------------------------------------------------------------
+// WEAPON_VARIANT_ element of forged gear...
+int ForgeElement(int ext)
+  return (ext & 7)
+
+//-----------------------------------------------------------------------
+// TRUE when the holder is below half health...
+int LastStand(int who)
+  if((who.hits<<1) < who.hitsmax)
+    return TRUE
+  return FALSE
+
+//-----------------------------------------------------------------------
+// Percent chance (per swing for weapons, per block for shields)...
+int Chance(int ext, int holder)
+  int kind, element
+  kind = ForgeKind(ext)
+  element = ForgeElement(ext)
+  if(kind == FORGE_PICK)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return 15
+    if(element == WEAPON_VARIANT_FIRE)
+      return 20
+    if(element == WEAPON_VARIANT_ICE)
+      return 25
+    if(element == WEAPON_VARIANT_VOLT)
+      return 15
+    if(element == WEAPON_VARIANT_POISON)
+      return 25
+    if(element == WEAPON_VARIANT_HOLY)
+      return 15
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return 20
+  if(kind == FORGE_HATCHET)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return 100
+    if(element == WEAPON_VARIANT_FIRE)
+      if(LastStand(holder))
+        return 100
+      return 25
+    if(element == WEAPON_VARIANT_ICE)
+      return 20
+    if(element == WEAPON_VARIANT_VOLT)
+      return 20
+    if(element == WEAPON_VARIANT_POISON)
+      return 25
+    if(element == WEAPON_VARIANT_HOLY)
+      if(LastStand(holder))
+        return 40
+      return 15
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return 0
+  if(kind == FORGE_BROAD)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return 100
+    if(element == WEAPON_VARIANT_FIRE)
+      return 25
+    if(element == WEAPON_VARIANT_ICE)
+      return 25
+    if(element == WEAPON_VARIANT_VOLT)
+      return 25
+    if(element == WEAPON_VARIANT_POISON)
+      return 100
+    if(element == WEAPON_VARIANT_HOLY)
+      return 100
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return 100
+  if(kind == FORGE_SHIELD)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return 25
+    if(element == WEAPON_VARIANT_FIRE)
+      return 30
+    if(element == WEAPON_VARIANT_ICE)
+      return 100
+    if(element == WEAPON_VARIANT_VOLT)
+      return 30
+    if(element == WEAPON_VARIANT_POISON)
+      return 30
+    if(element == WEAPON_VARIANT_HOLY)
+      if(LastStand(holder))
+        return 50
+      return 25
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return 25
+  if(kind == FORGE_MIRROR)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return 100
+    if(element == WEAPON_VARIANT_FIRE)
+      return 30
+    if(element == WEAPON_VARIANT_ICE)
+      return 30
+    if(element == WEAPON_VARIANT_VOLT)
+      return 30
+    if(element == WEAPON_VARIANT_POISON)
+      return 30
+    if(element == WEAPON_VARIANT_HOLY)
+      return 25
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return 30
+  return 0
+//-----------------------------------------------------------------------
+// Item name...
+int Name(int ext)
+  int kind, element
+  kind = ForgeKind(ext)
+  element = ForgeElement(ext)
+  if(kind == FORGE_PICK)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return "ARCANE PICK"
+    if(element == WEAPON_VARIANT_FIRE)
+      return "EMBER PICK"
+    if(element == WEAPON_VARIANT_ICE)
+      return "FROST PICK"
+    if(element == WEAPON_VARIANT_VOLT)
+      return "SHOCK PICK"
+    if(element == WEAPON_VARIANT_POISON)
+      return "VENOM PICK"
+    if(element == WEAPON_VARIANT_HOLY)
+      return "BLESSED PICK"
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return "BLOOD PICK"
+  if(kind == FORGE_HATCHET)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return "RUNE HATCHET"
+    if(element == WEAPON_VARIANT_FIRE)
+      return "HEARTH HATCHET"
+    if(element == WEAPON_VARIANT_ICE)
+      return "RIMECLEAVER"
+    if(element == WEAPON_VARIANT_VOLT)
+      return "THUNDERCLAP"
+    if(element == WEAPON_VARIANT_POISON)
+      return "BOG HATCHET"
+    if(element == WEAPON_VARIANT_HOLY)
+      return "WARDENS HATCHET"
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return "GRUDGE"
+  if(kind == FORGE_BROAD)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return "BULWARK"
+    if(element == WEAPON_VARIANT_FIRE)
+      return "FORGEFIRE"
+    if(element == WEAPON_VARIANT_ICE)
+      return "AVALANCHE"
+    if(element == WEAPON_VARIANT_VOLT)
+      return "EARTHSHAKER"
+    if(element == WEAPON_VARIANT_POISON)
+      return "ROTCLEAVER"
+    if(element == WEAPON_VARIANT_HOLY)
+      return "OATHKEEPER"
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return "BLOODAXE"
+  if(kind == FORGE_SHIELD)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return "SPELLWARD"
+    if(element == WEAPON_VARIANT_FIRE)
+      return "EMBER WARD"
+    if(element == WEAPON_VARIANT_ICE)
+      return "FROST WARD"
+    if(element == WEAPON_VARIANT_VOLT)
+      return "STATIC WARD"
+    if(element == WEAPON_VARIANT_POISON)
+      return "THORN WARD"
+    if(element == WEAPON_VARIANT_HOLY)
+      return "SANCTUARY"
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return "SPITE WARD"
+  if(kind == FORGE_MIRROR)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return "ARCANE MIRROR"
+    if(element == WEAPON_VARIANT_FIRE)
+      return "FURNACE MIRROR"
+    if(element == WEAPON_VARIANT_ICE)
+      return "GLACIER MIRROR"
+    if(element == WEAPON_VARIANT_VOLT)
+      return "STORM MIRROR"
+    if(element == WEAPON_VARIANT_POISON)
+      return "VENOM MIRROR"
+    if(element == WEAPON_VARIANT_HOLY)
+      return "BASTION"
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return "VAMPIRE MIRROR"
+  return 0
+//-----------------------------------------------------------------------
+// Inventory icon...
+int Icon(int ext)
+  int kind, element
+  kind = ForgeKind(ext)
+  element = ForgeElement(ext)
+  if(kind == FORGE_PICK)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return "FILE:=IPCK1.RGB"
+    if(element == WEAPON_VARIANT_FIRE)
+      return "FILE:=IPCK2.RGB"
+    if(element == WEAPON_VARIANT_ICE)
+      return "FILE:=IPCK3.RGB"
+    if(element == WEAPON_VARIANT_VOLT)
+      return "FILE:=IPCK4.RGB"
+    if(element == WEAPON_VARIANT_POISON)
+      return "FILE:=IPCK5.RGB"
+    if(element == WEAPON_VARIANT_HOLY)
+      return "FILE:=IPCK6.RGB"
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return "FILE:=IPCK7.RGB"
+  if(kind == FORGE_HATCHET)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return "FILE:=IHAT1.RGB"
+    if(element == WEAPON_VARIANT_FIRE)
+      return "FILE:=IHAT2.RGB"
+    if(element == WEAPON_VARIANT_ICE)
+      return "FILE:=IHAT3.RGB"
+    if(element == WEAPON_VARIANT_VOLT)
+      return "FILE:=IHAT4.RGB"
+    if(element == WEAPON_VARIANT_POISON)
+      return "FILE:=IHAT5.RGB"
+    if(element == WEAPON_VARIANT_HOLY)
+      return "FILE:=IHAT6.RGB"
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return "FILE:=IHAT7.RGB"
+  if(kind == FORGE_BROAD)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return "FILE:=IBAX1.RGB"
+    if(element == WEAPON_VARIANT_FIRE)
+      return "FILE:=IBAX2.RGB"
+    if(element == WEAPON_VARIANT_ICE)
+      return "FILE:=IBAX3.RGB"
+    if(element == WEAPON_VARIANT_VOLT)
+      return "FILE:=IBAX4.RGB"
+    if(element == WEAPON_VARIANT_POISON)
+      return "FILE:=IBAX5.RGB"
+    if(element == WEAPON_VARIANT_HOLY)
+      return "FILE:=IBAX6.RGB"
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return "FILE:=IBAX7.RGB"
+  if(kind == FORGE_SHIELD)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return "FILE:=ISHD1.RGB"
+    if(element == WEAPON_VARIANT_FIRE)
+      return "FILE:=ISHD2.RGB"
+    if(element == WEAPON_VARIANT_ICE)
+      return "FILE:=ISHD3.RGB"
+    if(element == WEAPON_VARIANT_VOLT)
+      return "FILE:=ISHD4.RGB"
+    if(element == WEAPON_VARIANT_POISON)
+      return "FILE:=ISHD5.RGB"
+    if(element == WEAPON_VARIANT_HOLY)
+      return "FILE:=ISHD6.RGB"
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return "FILE:=ISHD7.RGB"
+  if(kind == FORGE_MIRROR)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return "FILE:=IMIR1.RGB"
+    if(element == WEAPON_VARIANT_FIRE)
+      return "FILE:=IMIR2.RGB"
+    if(element == WEAPON_VARIANT_ICE)
+      return "FILE:=IMIR3.RGB"
+    if(element == WEAPON_VARIANT_VOLT)
+      return "FILE:=IMIR4.RGB"
+    if(element == WEAPON_VARIANT_POISON)
+      return "FILE:=IMIR5.RGB"
+    if(element == WEAPON_VARIANT_HOLY)
+      return "FILE:=IMIR6.RGB"
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return "FILE:=IMIR7.RGB"
+  return 0
+//-----------------------------------------------------------------------
+// Tinted metal (same tints as the swords)...
+int Steel(int ext)
+  int element
+  element = ForgeElement(ext)
+  if(element == WEAPON_VARIANT_MAGIC)
+    return "FILE:STEEL1.RGB"
+  if(element == WEAPON_VARIANT_FIRE)
+    return "FILE:STEEL2.RGB"
+  if(element == WEAPON_VARIANT_ICE)
+    return "FILE:STEEL3.RGB"
+  if(element == WEAPON_VARIANT_VOLT)
+    return "FILE:STEEL4.RGB"
+  if(element == WEAPON_VARIANT_POISON)
+    return "FILE:STEEL5.RGB"
+  if(element == WEAPON_VARIANT_HOLY)
+    return "FILE:STEEL6.RGB"
+  return "FILE:STEEL7.RGB"
+
+//-----------------------------------------------------------------------
+// TRUE if the variant hits a little softer (to pay for its drain)...
+int Soft(int ext)
+  if(ForgeKind(ext) == FORGE_PICK && ForgeElement(ext) == WEAPON_VARIANT_UNHOLY)
+    return TRUE
+  return FALSE
+
+//-----------------------------------------------------------------------
+// Decides whether a swing's effect goes off (PATTACK.FrameEvent, self is
+// the character)...  Grudge goes off whenever it has hits stored...
+int SwingProc(int self, int ext)
+  if(ForgeKind(ext) == FORGE_HATCHET && ForgeElement(ext) == WEAPON_VARIANT_UNHOLY)
+    if(FileReadByte(self, GRUDGE_OFFSET))
+      return 1
+    return 0
+  if(RollDice(1, 100) <= Chance(ext, self))
+    return 1
+  return 0
+
+//-----------------------------------------------------------------------
+// TRUE if the character can be hurt by the holder's side...
+int Foe(int holder, int who)
+  if(who)
+    if(who.team != holder.team && who.team != TEAM_NEUTRAL && who.hits > 0)
+      return TRUE
+  return FALSE
+
+//-----------------------------------------------------------------------
+// Knocks a character down (like a knock out hit, without the damage)...
+// Characters that can't be knocked down are just stunned...
+int KnockDown(int who, float x, float y)
+  float dx, dy, sl
+  if(who.action >= ACTION_KNOCK_OUT_BEGIN && who.action <= ACTION_KNOCK_OUT_END)
+    return FALSE
+  if(who.rider < MAX_CHARACTER || who.action == ACTION_RIDE)
+    return FALSE
+  dx = who.x - x
+  dy = who.y - y
+  sl = sqrt(dx*dx + dy*dy)
+  if(sl < 0.1)
+    sl = 0.1
+  dx = (dx/sl)*0.5
+  dy = (dy/sl)*0.5
+  if(who.sflags & SCRIPT_NO_KNOCK_OUT)
+    who.action = ACTION_STUN_BEGIN
+    who.daction = ACTION_STUN
+    who.vx = dx
+    who.vy = dy
+    who.evtimer = 60
+    return TRUE
+  who.combo = 0
+  who.action = ACTION_KNOCK_OUT_BEGIN
+  who.daction = ACTION_KNOCK_OUT
+  who.evtimer = 80+RollDice(1, 40)
+  if(who.team != TEAM_GOOD)
+    who.evtimer = who.evtimer * 3
+  who.theight = who.height
+  who.height = 3
+  who.vx = dx
+  who.vy = dy
+  who.vz = 0.6
+  who.flags = who.flags | CHAR_FALL_ON
+  who.nctimer = 5
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Pushes a character away from a point...
+int Push(int who, float x, float y, float power)
+  float dx, dy, sl
+  dx = who.x - x
+  dy = who.y - y
+  sl = sqrt(dx*dx + dy*dy)
+  if(sl < 0.1)
+    sl = 0.1
+  who.vx = (dx/sl)*power
+  who.vy = (dy/sl)*power
+  who.vz = 0.3
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Heals with a puff...
+int Heal(int who, int amount, int image)
+  GENERIC.RestoreCharacterHits(who, amount, 0)
+  PEMBER.Effect(who.x, who.y, who.z+1.0, 0.0, 0.0, 0.05, 2.0, 255, 12, image)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Takes hits from a foe without killing it (the holder gets them back)...
+int Drain(int holder, int who, int amount)
+  if(who.flags & CHAR_NO_BACKSTAB)
+    return FALSE
+  if(who.hits > amount)
+    who.hits = who.hits - amount
+  else
+    if(who.hits > 1)
+      who.hits = 1
+  Heal(holder, amount, "FILE:SPARK8.RGB")
+  PEMBER.Effect(who.x, who.y, who.z+1.0, (holder.x-who.x)*0.05, (holder.y-who.y)*0.05, 0.05, 2.0, 255, 20, "FILE:SPARK8.RGB")
+  return TRUE
+
+//-----------------------------------------------------------------------
+// A moment where nothing can touch the holder...
+int Shimmer(int holder, int frames)
+  if(holder.intimer < frames)
+    holder.intimer = frames
+  PFLASH.Effect(holder, "FILE:LITESPRK.RGB", WHITE, TRUE, 1.5)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Short lightning bolt, owned by the holder...
+int Zap(int holder, float x, float y, float z, float vx, float vy, int life)
+  int child
+  SetSpawnTarget(65535)
+  SetSpawnOwner(FindIndex(holder))
+  SetSpawnTeam(holder.team)
+  child = Spawn(PARTICLE, x, y, z, "FILE:PZAPPY.RUN")
+  if(child)
+    child.vx = vx
+    child.vy = vy
+    child.vz = 0.0
+    child.length = 3.0
+    child.width = 3.0
+    child.image = NULL
+    child.flags = PART_LIGHT_ON | PART_WALL_COLLISION_ON | PART_CHAR_COLLISION_ON
+    child.team = holder.team
+    child.owner = FindIndex(holder)
+    child.misc4 = 6
+    child.misc5 = 0
+    child.misc6 = life
+    child.misc7 = 48      // 2 damage per zap
+    child.evtimer = 1
+    child.target = 65535
+  return child
+
+//-----------------------------------------------------------------------
+// Zaps from the holder toward a character...
+int ZapAt(int holder, int who)
+  float dx, dy, sl, z
+  dx = who.x - holder.x
+  dy = who.y - holder.y
+  sl = sqrt(dx*dx + dy*dy)
+  if(sl < 0.1)
+    return FALSE
+  dx = dx/sl
+  dy = dy/sl
+  z = holder.z + (holder.height*0.6)
+  sl = holder.boxsize + 0.5
+  Zap(holder, holder.x + (dx*sl), holder.y + (dy*sl), z, dx*1.2, dy*1.2, 22)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Lightning from the holder to the nearest count foes (within 12 feet)...
+int Chain(int holder, int count)
+  int i, who, done, best, used0, used1, used2
+  float dx, dy, sl, bestsl
+  PlaySound("FILE:-SHOCK.RAW", 245 + RollDice(1, 20), 255)
+  done = 0
+  used0 = 65535
+  used1 = 65535
+  used2 = 65535
+  while(done < count)
+    best = 65535
+    bestsl = 12.0
+    i = 0
+    while(i < MAX_CHARACTER)
+      who = FindByIndex(i)
+      if(Foe(holder, who) && i != used0 && i != used1 && i != used2)
+        dx = who.x - holder.x
+        dy = who.y - holder.y
+        sl = sqrt(dx*dx + dy*dy)
+        if(sl < bestsl)
+          bestsl = sl
+          best = i
+      i++
+    if(best >= MAX_CHARACTER)
+      return done
+    ZapAt(holder, FindByIndex(best))
+    if(done == 0)
+      used0 = best
+    if(done == 1)
+      used1 = best
+    if(done == 2)
+      used2 = best
+    done++
+  return done
+
+//-----------------------------------------------------------------------
+// Does something to everyone around the holder...
+//   kind 1: chill foes       kind 2: burn foes and throw them back
+//   kind 3: knock foes down  kind 4: heal allies (and the holder)
+int Area(int holder, float range, int kind, int amount)
+  int i, who, count, holder_index
+  float dx, dy
+  holder_index = FindIndex(holder)
+  count = 0
+  i = 0
+  while(i < MAX_CHARACTER)
+    who = FindByIndex(i)
+    if(who)
+      dx = who.x - holder.x
+      dy = who.y - holder.y
+      if((dx*dx + dy*dy) < (range*range) && who.hits > 0)
+        if(Foe(holder, who))
+          if(kind == 1)
+            XITEM.Chill(who, CHILL_TIME)
+            PSMOKE.Effect(who.x, who.y, who.z+1.0, 0.0, 0.0, 0.03, 1.5, 0.05, FALSE, ICE_SMOKE_COLOR, 200, 25)
+            count++
+          if(kind == 2)
+            PGSHOT.Burn(i, holder_index, 4)
+            Push(who, holder.x, holder.y, 0.7)
+            count++
+          if(kind == 3)
+            if(KnockDown(who, holder.x, holder.y))
+              count++
+        else
+          if(kind == 4 && who.team == holder.team)
+            Heal(who, amount, "FILE:SPARK4.RGB")
+            count++
+    i++
+  return count
+
+//-----------------------------------------------------------------------
+// Ring of puffs around the holder...
+int Ring(int holder, int image, int smoke)
+  int i
+  float angle, z
+  z = holder.z + 0.5
+  i = 0
+  while(i < 10)
+    angle = i * 36.0
+    if(smoke)
+      PSMOKE.Effect(holder.x, holder.y, z, sin(angle)*0.25, sin(angle+90.0)*0.25, 0.0, 1.2, 0.08, FALSE, smoke, 220, 20)
+    PEMBER.Effect(holder.x, holder.y, z, sin(angle)*0.3, sin(angle+90.0)*0.3, 0.02, 0.8, 255, 14, image)
+    i++
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Bog Hatchet...  Called every frame while held (IHATCHET.Refresh, self
+// is the character): poisoned foes near the holder are slowed...
+int Bog(int self)
+  int i, who
+  float dx, dy
+  if((SystemGet(SYS_MAINGAMEFRAME, 0, 0) & 15) == 0)
+    i = 0
+    while(i < MAX_CHARACTER)
+      who = FindByIndex(i)
+      if(Foe(self, who))
+        if(who.pstimer > 0)
+          dx = who.x - self.x
+          dy = who.y - self.y
+          if((dx*dx + dy*dy) < 144.0)
+            XITEM.Chill(who, 30)
+      i++
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Ext of the forged item in a character's hands, of the given kind (0 if
+// none)...
+int Held(int who, int kind)
+  int ext
+  ext = XITEM.Get(who, 243) & 255
+  if(IsForged(ext) && ForgeKind(ext) == kind)
+    return ext
+  ext = XITEM.Get(who, 242) & 255
+  if(IsForged(ext) && ForgeKind(ext) == kind)
+    return ext
+  return 0
+
+//-----------------------------------------------------------------------
+// A character was hurt by an attack (PATTACK.Event)...  Feeds Grudge...
+int Hurt(int who)
+  int ext, grudge
+  ext = Held(who, FORGE_HATCHET)
+  if(ext)
+    if(ForgeElement(ext) == WEAPON_VARIANT_UNHOLY)
+      grudge = FileReadByte(who, GRUDGE_OFFSET)
+      if(grudge < 3)
+        FileWriteByte(who, GRUDGE_OFFSET, grudge+1)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// The holder of a forged shield blocked an attacker's hit (PATTACK.Event)...
+int Blocked(int holder, int attacker)
+  int ext, kind, element, holder_index, attacker_index, child
+  float dx, dy, sl, z
+
+
+  ext = XITEM.Get(holder, 242) & 255
+  if(!IsForged(ext))
+    return FALSE
+  kind = ForgeKind(ext)
+  if(kind != FORGE_SHIELD && kind != FORGE_MIRROR)
+    return FALSE
+  if(RollDice(1, 100) > Chance(ext, holder))
+    return FALSE
+  element = ForgeElement(ext)
+  holder_index = FindIndex(holder)
+  attacker_index = FindIndex(attacker)
+  z = holder.z + (holder.height*0.6)
+
+
+  if(kind == FORGE_SHIELD)
+    if(element == WEAPON_VARIANT_MAGIC)
+      // Spellward...  A deflecting sphere...
+      if(!(holder.eflags & ENCHANT_FLAG_DEFLECT))
+        holder.eflags = holder.eflags | ENCHANT_FLAG_DEFLECT
+        child = PDFLECT.Effect(holder, TRUE)
+        if(child)
+          child.misc7 = 200  // Fragile...
+    if(attacker.team != holder.team && attacker.hits > 0)
+      if(element == WEAPON_VARIANT_FIRE)
+        // Ember Ward...
+        PGSHOT.Burn(attacker_index, holder_index, 4)
+      if(element == WEAPON_VARIANT_ICE)
+        // Frost Ward...
+        XITEM.Chill(attacker, CHILL_TIME)
+        PSMOKE.Effect(attacker.x, attacker.y, attacker.z+1.0, 0.0, 0.0, 0.03, 1.5, 0.05, FALSE, ICE_SMOKE_COLOR, 200, 25)
+      if(element == WEAPON_VARIANT_VOLT)
+        // Static Ward...
+        ZapAt(holder, attacker)
+      if(element == WEAPON_VARIANT_POISON)
+        // Thorn Ward...
+        STANDARD.PoisonCharacter(attacker_index, holder_index, 300)
+      if(element == WEAPON_VARIANT_UNHOLY)
+        // Spite Ward...
+        Drain(holder, attacker, 1)
+    if(element == WEAPON_VARIANT_HOLY)
+      // Sanctuary...
+      Heal(holder, 1, "FILE:SPARK4.RGB")
+    return TRUE
+
+
+  // Mirror Shield...
+  if(element == WEAPON_VARIANT_MAGIC)
+    // Arcane Mirror...  A homing missile back at the attacker...
+    dx = attacker.x - holder.x
+    dy = attacker.y - holder.y
+    sl = sqrt(dx*dx + dy*dy)
+    if(sl > 0.1)
+      SetSpawnOwner(holder_index)
+      SetSpawnTeam(holder.team)
+      PlaySound("FILE:BAD3.RAW", 300 + RollDice(1, 40), 200)
+      PMISSILE.DirectedEffect(holder.x + (dx/sl)*1.5, holder.y + (dy/sl)*1.5, z, (dx/sl)*0.3, (dy/sl)*0.3, 0.05, holder_index, "FILE:SPARK5.RGB", "FILE:SPARK6.RGB")
+  if(element == WEAPON_VARIANT_FIRE)
+    // Furnace Mirror...
+    PlaySound("FILE:-SPELL03.RAW", 180 + RollDice(1, 20), 255)
+    Ring(holder, "FILE:FIRE1.RGB", 0)
+    Area(holder, 7.0, 2, 0)
+  if(element == WEAPON_VARIANT_ICE)
+    // Glacier Mirror...
+    PlaySound("FILE:-SPELL03.RAW", 200 + RollDice(1, 30), 255)
+    Ring(holder, "FILE:ICE1.RGB", ICE_SMOKE_COLOR)
+    Area(holder, 8.0, 1, 0)
+  if(element == WEAPON_VARIANT_VOLT)
+    // Storm Mirror...
+    Chain(holder, 3)
+  if(element == WEAPON_VARIANT_POISON)
+    // Venom Mirror...  A cloud between the D'warf and the attacker...
+    SetSpawnOwner(holder_index)
+    SetSpawnTeam(holder.team)
+    PPSNBALL.ShotEffect(holder.x + (holder.frontx*3.0), holder.y + (holder.fronty*3.0), z+0.5, 0.0, 0.0, -0.5, holder_index, 128)
+  if(element == WEAPON_VARIANT_HOLY)
+    // Bastion...
+    PlaySound("FILE:-SPELL01.RAW", 280 + RollDice(1, 20), 255)
+    Area(holder, 10.0, 4, 1)
+    Shimmer(holder, 45)
+  if(element == WEAPON_VARIANT_UNHOLY)
+    // Vampire Mirror...
+    if(attacker.team != holder.team && attacker.hits > 0)
+      Drain(holder, attacker, 2)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// The attack particle (self) of a forged weapon hit an enemy...
+int Hit(int owner, int target)
+  int self, kind, element, killed, amount, grudge
+  float x, y, z
+
+
+  self = FindSelf()
+  kind = ForgeKind(self.red)
+  element = ForgeElement(self.red)
+  x = target.x
+  y = target.y
+  z = target.z + (target.height*0.5)
+  killed = FALSE
+  if(target.hits == 0)
+    killed = TRUE
+
+
+  if(kind == FORGE_PICK && self.green)
+    if(element == WEAPON_VARIANT_MAGIC && self.blue == 0)
+      self.blue = 1
+      Shimmer(owner, 40)
+    if(element == WEAPON_VARIANT_FIRE && !killed)
+      PGSHOT.Burn(self.target, self.owner, 4)
+    if(element == WEAPON_VARIANT_ICE)
+      XITEM.Chill(target, CHILL_TIME)
+      PSMOKE.Effect(x, y, z, 0.0, 0.0, 0.03, 1.5, 0.05, FALSE, ICE_SMOKE_COLOR, 200, 25)
+    if(element == WEAPON_VARIANT_VOLT && !killed)
+      PSPARK.Effect(x, y, z, 6, 4)
+      KnockDown(target, owner.x, owner.y)
+    if(element == WEAPON_VARIANT_POISON)
+      STANDARD.PoisonCharacter(self.target, self.owner, 300)
+    if(element == WEAPON_VARIANT_HOLY && self.blue == 0)
+      self.blue = 1
+      amount = 1
+      if(LastStand(owner))
+        amount = 2
+      Heal(owner, amount, "FILE:SPARK4.RGB")
+    if(element == WEAPON_VARIANT_UNHOLY && self.blue == 0)
+      if(!(target.flags & CHAR_NO_BACKSTAB))
+        self.blue = 1
+        Heal(owner, 1, "FILE:SPARK8.RGB")
+    return TRUE
+
+
+  if(kind == FORGE_HATCHET)
+    if(element == WEAPON_VARIANT_MAGIC && !killed)
+      // Rune Hatchet...  Keeps them off you...
+      Push(target, owner.x, owner.y, 0.9)
+    if(self.green)
+      if(element == WEAPON_VARIANT_FIRE && !killed)
+        PGSHOT.Burn(self.target, self.owner, 4)
+      if(element == WEAPON_VARIANT_ICE)
+        XITEM.Chill(target, CHILL_TIME)
+        PSMOKE.Effect(x, y, z, 0.0, 0.0, 0.03, 1.5, 0.05, FALSE, ICE_SMOKE_COLOR, 200, 25)
+      if(element == WEAPON_VARIANT_VOLT && !killed)
+        PSPARK.Effect(x, y, z, 6, 4)
+        KnockDown(target, owner.x, owner.y)
+      if(element == WEAPON_VARIANT_POISON)
+        STANDARD.PoisonCharacter(self.target, self.owner, 300)
+      if(element == WEAPON_VARIANT_HOLY && self.blue == 0)
+        self.blue = 1
+        Heal(owner, 1, "FILE:SPARK4.RGB")
+      if(element == WEAPON_VARIANT_UNHOLY && self.blue == 0)
+        // Grudge...  Hits taken come back as drain...
+        self.blue = 1
+        grudge = FileReadByte(owner, GRUDGE_OFFSET)
+        FileWriteByte(owner, GRUDGE_OFFSET, 0)
+        if(grudge > 0)
+          PEMBER.Effect(x, y, z, (owner.x-x)*0.05, (owner.y-y)*0.05, 0.05, 2.5, 255, 16, "FILE:SPARK8.RGB")
+          Heal(owner, grudge, "FILE:SPARK8.RGB")
+    return TRUE
+
+
+  if(kind == FORGE_BROAD)
+    if(element == WEAPON_VARIANT_MAGIC && killed)
+      // Bulwark...
+      Shimmer(owner, 90)
+    if(self.green && self.blue == 0)
+      if(element == WEAPON_VARIANT_FIRE)
+        // Forgefire...
+        self.blue = 1
+        PlaySound("FILE:-SPELL03.RAW", 180 + RollDice(1, 20), 255)
+        Ring(owner, "FILE:FIRE1.RGB", 0)
+        Area(owner, 7.0, 2, 0)
+      if(element == WEAPON_VARIANT_ICE)
+        // Avalanche...
+        self.blue = 1
+        PlaySound("FILE:-SPELL03.RAW", 200 + RollDice(1, 30), 255)
+        Ring(owner, "FILE:ICE1.RGB", ICE_SMOKE_COLOR)
+        Area(owner, 8.0, 1, 0)
+      if(element == WEAPON_VARIANT_VOLT)
+        // Earthshaker...
+        self.blue = 1
+        PlaySound("FILE:BAD4.RAW", 180 + RollDice(1, 20), 255)
+        SystemSet(SYS_SCREENSHAKE, 0, 2, 12)
+        Area(owner, 7.0, 3, 0)
+    if(element == WEAPON_VARIANT_POISON && killed)
+      // Rotcleaver...
+      PPSNBALL.ShotEffect(x, y, z+0.5, 0.0, 0.0, -0.5, self.owner, 128)
+    if(element == WEAPON_VARIANT_HOLY && killed)
+      // Oathkeeper...
+      PlaySound("FILE:-SPELL01.RAW", 280 + RollDice(1, 20), 255)
+      Area(owner, 10.0, 4, 2)
+    if(element == WEAPON_VARIANT_UNHOLY && self.blue < 3)
+      // Bloodaxe...
+      if(!(target.flags & CHAR_NO_BACKSTAB))
+        self.blue = self.blue + 1
+        amount = 1
+        if(LastStand(owner))
+          amount = 2
+        Heal(owner, amount, "FILE:SPARK8.RGB")
+  return TRUE
+
+//-----------------------------------------------------------------------
+// NOTE: Files must end with a function-level line (see XITEM.SRC)...
+int Unused()
+  return FALSE
+
+//-----------------------------------------------------------------------

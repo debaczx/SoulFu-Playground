@@ -1374,13 +1374,14 @@
 #define SWORD_STATIC_OFFSET    668   // Character data (unsaved): Thunder Cleaver static count
 #define SWORD_SOULS_OFFSET     669   // Character data (unsaved): Soulrender stored souls
 #define SWORD_STORM_OFFSET     670   // Character data (unsaved): Stormbringer charged by a block
+// 671 is the Grudge hatchet's stored hits (GRUDGE_OFFSET in DWARFFX.SRC)...
 // Other class wheels: 8 values per item type, base + element (1-7)...
 #define XITEM_DAGGER_BASE       88   // Hubbin (Hone)              89-95 (DAGGERFX.SRC)
-#define XITEM_PICK_AXE_BASE     96   // D'warf (Forge)             97-103 (not yet)
-#define XITEM_HATCHET_BASE     104   // D'warf (Forge)            105-111 (not yet)
-#define XITEM_BROAD_AXE_BASE   112   // D'warf (Forge)            113-119 (not yet)
-#define XITEM_SHIELD_BASE      120   // D'warf (Forge)            121-127 (not yet)
-#define XITEM_MIRROR_BASE      128   // D'warf (Forge)            129-135 (not yet)
+#define XITEM_PICK_AXE_BASE     96   // D'warf (Forge)             97-103 (DWARFFX.SRC)
+#define XITEM_HATCHET_BASE     104   // D'warf (Forge)            105-111 (DWARFFX.SRC)
+#define XITEM_BROAD_AXE_BASE   112   // D'warf (Forge)            113-119 (DWARFFX.SRC)
+#define XITEM_SHIELD_BASE      120   // D'warf (Forge)            121-127 (DWARFFX.SRC)
+#define XITEM_MIRROR_BASE      128   // D'warf (Forge)            129-135 (DWARFFX.SRC)
 #define XITEM_HAMMER_BASE      136   // Healer (Hallow)           137-143 (not yet)
 #define XITEM_MACE_BASE        144   // Healer (Hallow)           145-151 (not yet)
 #define XITEM_WAR_HAMMER_BASE  152   // Healer (Hallow)           153-159 (not yet)

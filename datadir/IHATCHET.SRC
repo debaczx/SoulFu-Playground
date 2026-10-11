@@ -6,6 +6,12 @@
 
 //-----------------------------------------------------------------------
 int GetName()
+  int ext
+  ext = SystemGet(SYS_ITEMEXT, 0, 0)
+  if(DWARFFX.IsForged(ext))
+    // Forged by the D'warf...
+    STANDARD.ItemName(DWARFFX.Name(ext), NULL, DAMAGE_TYPE, DAMAGE_LOW, DAMAGE_HIGH, WOUND_LOW, WOUND_HIGH)
+    return TRUE
   STANDARD.ItemName("HATCHET", NULL, DAMAGE_TYPE, DAMAGE_LOW, DAMAGE_HIGH, WOUND_LOW, WOUND_HIGH)
 
 //-----------------------------------------------------------------------
@@ -50,7 +56,14 @@ int ModelSetup()
 // item's enchantment effect.  Must manually check if item
 // is enchanted or not...
 int Refresh()
+  int ext
   STANDARD.WeaponRefresh(100, 1.0)
+  // Bog Hatchet slows poisoned foes nearby...
+  ext = SystemGet(SYS_ITEMEXT, 0, 0)
+  if(DWARFFX.IsForged(ext))
+    if(DWARFFX.ForgeElement(ext) == WEAPON_VARIANT_POISON)
+      DWARFFX.Bog(FindSelf())
+  return TRUE
 
 //-----------------------------------------------------------------------
 

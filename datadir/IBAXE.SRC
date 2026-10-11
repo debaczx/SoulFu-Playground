@@ -6,6 +6,12 @@
 
 //-----------------------------------------------------------------------
 int GetName()
+  int ext
+  ext = SystemGet(SYS_ITEMEXT, 0, 0)
+  if(DWARFFX.IsForged(ext))
+    // Forged by the D'warf...
+    STANDARD.ItemName(DWARFFX.Name(ext), NULL, DAMAGE_TYPE, DAMAGE_LOW, DAMAGE_HIGH, WOUND_LOW, WOUND_HIGH)
+    return TRUE
   STANDARD.ItemName("BROAD AXE", NULL, DAMAGE_TYPE, DAMAGE_LOW, DAMAGE_HIGH, WOUND_LOW, WOUND_HIGH)
 
 //-----------------------------------------------------------------------

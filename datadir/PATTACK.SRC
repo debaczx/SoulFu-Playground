@@ -54,6 +54,7 @@ int Event()
               owner.daction = ACTION_STAND
             PSPARK.Effect(self.x, self.y, self.z, 10, 1)
             SWORDFX.Blocked(target)  // Charges Stormbringer...
+            DWARFFX.Blocked(target, owner)  // Forged shields...
             self.evtimer = 1  // Poof after all collisions checked...
             return 0
           else
@@ -173,6 +174,7 @@ int Event()
           // Code to damage enemy...
           if(temp_damage_amount > 0 || temp_wound_amount > 0)
             DamageTarget(damage_type&15, temp_damage_amount, temp_wound_amount)
+            DWARFFX.Hurt(target)  // Feeds the Grudge hatchet...
             PSPARK.Effect(self.x, self.y, self.z, 10, 0)
           // Undo defwoun inversion...
           target.defwoun = defwoun
@@ -185,6 +187,8 @@ int Event()
               SWORDFX.Hit(owner, target)
             if(DAGGERFX.IsDagger(self.red))
               DAGGERFX.Hit(owner, target, sneak)
+            if(DWARFFX.IsForged(self.red))
+              DWARFFX.Hit(owner, target)
           // Allow free moving attack particles to burn guys automatically...
           if(!(self.flags & PART_STUCK_ON))
             if((damage_type & 15) == DAMAGE_FIRE)
@@ -409,6 +413,12 @@ int FrameEvent(int type, int damage, int wound, int grip, int weapon_range, floa
   // Honed daggers...
   if(DAGGERFX.IsDagger(index))
     sword = index & 255
+  // Forged picks and axes (the Blood Pick hits softer to pay for its drain)...
+  if(DWARFFX.IsForged(index))
+    sword = index & 255
+    if(DWARFFX.Soft(sword))
+      if(damage > 1)
+        damage--
 
 
 
@@ -453,7 +463,10 @@ int FrameEvent(int type, int damage, int wound, int grip, int weapon_range, floa
         if(self.alpha <= 100)
           child.green = 1
       else
-        child.green = SWORDFX.SwingProc(self, sword)
+        if(DWARFFX.IsForged(sword))
+          child.green = DWARFFX.SwingProc(self, sword)
+        else
+          child.green = SWORDFX.SwingProc(self, sword)
   return child
 
 //-----------------------------------------------------------------------
