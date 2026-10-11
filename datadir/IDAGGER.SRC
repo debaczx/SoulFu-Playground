@@ -6,6 +6,12 @@
 
 //-----------------------------------------------------------------------
 int GetName()
+  int ext
+  ext = SystemGet(SYS_ITEMEXT, 0, 0)
+  if(DAGGERFX.IsDagger(ext))
+    // Honed by the Hubbin...
+    STANDARD.ItemName(DAGGERFX.Name(ext), NULL, DAMAGE_TYPE, DAMAGE_LOW, DAMAGE_HIGH, WOUND_LOW, WOUND_HIGH)
+    return TRUE
   STANDARD.ItemName("DAGGER", NULL, DAMAGE_TYPE, DAMAGE_LOW, DAMAGE_HIGH, WOUND_LOW, WOUND_HIGH)
 
 //-----------------------------------------------------------------------

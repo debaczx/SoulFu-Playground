@@ -7,7 +7,7 @@
 int Event()
   int self, owner, target, drain_amount, child, target_script
   int temp_damage_amount, temp_wound_amount
-  int dex, str, critical, rider, old_target, defwoun, mending, drain_cap, sword_bonus
+  int dex, str, critical, rider, old_target, defwoun, mending, drain_cap, sword_bonus, sneak
   float x, y, z, dot, scale
 
 
@@ -73,6 +73,7 @@ int Event()
           // Use temporary damage values so we don't change actual particle values...
           temp_damage_amount = damage_amount
           temp_wound_amount = wound_amount
+          sneak = FALSE
           dex = owner.dex
           if(dex > 50)
             dex = 50
@@ -105,10 +106,11 @@ int Event()
               x = owner.x-(target.x-target.frontx*target.boxsize*0.5)
               y = owner.y-(target.y-target.frontx*target.boxsize*0.5)
               dot = (x*target.frontx) + (y*target.fronty)
-              if(dot < 0.0)
+              if(dot < 0.0 || DAGGERFX.AnySide(target))
                 // Is it a big backstab, or a little one?
                 if((special_flags & SPECIAL_FLAG_BACKSTAB) && self.team == TEAM_GOOD)
                   // Big backstab...
+                  sneak = TRUE  // Honed daggers' sneak effects (DAGGERFX.SRC)...
                   PBACKSTB.Effect("FILE:=BACKSTB.RGB", damage_type, target.x, target.y, target.z+target.height)
                   if(target.defwoun > 128 || target.defwoun == 0 || (special_flags & SPECIAL_FLAG_INVERT_DEFWOUN))
                     // Normal behavior...
@@ -167,6 +169,8 @@ int Event()
               sword_bonus = SWORDFX.PreHit(owner, target)
               temp_damage_amount = temp_damage_amount + (sword_bonus & 15)
               temp_wound_amount = temp_wound_amount + (sword_bonus>>4)
+            if(DAGGERFX.IsDagger(self.red))
+              temp_wound_amount = temp_wound_amount + DAGGERFX.PreHit(owner, target)
           // Some weapons can hurt characters that have high wound defense...
           defwoun = target.defwoun
           if(special_flags & SPECIAL_FLAG_INVERT_DEFWOUN)
@@ -185,6 +189,8 @@ int Event()
           if((self.flags & PART_STUCK_ON) && target.team != self.team)
             if(SWORDFX.IsSword(self.red))
               SWORDFX.Hit(owner, target)
+            if(DAGGERFX.IsDagger(self.red))
+              DAGGERFX.Hit(owner, target, sneak)
           // Allow free moving attack particles to burn guys automatically...
           if(!(self.flags & PART_STUCK_ON))
             if((damage_type & 15) == DAMAGE_FIRE)
@@ -406,6 +412,9 @@ int FrameEvent(int type, int damage, int wound, int grip, int weapon_range, floa
     if(SWORDFX.Soft(sword))
       if(damage > 1)
         damage--
+  // Honed daggers...
+  if(DAGGERFX.IsDagger(index))
+    sword = index & 255
 
 
 
@@ -441,10 +450,16 @@ int FrameEvent(int type, int damage, int wound, int grip, int weapon_range, floa
     child.width = weapon_radius
     child.length= weapon_radius
     if(sword)
-      // Tempered sword...  Roll its chance once for the whole swing (see SWORDFX.SRC)...
+      // Tempered sword or honed dagger...  Swords roll their chance once for the whole swing (see SWORDFX.SRC)...
       child.red = sword
-      child.green = SWORDFX.SwingProc(self, sword)
       child.blue = 0
+      if(DAGGERFX.IsDagger(sword))
+        // Honed dagger...  Remember if the holder was hidden (DAGGERFX.SRC)...
+        child.green = 0
+        if(self.alpha <= 100)
+          child.green = 1
+      else
+        child.green = SWORDFX.SwingProc(self, sword)
   return child
 
 //-----------------------------------------------------------------------

@@ -1,0 +1,311 @@
+//-----------------------------------------------------------------------
+// <ZZ> Honed daggers (the Hubbin's Hone, see IMODIFY.SRC)...
+//      A plain dagger plus a Magic Core.  The extension is
+//      XITEM_DAGGER_BASE + element (89-95).  Design: dagger-wheel-ideas.md
+//      Every dagger has a small chance on any hit, plus a stronger
+//      "sneak" effect on a big backstab or on the first stab out of
+//      hiding:
+//          Magic   Phantom Fang    Fades out...  Backstabs vanish for longer
+//          Fire    Ember Shiv      Burns...  Backstabs spread the fire
+//          Ice     Frostnip        Chills...  Chilled foes can be backstabbed
+//                                  from any side
+//          Volt    Quicksilver     Resets the hand...  Backstabs give haste
+//          Poison  Viper's Kiss    Poisons...  Backstabs poison longer and
+//                                  the foe loses track of you
+//          Holy    Misericorde     Downed foes take a wound, may heal you
+//          Unholy  Cutpurse        Steals coins...  Backstabs always steal
+//                                  and drain
+//      PATTACK.FrameEvent() stores on the attack particle:
+//          red     The dagger's variant (its extension)
+//          green   1 if the holder was hidden when the stab started
+//          blue    1 if Misericorde's wound went in (see PreHit)
+//      This file is also the script of a small timer particle that ends
+//      Phantom Fang's vanish and Quicksilver's haste (see Refresh)...
+//-----------------------------------------------------------------------
+#define ICE_SMOKE_COLOR (4239600)
+#define TIMER_VANISH    1
+#define TIMER_HASTE     2
+
+
+//-----------------------------------------------------------------------
+// TRUE if ext is a honed dagger...
+int IsDagger(int ext)
+  ext = ext & 255
+  if(ext > XITEM_DAGGER_BASE && ext < (XITEM_DAGGER_BASE+8))
+    return TRUE
+  return FALSE
+
+//-----------------------------------------------------------------------
+// WEAPON_VARIANT_ element of a honed dagger...
+int DaggerElement(int ext)
+  return ((ext & 255) - XITEM_DAGGER_BASE)
+
+//-----------------------------------------------------------------------
+// Percent chance per stab...
+int Chance(int ext)
+  int element
+  element = DaggerElement(ext)
+  if(element == WEAPON_VARIANT_ICE || element == WEAPON_VARIANT_VOLT || element == WEAPON_VARIANT_HOLY)
+    return 20
+  if(element == WEAPON_VARIANT_POISON)
+    return 25
+  return 15
+
+//-----------------------------------------------------------------------
+int Name(int ext)
+  int element
+  element = DaggerElement(ext)
+  if(element == WEAPON_VARIANT_MAGIC)
+    return "PHANTOM FANG"
+  if(element == WEAPON_VARIANT_FIRE)
+    return "EMBER SHIV"
+  if(element == WEAPON_VARIANT_ICE)
+    return "FROSTNIP"
+  if(element == WEAPON_VARIANT_VOLT)
+    return "QUICKSILVER"
+  if(element == WEAPON_VARIANT_POISON)
+    return "VIPERS KISS"
+  if(element == WEAPON_VARIANT_HOLY)
+    return "MISERICORDE"
+  return "CUTPURSE"
+
+//-----------------------------------------------------------------------
+int Icon(int ext)
+  int element
+  element = DaggerElement(ext)
+  if(element == WEAPON_VARIANT_MAGIC)
+    return "FILE:=IDAG1.RGB"
+  if(element == WEAPON_VARIANT_FIRE)
+    return "FILE:=IDAG2.RGB"
+  if(element == WEAPON_VARIANT_ICE)
+    return "FILE:=IDAG3.RGB"
+  if(element == WEAPON_VARIANT_VOLT)
+    return "FILE:=IDAG4.RGB"
+  if(element == WEAPON_VARIANT_POISON)
+    return "FILE:=IDAG5.RGB"
+  if(element == WEAPON_VARIANT_HOLY)
+    return "FILE:=IDAG6.RGB"
+  return "FILE:=IDAG7.RGB"
+
+//-----------------------------------------------------------------------
+// Tinted blade (same tints as the swords)...
+int Steel(int ext)
+  int element
+  element = DaggerElement(ext)
+  if(element == WEAPON_VARIANT_MAGIC)
+    return "FILE:STEEL1.RGB"
+  if(element == WEAPON_VARIANT_FIRE)
+    return "FILE:STEEL2.RGB"
+  if(element == WEAPON_VARIANT_ICE)
+    return "FILE:STEEL3.RGB"
+  if(element == WEAPON_VARIANT_VOLT)
+    return "FILE:STEEL4.RGB"
+  if(element == WEAPON_VARIANT_POISON)
+    return "FILE:STEEL5.RGB"
+  if(element == WEAPON_VARIANT_HOLY)
+    return "FILE:STEEL6.RGB"
+  return "FILE:STEEL7.RGB"
+
+//-----------------------------------------------------------------------
+// TRUE if the character is knocked down...
+int Downed(int who)
+  if(who.action >= ACTION_KNOCK_OUT_BEGIN && who.action <= ACTION_KNOCK_OUT_END)
+    return TRUE
+  if(who.daction >= ACTION_KNOCK_OUT_BEGIN && who.daction <= ACTION_KNOCK_OUT_END)
+    return TRUE
+  return FALSE
+
+//-----------------------------------------------------------------------
+// Called by PATTACK.Event (self is the attack particle)...  TRUE if this
+// stab counts as from behind whichever side it comes from (Frostnip on
+// a chilled foe)...
+int AnySide(int target)
+  int self
+  self = FindSelf()
+  if(IsDagger(self.red))
+    if(DaggerElement(self.red) == WEAPON_VARIANT_ICE)
+      if(FileReadByte(target, CHILL_OFFSET) || FileReadByte(target, CHILL_OFFSET+1))
+        return TRUE
+  return FALSE
+
+//-----------------------------------------------------------------------
+// Called by PATTACK.Event just before a honed dagger's damage...
+// Returns bonus wounds...
+int PreHit(int owner, int target)
+  int self
+  self = FindSelf()
+  if(DaggerElement(self.red) == WEAPON_VARIANT_HOLY)
+    // Misericorde...  The mercy stroke...
+    if(Downed(target))
+      self.blue = 1
+      return 1
+  return 0
+
+//-----------------------------------------------------------------------
+// Starts a timer particle on the holder (see Refresh)...
+int Timer(int owner, int kind, int frames)
+  int child
+  SetSpawnOwner(FindIndex(owner))
+  SetSpawnTeam(owner.team)
+  child = Spawn(PARTICLE, owner.x, owner.y, owner.z, "FILE:DAGGERFX.RUN")
+  if(child)
+    child.flags = PART_SPIN_ON
+    child.image = NULL
+    child.alpha = 0
+    child.length = 0.0
+    child.width = 0.0
+    child.owner = FindIndex(owner)
+    child.misc6 = kind
+    child.timer = frames
+  return child
+
+//-----------------------------------------------------------------------
+// Phantom Fang...  The holder fades out for a while...
+int Vanish(int owner, int frames)
+  PSMOKE.Effect(owner.x, owner.y, owner.z+1.0, 0.0, 0.0, 0.03, 2.0, 0.05, FALSE, 4210752, 160, 20)
+  PlaySound("FILE:JUMP.RAW", 384, 200)
+  if(owner.alpha > 40)
+    owner.alpha = 40
+  Timer(owner, TIMER_VANISH, frames)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Quicksilver...  A few seconds of haste (only if not hasted already)...
+int Haste(int owner)
+  if(!(owner.eflags & ENCHANT_FLAG_HASTE))
+    owner.eflags = owner.eflags | ENCHANT_FLAG_HASTE
+    PFLASH.Effect(owner, "FILE:LITESPRK.RGB", YELLOW, TRUE, 1.2)
+    Timer(owner, TIMER_HASTE, 240)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Timer particle ran out...  Undo the vanish or the haste...
+int Refresh()
+  int self, owner
+  self = FindSelf()
+  owner = FindOwner()
+  if(owner)
+    if(self.misc6 == TIMER_VANISH)
+      // Stay hidden if the holder is really hiding behind cover...
+      if(owner.alpha < 255 && !IHIDE.SafeToHide(owner))
+        owner.alpha = 255
+    if(self.misc6 == TIMER_HASTE)
+      owner.eflags = owner.eflags & (255-ENCHANT_FLAG_HASTE)
+  GoPoof(POOF_SELF)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Steals up to amount coins from the target, knocking them out onto the
+// floor...
+int Steal(int target, int amount)
+  if(amount > target.money)
+    amount = target.money
+  if(amount > 0)
+    target.money = target.money - amount
+    PCOIN.Effect(amount, target.x, target.y, target.z + (target.height*0.5))
+    PlaySound("FILE:-CASH.RAW", 256, 200)
+  return amount
+
+//-----------------------------------------------------------------------
+// The attack particle (self) of a honed dagger hit an enemy...  sneak is
+// TRUE for a big backstab or a stab out of hiding...
+int Hit(int owner, int target, int sneak)
+  int self, element, proc, i, who, best
+  float x, y, z, dx, dy, sl, bestsl
+
+
+  self = FindSelf()
+  element = DaggerElement(self.red)
+  if(self.green)
+    sneak = TRUE
+  proc = FALSE
+  if(RollDice(1, 100) <= Chance(self.red))
+    proc = TRUE
+  x = target.x
+  y = target.y
+  z = target.z + (target.height*0.5)
+
+
+  if(element == WEAPON_VARIANT_MAGIC)
+    // Phantom Fang...
+    if(sneak)
+      Vanish(owner, 240)
+    else
+      if(proc)
+        Vanish(owner, 150)
+
+
+  if(element == WEAPON_VARIANT_FIRE && (proc || sneak))
+    // Ember Shiv...  Backstabs spread to the nearest neighbour...
+    PGSHOT.Burn(self.target, self.owner, 4)
+    if(sneak)
+      best = 65535
+      bestsl = 6.0
+      i = 0
+      while(i < MAX_CHARACTER)
+        who = FindByIndex(i)
+        if(who && who != target)
+          if(who.team != self.team && who.team != TEAM_NEUTRAL && who.hits > 0)
+            dx = who.x - x
+            dy = who.y - y
+            sl = sqrt(dx*dx + dy*dy)
+            if(sl < bestsl)
+              bestsl = sl
+              best = i
+        i++
+      if(best < MAX_CHARACTER)
+        PGSHOT.Burn(best, self.owner, 4)
+
+
+  if(element == WEAPON_VARIANT_ICE && proc)
+    // Frostnip...  (Chilled foes count as from behind, see AnySide)...
+    XITEM.Chill(target, CHILL_TIME)
+    PSMOKE.Effect(x, y, z, 0.0, 0.0, 0.03, 1.5, 0.05, FALSE, ICE_SMOKE_COLOR, 200, 25)
+
+
+  if(element == WEAPON_VARIANT_VOLT)
+    // Quicksilver...  The hand is ready again at once...
+    if(proc)
+      if(self.xhand == 1)
+        owner.rltimer = 0
+      else
+        owner.rrtimer = 0
+      PSPARK.Effect(owner.x, owner.y, owner.z+(owner.height*0.6), 4, 4)
+    if(sneak)
+      Haste(owner)
+
+
+  if(element == WEAPON_VARIANT_POISON && (proc || sneak))
+    // Viper's Kiss...  A backstab poisons longer and the foe loses track...
+    if(sneak)
+      STANDARD.PoisonCharacter(self.target, self.owner, 900)
+      target.target = MAX_CHARACTER
+      target.aitimer = 90
+    else
+      STANDARD.PoisonCharacter(self.target, self.owner, 300)
+
+
+  if(element == WEAPON_VARIANT_HOLY && self.blue && proc)
+    // Misericorde...  The mercy stroke may heal (wound: see PreHit)...
+    GENERIC.RestoreCharacterHits(owner, 1, 0)
+    PEMBER.Effect(owner.x, owner.y, owner.z+1.0, 0.0, 0.0, 0.05, 2.0, 255, 12, "FILE:SPARK4.RGB")
+
+
+  if(element == WEAPON_VARIANT_UNHOLY)
+    // Cutpurse...
+    if(sneak)
+      Steal(target, RollDice(2, 4))
+      if(!(target.flags & CHAR_NO_BACKSTAB))
+        GENERIC.RestoreCharacterHits(owner, 1, 0)
+        PEMBER.Effect(owner.x, owner.y, owner.z+1.0, 0.0, 0.0, 0.05, 2.0, 255, 12, "FILE:SPARK8.RGB")
+    else
+      if(proc)
+        Steal(target, RollDice(1, 3))
+  return TRUE
+
+//-----------------------------------------------------------------------
+// NOTE: Files must end with a function-level line (see XITEM.SRC)...
+int Unused()
+  return FALSE
+
+//-----------------------------------------------------------------------

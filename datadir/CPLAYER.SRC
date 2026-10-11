@@ -1171,6 +1171,15 @@ int Spawn()
     self.item02 = ITEM_FISH
     self.item03 = ITEM_RING // ITEM_FISHING_POLE
     self.item04 = ITEM_MODIFY  // Hone...  Modifies plain daggers with Magic Cores
+    self.item05 = ITEM_DAGGER  // Test items (unique-testing branch): a plain Dagger and cores to Hone with
+    self.item06 = ITEM_CORE
+    XITEM.Set(self, 230, XITEM_CORE_BASE+WEAPON_VARIANT_MAGIC)
+    self.item07 = ITEM_CORE
+    XITEM.Set(self, 231, XITEM_CORE_BASE+WEAPON_VARIANT_ICE)
+    self.item08 = ITEM_CORE
+    XITEM.Set(self, 232, XITEM_CORE_BASE+WEAPON_VARIANT_POISON)
+    self.item09 = ITEM_CORE
+    XITEM.Set(self, 233, XITEM_CORE_BASE+WEAPON_VARIANT_UNHOLY)
   self.eqspec1 = ITEM_JUMP
   self.eqspec2 = ITEM_TALK
   self.item00 = ITEM_PRAY

@@ -112,8 +112,9 @@ int FamilyBase(int item)
     return (XITEM_SWORD_BASE + (SWORD_TIER_OBSIDIAN<<3))
   if(item == ITEM_DRAGON_SWORD)
     return (XITEM_SWORD_BASE + (SWORD_TIER_DRAGON<<3))
+  if(item == ITEM_DAGGER)
+    return XITEM_DAGGER_BASE  // Effects in DAGGERFX.SRC
   // Wheels still to build (bases in DEFINE.TXT)...  Add each one as its effects go in:
-  //   Dagger                                       XITEM_DAGGER_BASE
   //   Pick Axe, Hatchet, Broad Axe                 XITEM_PICK_AXE_BASE, XITEM_HATCHET_BASE, XITEM_BROAD_AXE_BASE
   //   Shield, Mirror Shield                        XITEM_SHIELD_BASE, XITEM_MIRROR_BASE
   //   Hammer, Mace, War Hammer                     XITEM_HAMMER_BASE, XITEM_MACE_BASE, XITEM_WAR_HAMMER_BASE
