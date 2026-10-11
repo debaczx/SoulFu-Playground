@@ -6,6 +6,12 @@
 
 //-----------------------------------------------------------------------
 int GetName()
+  int ext
+  ext = SystemGet(SYS_ITEMEXT, 0, 0)
+  if(HEALFX.IsHallowed(ext))
+    // Hallowed by the Healer...
+    STANDARD.ItemName(HEALFX.Name(ext), NULL, DAMAGE_TYPE, DAMAGE_LOW, DAMAGE_HIGH, WOUND_LOW, WOUND_HIGH)
+    return TRUE
   STANDARD.ItemName("MACE", NULL, DAMAGE_TYPE, DAMAGE_LOW, DAMAGE_HIGH, WOUND_LOW, WOUND_HIGH)
 
 //-----------------------------------------------------------------------
@@ -47,7 +53,14 @@ int ModelSetup()
 // item's enchantment effect.  Must manually check if item
 // is enchanted or not...
 int Refresh()
+  int ext
   STANDARD.WeaponRefresh(50, 1.5)
+  // Censer aura...  Poisons foes near the holder...
+  ext = SystemGet(SYS_ITEMEXT, 0, 0)
+  if(HEALFX.IsHallowed(ext))
+    if(HEALFX.HallowElement(ext) == WEAPON_VARIANT_POISON)
+      HEALFX.Aura(FindSelf(), 8.0, FALSE)
+  return TRUE
 
 //-----------------------------------------------------------------------
 

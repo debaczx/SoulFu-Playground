@@ -166,6 +166,10 @@ int Event()
               temp_wound_amount = temp_wound_amount + (sword_bonus>>4)
             if(DAGGERFX.IsDagger(self.red))
               temp_wound_amount = temp_wound_amount + DAGGERFX.PreHit(owner, target)
+          // Hexed foes take 1 more and deal 1 less (HEALFX.SRC)...
+          temp_damage_amount = temp_damage_amount + HEALFX.HexBonus(owner, target)
+          if(temp_damage_amount < 0)
+            temp_damage_amount = 0
           // Some weapons can hurt characters that have high wound defense...
           defwoun = target.defwoun
           if(special_flags & SPECIAL_FLAG_INVERT_DEFWOUN)
@@ -189,6 +193,8 @@ int Event()
               DAGGERFX.Hit(owner, target, sneak)
             if(DWARFFX.IsForged(self.red))
               DWARFFX.Hit(owner, target)
+            if(HEALFX.IsHallowed(self.red))
+              HEALFX.Hit(owner, target)
           // Allow free moving attack particles to burn guys automatically...
           if(!(self.flags & PART_STUCK_ON))
             if((damage_type & 15) == DAMAGE_FIRE)
@@ -413,6 +419,9 @@ int FrameEvent(int type, int damage, int wound, int grip, int weapon_range, floa
   // Honed daggers...
   if(DAGGERFX.IsDagger(index))
     sword = index & 255
+  // Hallowed hammers...
+  if(HEALFX.IsHallowed(index))
+    sword = index & 255
   // Forged picks and axes (the Blood Pick hits softer to pay for its drain)...
   if(DWARFFX.IsForged(index))
     sword = index & 255
@@ -466,7 +475,10 @@ int FrameEvent(int type, int damage, int wound, int grip, int weapon_range, floa
         if(DWARFFX.IsForged(sword))
           child.green = DWARFFX.SwingProc(self, sword)
         else
-          child.green = SWORDFX.SwingProc(self, sword)
+          if(HEALFX.IsHallowed(sword))
+            child.green = HEALFX.SwingProc(self, sword)
+          else
+            child.green = SWORDFX.SwingProc(self, sword)
   return child
 
 //-----------------------------------------------------------------------

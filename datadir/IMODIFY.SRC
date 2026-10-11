@@ -124,8 +124,12 @@ int FamilyBase(int item)
     return XITEM_SHIELD_BASE
   if(item == ITEM_MIRROR_SHIELD)
     return XITEM_MIRROR_BASE
-  // Wheels still to build (bases in DEFINE.TXT)...  Add each one as its effects go in:
-  //   Hammer, Mace, War Hammer                     XITEM_HAMMER_BASE, XITEM_MACE_BASE, XITEM_WAR_HAMMER_BASE
+  if(item == ITEM_HAMMER)
+    return XITEM_HAMMER_BASE  // Effects in HEALFX.SRC
+  if(item == ITEM_MACE)
+    return XITEM_MACE_BASE
+  if(item == ITEM_WAR_HAMMER)
+    return XITEM_WAR_HAMMER_BASE
   return 0
 
 //-----------------------------------------------------------------------

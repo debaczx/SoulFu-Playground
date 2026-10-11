@@ -1110,6 +1110,16 @@ int Spawn()
     self.item04 = ITEM_HEAL
     self.item05 = ITEM_FOOD
     self.item06 = ITEM_MODIFY  // Hallow...  Modifies plain hammers and maces with Magic Cores
+    self.item07 = ITEM_MACE  // Test items (unique-testing branch): hammers and cores to Hallow with
+    self.item08 = ITEM_WAR_HAMMER
+    self.item09 = ITEM_CORE
+    XITEM.Set(self, 233, XITEM_CORE_BASE+WEAPON_VARIANT_HOLY)
+    self.item10 = ITEM_CORE
+    XITEM.Set(self, 234, XITEM_CORE_BASE+WEAPON_VARIANT_UNHOLY)
+    self.item11 = ITEM_CORE
+    XITEM.Set(self, 235, XITEM_CORE_BASE+WEAPON_VARIANT_POISON)
+    self.item12 = ITEM_CORE
+    XITEM.Set(self, 236, XITEM_CORE_BASE+WEAPON_VARIANT_MAGIC)
   if(self.class == CLASS_GNOME)
     self.eqleft = ITEM_HAMMER
     self.eqright = ITEM_GONNE

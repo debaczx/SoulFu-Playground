@@ -19,7 +19,7 @@
 #define ARTIFACT_BEARDS_DELVER  1
 #define ARTIFACT_SPLITTER       2
 // 48 is the Testing Bracelet (XITEM_TESTING_BRACELET, a Magic Ring)...
-// 3-5 and 13-15 (Flamer), 6-12 (Gonne), 25-31 (Bows), 41-47 (Gronnades), 49-87 (Swords, see SWORDFX.SRC), 89-95 (Daggers, see DAGGERFX.SRC), 97-135 (D'warf gear, see DWARFFX.SRC) are
+// 3-5 and 13-15 (Flamer), 6-12 (Gonne), 25-31 (Bows), 41-47 (Gronnades), 49-87 (Swords, see SWORDFX.SRC), 89-95 (Daggers, see DAGGERFX.SRC), 97-135 (D'warf gear, see DWARFFX.SRC), 137-159 (Healer hammers, see HEALFX.SRC) are
 // weapon variants made with the class Modify skill (XITEM_ defines in DEFINE.TXT)...  17-23 are Magic Cores...
 
 
@@ -89,6 +89,8 @@ int ArtifactShine(int ext)
     return DAGGERFX.Steel(ext)  // So do honed daggers...
   if(DWARFFX.IsForged(ext))
     return DWARFFX.Steel(ext)  // And forged gear...
+  if(HEALFX.IsHallowed(ext))
+    return HEALFX.Steel(ext)  // And hallowed hammers...
   if(ext == ARTIFACT_SPLITTER)
     return "FILE:WOODSPL.RGB"
   if(ext == XITEM_BOW_BASE+WEAPON_VARIANT_MAGIC)
@@ -141,6 +143,8 @@ int ArtifactIcon(int ext)
     return DAGGERFX.Icon(ext)
   if(DWARFFX.IsForged(ext))
     return DWARFFX.Icon(ext)
+  if(HEALFX.IsHallowed(ext))
+    return HEALFX.Icon(ext)
   return NULL
 
 //-----------------------------------------------------------------------

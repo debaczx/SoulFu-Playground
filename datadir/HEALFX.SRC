@@ -1,0 +1,558 @@
+//-----------------------------------------------------------------------
+// <ZZ> Hallowed hammers (the Healer's Hallow, see IMODIFY.SRC)...
+//      A plain Hammer, Mace or War Hammer plus a Magic Core.  The
+//      extension is base + element:
+//          137-143  Hammer       Simple chances
+//          145-151  Mace         Support on hit
+//          153-159  War Hammer   Big support moments and auras
+//      The Healer supports the party: heals, shields, haste for allies,
+//      debuffs for enemies...  "Allies" are the holder's team (the
+//      Healer himself when playing alone).  Design: healer-wheel-ideas.md
+//      Hex: a hexed foe deals 1 less damage and takes 1 more (PATTACK),
+//      for about 5 seconds.  Stored on the foe's character data at
+//      HEX_OFFSET, counted down by a small mark particle that floats over
+//      its head (this file is that particle's script, see Refresh)...
+//      PATTACK.FrameEvent() stores on a hammer's attack particle:
+//          red     The variant (its extension)
+//          green   1 if the effect goes off this swing (SwingProc)
+//          blue    1 once a once-per-swing effect has been used
+//-----------------------------------------------------------------------
+#define ICE_SMOKE_COLOR (4239600)
+#define UNHOLY_COLOR    (8388608)
+#define HALLOW_HAMMER   0
+#define HALLOW_MACE     1
+#define HALLOW_WAR      2
+#define HEX_OFFSET      668   // Foe's character data (unsaved): hex ticks left (only foes of TEAM_GOOD, players use it for Thunder Cleaver)
+#define HEX_TICKS       60    // Ticks of 5 frames...  5 seconds
+
+
+//-----------------------------------------------------------------------
+// TRUE if ext is a hallowed hammer...
+int IsHallowed(int ext)
+  ext = ext & 255
+  if(ext > XITEM_HAMMER_BASE && ext < (XITEM_WAR_HAMMER_BASE+8))
+    if(ext & 7)
+      return TRUE
+  return FALSE
+
+//-----------------------------------------------------------------------
+// HALLOW_ kind of a hallowed hammer...
+int HallowKind(int ext)
+  return (((ext & 255) - XITEM_HAMMER_BASE) >> 3)
+
+//-----------------------------------------------------------------------
+// WEAPON_VARIANT_ element of a hallowed hammer...
+int HallowElement(int ext)
+  return (ext & 7)
+
+//-----------------------------------------------------------------------
+// Percent chance per swing (0: works another way)...
+int Chance(int ext)
+  int kind, element
+  kind = HallowKind(ext)
+  element = HallowElement(ext)
+  if(kind == HALLOW_HAMMER)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return 20
+    if(element == WEAPON_VARIANT_FIRE)
+      return 20
+    if(element == WEAPON_VARIANT_ICE)
+      return 25
+    if(element == WEAPON_VARIANT_VOLT)
+      return 15
+    if(element == WEAPON_VARIANT_POISON)
+      return 25
+    if(element == WEAPON_VARIANT_HOLY)
+      return 20
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return 25
+  if(kind == HALLOW_MACE)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return 20
+    if(element == WEAPON_VARIANT_FIRE)
+      return 25
+    if(element == WEAPON_VARIANT_ICE)
+      return 25
+    if(element == WEAPON_VARIANT_VOLT)
+      return 20
+    if(element == WEAPON_VARIANT_POISON)
+      return 0
+    if(element == WEAPON_VARIANT_HOLY)
+      return 25
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return 100
+  if(kind == HALLOW_WAR)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return 25
+    if(element == WEAPON_VARIANT_FIRE)
+      return 100
+    if(element == WEAPON_VARIANT_ICE)
+      return 25
+    if(element == WEAPON_VARIANT_VOLT)
+      return 25
+    if(element == WEAPON_VARIANT_POISON)
+      return 0
+    if(element == WEAPON_VARIANT_HOLY)
+      return 30
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return 100
+  return 0
+//-----------------------------------------------------------------------
+// Item name...
+int Name(int ext)
+  int kind, element
+  kind = HallowKind(ext)
+  element = HallowElement(ext)
+  if(kind == HALLOW_HAMMER)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return "SAGES HAMMER"
+    if(element == WEAPON_VARIANT_FIRE)
+      return "EMBER HAMMER"
+    if(element == WEAPON_VARIANT_ICE)
+      return "FROST HAMMER"
+    if(element == WEAPON_VARIANT_VOLT)
+      return "SHOCK HAMMER"
+    if(element == WEAPON_VARIANT_POISON)
+      return "VENOM HAMMER"
+    if(element == WEAPON_VARIANT_HOLY)
+      return "MENDING HAMMER"
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return "HEX HAMMER"
+  if(kind == HALLOW_MACE)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return "WARD MACE"
+    if(element == WEAPON_VARIANT_FIRE)
+      return "KINDLING"
+    if(element == WEAPON_VARIANT_ICE)
+      return "CALM"
+    if(element == WEAPON_VARIANT_VOLT)
+      return "RALLY"
+    if(element == WEAPON_VARIANT_POISON)
+      return "CENSER"
+    if(element == WEAPON_VARIANT_HOLY)
+      return "MENDER"
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return "HEXER"
+  if(kind == HALLOW_WAR)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return "SANCTUM"
+    if(element == WEAPON_VARIANT_FIRE)
+      return "PURGE"
+    if(element == WEAPON_VARIANT_ICE)
+      return "STILLNESS"
+    if(element == WEAPON_VARIANT_VOLT)
+      return "VERDICT"
+    if(element == WEAPON_VARIANT_POISON)
+      return "BLIGHT"
+    if(element == WEAPON_VARIANT_HOLY)
+      return "SUNBURST"
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return "DOOM"
+  return 0
+//-----------------------------------------------------------------------
+// Inventory icon...
+int Icon(int ext)
+  int kind, element
+  kind = HallowKind(ext)
+  element = HallowElement(ext)
+  if(kind == HALLOW_HAMMER)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return "FILE:=IHAM1.RGB"
+    if(element == WEAPON_VARIANT_FIRE)
+      return "FILE:=IHAM2.RGB"
+    if(element == WEAPON_VARIANT_ICE)
+      return "FILE:=IHAM3.RGB"
+    if(element == WEAPON_VARIANT_VOLT)
+      return "FILE:=IHAM4.RGB"
+    if(element == WEAPON_VARIANT_POISON)
+      return "FILE:=IHAM5.RGB"
+    if(element == WEAPON_VARIANT_HOLY)
+      return "FILE:=IHAM6.RGB"
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return "FILE:=IHAM7.RGB"
+  if(kind == HALLOW_MACE)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return "FILE:=IMAC1.RGB"
+    if(element == WEAPON_VARIANT_FIRE)
+      return "FILE:=IMAC2.RGB"
+    if(element == WEAPON_VARIANT_ICE)
+      return "FILE:=IMAC3.RGB"
+    if(element == WEAPON_VARIANT_VOLT)
+      return "FILE:=IMAC4.RGB"
+    if(element == WEAPON_VARIANT_POISON)
+      return "FILE:=IMAC5.RGB"
+    if(element == WEAPON_VARIANT_HOLY)
+      return "FILE:=IMAC6.RGB"
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return "FILE:=IMAC7.RGB"
+  if(kind == HALLOW_WAR)
+    if(element == WEAPON_VARIANT_MAGIC)
+      return "FILE:=IWAR1.RGB"
+    if(element == WEAPON_VARIANT_FIRE)
+      return "FILE:=IWAR2.RGB"
+    if(element == WEAPON_VARIANT_ICE)
+      return "FILE:=IWAR3.RGB"
+    if(element == WEAPON_VARIANT_VOLT)
+      return "FILE:=IWAR4.RGB"
+    if(element == WEAPON_VARIANT_POISON)
+      return "FILE:=IWAR5.RGB"
+    if(element == WEAPON_VARIANT_HOLY)
+      return "FILE:=IWAR6.RGB"
+    if(element == WEAPON_VARIANT_UNHOLY)
+      return "FILE:=IWAR7.RGB"
+  return 0
+//-----------------------------------------------------------------------
+// Tinted metal (the Mace keeps its dark steel)...
+int Steel(int ext)
+  int element, dark
+  element = HallowElement(ext)
+  dark = FALSE
+  if(HallowKind(ext) == HALLOW_MACE)
+    dark = TRUE
+  if(element == WEAPON_VARIANT_MAGIC)
+    if(dark)
+      return "FILE:DSTEEL1.RGB"
+    return "FILE:STEEL1.RGB"
+  if(element == WEAPON_VARIANT_FIRE)
+    if(dark)
+      return "FILE:DSTEEL2.RGB"
+    return "FILE:STEEL2.RGB"
+  if(element == WEAPON_VARIANT_ICE)
+    if(dark)
+      return "FILE:DSTEEL3.RGB"
+    return "FILE:STEEL3.RGB"
+  if(element == WEAPON_VARIANT_VOLT)
+    if(dark)
+      return "FILE:DSTEEL4.RGB"
+    return "FILE:STEEL4.RGB"
+  if(element == WEAPON_VARIANT_POISON)
+    if(dark)
+      return "FILE:DSTEEL5.RGB"
+    return "FILE:STEEL5.RGB"
+  if(element == WEAPON_VARIANT_HOLY)
+    if(dark)
+      return "FILE:DSTEEL6.RGB"
+    return "FILE:STEEL6.RGB"
+  if(dark)
+    return "FILE:DSTEEL7.RGB"
+  return "FILE:STEEL7.RGB"
+
+//-----------------------------------------------------------------------
+// Decides whether a swing's effect goes off (PATTACK.FrameEvent)...
+int SwingProc(int self, int ext)
+  if(RollDice(1, 100) <= Chance(ext))
+    return 1
+  return 0
+
+//-----------------------------------------------------------------------
+// TRUE if the character is a living foe of the holder...
+int Foe(int holder, int who)
+  if(who)
+    if(who.team != holder.team && who.team != TEAM_NEUTRAL && who.hits > 0)
+      return TRUE
+  return FALSE
+
+//-----------------------------------------------------------------------
+// TRUE if the character is hexed (only foes of the players can be)...
+int Hexed(int who)
+  if(who)
+    if(who.team != TEAM_GOOD)
+      if(FileReadByte(who, HEX_OFFSET))
+        return TRUE
+  return FALSE
+
+//-----------------------------------------------------------------------
+// Hexes a foe (or keeps its hex going)...
+int Hex(int holder, int who)
+  int child, who_index
+  if(!Foe(holder, who) || who.team == TEAM_GOOD)
+    return FALSE
+  if(FileReadByte(who, HEX_OFFSET) == 0)
+    // New hex...  Start the mark that counts it down...
+    who_index = FindIndex(who)
+    SetSpawnTarget(who_index)
+    SetSpawnOwner(FindIndex(holder))
+    SetSpawnTeam(holder.team)
+    child = Spawn(PARTICLE, who.x, who.y, who.z + who.height + 0.5, "FILE:HEALFX.RUN")
+    if(child)
+      child.flags = PART_SPIN_ON | PART_LIGHT_ON
+      child.image = "FILE:SPARK8.RGB"
+      child.alpha = 200
+      child.length = 0.9
+      child.width = 0.9
+      child.target = who_index
+      child.timer = 5
+    PlaySound("FILE:BAD3.RAW", 200 + RollDice(1, 20), 160)
+  FileWriteByte(who, HEX_OFFSET, HEX_TICKS)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Hex mark ticks...  Follows its foe and counts the hex down...
+int Refresh()
+  int self, who, ticks
+  self = FindSelf()
+  who = FindTarget()
+  if(who)
+    ticks = FileReadByte(who, HEX_OFFSET)
+    if(ticks > 0 && who.hits > 0)
+      FileWriteByte(who, HEX_OFFSET, ticks-1)
+      self.x = who.x
+      self.y = who.y
+      self.z = who.z + who.height + 0.5
+      self.timer = 5
+      return TRUE
+    FileWriteByte(who, HEX_OFFSET, 0)
+  GoPoof(POOF_SELF)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// The ally (or the holder) with the lowest share of hits, within range...
+int MostHurt(int holder, float range)
+  int i, who, best
+  float dx, dy, share, bestshare
+  best = holder
+  bestshare = 2.0
+  if(holder.hitsmax > 0)
+    bestshare = (holder.hits*1.0)/holder.hitsmax
+  i = 0
+  while(i < MAX_CHARACTER)
+    who = FindByIndex(i)
+    if(who)
+      if(who.team == holder.team && who.hits > 0 && who.hitsmax > 0)
+        dx = who.x - holder.x
+        dy = who.y - holder.y
+        if((dx*dx + dy*dy) < (range*range))
+          share = (who.hits*1.0)/who.hitsmax
+          if(share < bestshare)
+            bestshare = share
+            best = who
+    i++
+  return best
+
+//-----------------------------------------------------------------------
+// Does something to everyone near a point...
+//   1 chill foes    2 burn foes    3 hex foes    4 heal allies (amount)
+//   5 mana allies   6 haste allies 7 untouchable allies (amount frames)
+//   8 knock undead foes down       9 long chill foes
+int Area(int holder, float x, float y, float range, int kind, int amount, int skip)
+  int i, who, count, holder_index
+  float dx, dy
+  holder_index = FindIndex(holder)
+  count = 0
+  i = 0
+  while(i < MAX_CHARACTER)
+    who = FindByIndex(i)
+    if(who && i != skip)
+      dx = who.x - x
+      dy = who.y - y
+      if((dx*dx + dy*dy) < (range*range) && who.hits > 0)
+        if(Foe(holder, who))
+          if(kind == 1 || kind == 9)
+            if(kind == 9)
+              XITEM.Chill(who, CHILL_TIME*3)
+            else
+              XITEM.Chill(who, CHILL_TIME)
+            PSMOKE.Effect(who.x, who.y, who.z+1.0, 0.0, 0.0, 0.03, 1.5, 0.05, FALSE, ICE_SMOKE_COLOR, 200, 25)
+            count++
+          if(kind == 2)
+            PGSHOT.Burn(i, holder_index, 4)
+            count++
+          if(kind == 3)
+            Hex(holder, who)
+            count++
+          if(kind == 8)
+            if(who.defwoun > 0 && who.defwoun < 128)
+              DWARFFX.KnockDown(who, x, y)
+              count++
+        else
+          if(who.team == holder.team)
+            if(kind == 4)
+              GENERIC.RestoreCharacterHits(who, amount, 0)
+              PEMBER.Effect(who.x, who.y, who.z+1.0, 0.0, 0.0, 0.06, 3.0, 255, 10, "FILE:SPARK4.RGB")
+              count++
+            if(kind == 5)
+              if(who.mana < who.manamax)
+                who.mana = who.mana + 1
+              PEMBER.Effect(who.x, who.y, who.z+1.0, 0.0, 0.0, 0.06, 2.0, 255, 12, "FILE:SPARK5.RGB")
+              count++
+            if(kind == 6)
+              DAGGERFX.Haste(who)
+              count++
+            if(kind == 7)
+              if(who.intimer < amount)
+                who.intimer = amount
+              PFLASH.Effect(who, "FILE:LITESPRK.RGB", WHITE, TRUE, 1.5)
+              count++
+    i++
+  return count
+
+//-----------------------------------------------------------------------
+// Two homing heals (the Lifebinder's healing missiles)...
+int Mending(int holder, float x, float y, float z, int count)
+  int holder_index
+  holder_index = FindIndex(holder)
+  PlaySound("FILE:-SPELL01.RAW", 300 + RollDice(1, 20), 200)
+  PGSHOT.Effect(x, y, z, -holder.frontx*0.15, -holder.fronty*0.15, 0.15, holder_index, WEAPON_VARIANT_HOLY)
+  if(count > 1)
+    PGSHOT.Effect(x, y, z, -holder.fronty*0.15, holder.frontx*0.15, 0.15, holder_index, WEAPON_VARIANT_HOLY)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// A deflecting sphere for an ally...
+int Ward(int who)
+  int child
+  if(!(who.eflags & ENCHANT_FLAG_DEFLECT))
+    who.eflags = who.eflags | ENCHANT_FLAG_DEFLECT
+    child = PDFLECT.Effect(who, TRUE)
+    if(child)
+      child.misc7 = 200  // Fragile...
+    return TRUE
+  return FALSE
+
+//-----------------------------------------------------------------------
+// Censer and Blight auras...  Called every frame while held (IMACE and
+// IWARHAM Refresh, self is the holder)...
+int Aura(int self, float range, int slow)
+  int i, who, self_index
+  float dx, dy
+  if((SystemGet(SYS_MAINGAMEFRAME, 0, 0) & 31) == 0)
+    self_index = FindIndex(self)
+    i = 0
+    while(i < MAX_CHARACTER)
+      who = FindByIndex(i)
+      if(Foe(self, who))
+        dx = who.x - self.x
+        dy = who.y - self.y
+        if((dx*dx + dy*dy) < (range*range))
+          STANDARD.PoisonCharacter(i, self_index, 40)
+          if(slow)
+            XITEM.Chill(who, 40)
+          PEMBER.Effect(who.x, who.y, who.z+1.0, 0.0, 0.0, 0.04, 1.2, 160, 16, "FILE:SPARK9.RGB")
+      i++
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Called by PATTACK.Event just before a hit's damage...  Returns the
+// change from hexes (+1 if the target is hexed, -1 if the attacker is)...
+int HexBonus(int attacker, int target)
+  int bonus
+  bonus = 0
+  if(Hexed(target))
+    bonus++
+  if(Hexed(attacker))
+    bonus--
+  return bonus
+
+//-----------------------------------------------------------------------
+// The attack particle (self) of a hallowed hammer hit an enemy...
+int Hit(int owner, int target)
+  int self, kind, element, killed, was_hexed
+  float x, y, z
+
+
+  self = FindSelf()
+  kind = HallowKind(self.red)
+  element = HallowElement(self.red)
+  x = target.x
+  y = target.y
+  z = target.z + (target.height*0.5)
+  killed = FALSE
+  if(target.hits == 0)
+    killed = TRUE
+  was_hexed = Hexed(target)
+
+
+  if(kind == HALLOW_HAMMER && self.green)
+    if(element == WEAPON_VARIANT_MAGIC && self.blue == 0)
+      self.blue = 1
+      Area(owner, owner.x, owner.y, 10.0, 5, 0, 65535)
+    if(element == WEAPON_VARIANT_FIRE && !killed)
+      PGSHOT.Burn(self.target, self.owner, 4)
+    if(element == WEAPON_VARIANT_ICE)
+      XITEM.Chill(target, CHILL_TIME)
+      PSMOKE.Effect(x, y, z, 0.0, 0.0, 0.03, 1.5, 0.05, FALSE, ICE_SMOKE_COLOR, 200, 25)
+    if(element == WEAPON_VARIANT_VOLT && !killed)
+      PSPARK.Effect(x, y, z, 6, 4)
+      DWARFFX.KnockDown(target, owner.x, owner.y)
+    if(element == WEAPON_VARIANT_POISON)
+      STANDARD.PoisonCharacter(self.target, self.owner, 300)
+    if(element == WEAPON_VARIANT_HOLY && self.blue == 0)
+      self.blue = 1
+      Mending(owner, x, y, z+0.5, 1)
+    if(element == WEAPON_VARIANT_UNHOLY && !killed)
+      Hex(owner, target)
+    return TRUE
+
+
+  if(kind == HALLOW_MACE)
+    if(self.green)
+      if(element == WEAPON_VARIANT_MAGIC && self.blue == 0)
+        // Ward Mace...
+        self.blue = 1
+        Ward(MostHurt(owner, 12.0))
+      if(element == WEAPON_VARIANT_FIRE)
+        // Kindling...
+        PEMBER.Effect(x, y, z, 0.0, 0.0, 0.05, 3.0, 255, 12, "FILE:FIRE1.RGB")
+        Area(owner, x, y, 5.0, 2, 0, 65535)
+      if(element == WEAPON_VARIANT_ICE)
+        // Calm...
+        Area(owner, x, y, 5.0, 1, 0, 65535)
+      if(element == WEAPON_VARIANT_VOLT && self.blue == 0)
+        // Rally...
+        self.blue = 1
+        Area(owner, owner.x, owner.y, 10.0, 6, 0, 65535)
+      if(element == WEAPON_VARIANT_HOLY && self.blue == 0)
+        // Mender...
+        self.blue = 1
+        Mending(owner, x, y, z+0.5, 2)
+      if(element == WEAPON_VARIANT_UNHOLY && !killed)
+        // Hexer...
+        Hex(owner, target)
+    return TRUE
+
+
+  if(kind == HALLOW_WAR)
+    if(self.green && self.blue == 0)
+      if(element == WEAPON_VARIANT_MAGIC)
+        // Sanctum...
+        self.blue = 1
+        PlaySound("FILE:-SPELL01.RAW", 260 + RollDice(1, 20), 255)
+        Area(owner, owner.x, owner.y, 10.0, 7, 60, 65535)
+      if(element == WEAPON_VARIANT_ICE)
+        // Stillness...
+        self.blue = 1
+        PlaySound("FILE:-SPELL03.RAW", 200 + RollDice(1, 30), 255)
+        DWARFFX.Ring(owner, "FILE:ICE1.RGB", ICE_SMOKE_COLOR)
+        Area(owner, owner.x, owner.y, 9.0, 9, 0, 65535)
+      if(element == WEAPON_VARIANT_VOLT)
+        // Verdict...
+        self.blue = 1
+        DWARFFX.Chain(owner, 3)
+      if(element == WEAPON_VARIANT_HOLY)
+        // Sunburst...
+        self.blue = 1
+        PlaySound("FILE:-SPELL01.RAW", 280 + RollDice(1, 20), 255)
+        PEMBER.Effect(owner.x, owner.y, owner.z+1.0, 0.0, 0.0, 0.0, 8.0, 255, 10, "FILE:SPARK4.RGB")
+        Area(owner, owner.x, owner.y, 10.0, 4, 2, 65535)
+        Area(owner, owner.x, owner.y, 10.0, 8, 0, 65535)
+    if(element == WEAPON_VARIANT_FIRE && killed)
+      // Purge...
+      PlaySound("FILE:-SPELL01.RAW", 280 + RollDice(1, 20), 255)
+      PEMBER.Effect(x, y, z, 0.0, 0.0, 0.05, 4.0, 255, 10, "FILE:FIRE1.RGB")
+      Area(owner, owner.x, owner.y, 10.0, 4, 2, 65535)
+      Area(owner, x, y, 6.0, 2, 0, self.target)
+    if(element == WEAPON_VARIANT_UNHOLY)
+      // Doom...  Hexes everyone around the target, hexed kills feed mana...
+      if(killed)
+        if(was_hexed)
+          Area(owner, owner.x, owner.y, 10.0, 5, 0, 65535)
+      else
+        Area(owner, x, y, 5.0, 3, 0, 65535)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// NOTE: Files must end with a function-level line (see XITEM.SRC)...
+int Unused()
+  return FALSE
+
+//-----------------------------------------------------------------------
