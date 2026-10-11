@@ -1391,6 +1391,8 @@
 #define XITEM_ARCHMAGE_ROBE    208   // Unique body armor (Leather Cuirass base): faster mana regeneration
 #define ROBE_MANA_REGEN        1600  // Archmage Robe: extra mana regeneration in percent (1600 = 17x as fast; plan is 300 after testing)
 #define RUNE_FORM_OFFSET       669   // Character data (unsaved): on a Mystic's monster form, the rune that made it (RUNEFX.SRC)
+#define RUNE_LEFT_OFFSET       670   // Character data (unsaved): on a monster form, ticks of 16 frames left before it turns back
+#define RUNE_WATCH_OFFSET      671   // Character data (unsaved): on a monster form, frames until IRUNE.Refresh restarts a lost form timer (doors poof all particles)
 
 #define WEAPON_VARIANT_NONE    0
 #define WEAPON_VARIANT_MAGIC   1

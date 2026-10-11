@@ -14,6 +14,12 @@ int GetName()
   return TRUE
 
 //-----------------------------------------------------------------------
+// Called every frame while held...  Keeps a Mystic's monster form timed...
+int Refresh()
+  RUNEFX.Watch(FindSelf())
+  return TRUE
+
+//-----------------------------------------------------------------------
 // Called when item is first used...
 int Event()
   RUNEFX.Cast(FindSelf(), XITEM.Current())

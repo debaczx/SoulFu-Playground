@@ -489,7 +489,7 @@ int Cast(int self, int ext)
     return FALSE
   if(IsMysticRune(ext) && FormScript(ext, 0))
     // Can't change form while already changed, or while riding...
-    if((self.eflags & ENCHANT_FLAG_MORPH) || FindByIndex(self.mount) || FindByIndex(self.rider))
+    if(self.eflags & ENCHANT_FLAG_MORPH || FindByIndex(self.mount) || FindByIndex(self.rider))
       if(IndexIsLocalPlayer(index))
         BuzzerSound()
       return FALSE
@@ -526,7 +526,7 @@ int Release(int self, int holder, int ext)
     if(element == WEAPON_VARIANT_HOLY)
       return Turret(holder, RUNE_SHRINE, rank, "FILE:LITEBALL.RGB", 2.0, 0.6)
     if(element == WEAPON_VARIANT_MAGIC)
-      return Turret(holder, RUNE_EYE, rank, "FILE:SPARK11.RGB", 1.8, 3.0)
+      return Turret(holder, RUNE_EYE, rank, "FILE:SPARK11.RGB", 1.8, 1.5)
     if(element == WEAPON_VARIANT_POISON)
       return Turret(holder, RUNE_SPORE, rank, "FILE:POISON1.RGB", 2.2, 0.8)
     // The rest are monster forms...
@@ -534,6 +534,7 @@ int Release(int self, int holder, int ext)
     if(child)
       child.flags = 0
       child.misc4 = ext & 255
+      child.misc0 = holder_index
       child.target = holder_index
       child.timer = 0
       child.evtimer = 1
@@ -778,7 +779,7 @@ int DoPhoenix(int self)
     if(Foe(holder, who))
       dx = who.x - self.x
       dy = who.y - self.y
-      if((dx*dx + dy*dy) < 4.0 && self.z > (who.z - 1.0) && self.z < (who.z + who.height + 1.0))
+      if(dx*dx + dy*dy < 4.0 && self.z > (who.z - 1.5) && self.z < (who.z + who.height + 2.5))
         if(!Listed(self, i))
           AddListed(self, i)
           Hurt(self, i, DAMAGE_FIRE, RollDice(1, 2)+1, 1)
@@ -821,7 +822,7 @@ int DoGlacier(int self)
     if(Foe(holder, who))
       dx = who.x - self.x
       dy = who.y - self.y
-      if((dx*dx + dy*dy) < 3.2 && !Listed(self, i))
+      if(dx*dx + dy*dy < 3.2 && !Listed(self, i))
         AddListed(self, i)
         cold = SWORDFX.Chilled(who)
         if(self.misc6 == 2)
@@ -855,7 +856,7 @@ int DoIcePatch(int self)
     if(Foe(holder, who))
       dx = who.x - self.x
       dy = who.y - self.y
-      if((dx*dx + dy*dy) < 2.6 && who.z < (self.z + 1.5))
+      if(dx*dx + dy*dy < 2.6 && who.z < (self.z + 1.5))
         if(SWORDFX.Chilled(who) < 60)
           XITEM.Chill(who, 60)
     i++
@@ -864,8 +865,10 @@ int DoIcePatch(int self)
   return TRUE
 
 //-----------------------------------------------------------------------
-// Zaps a foe from a point (a lightning bolt owned by holder)...
-int ZapFrom(int holder, float x, float y, float z, int who)
+// Zaps a foe from a point (a lightning bolt owned by holder)...  power is
+// the bolt's misc7 (48 hits for 2, 80 for 3, 112 for 4)...
+int ZapFrom(int holder, float x, float y, float z, int who, int power)
+  int child
   float dx, dy, sl
   dx = who.x - x
   dy = who.y - y
@@ -874,22 +877,27 @@ int ZapFrom(int holder, float x, float y, float z, int who)
     return FALSE
   dx = dx/sl
   dy = dy/sl
-  DWARFFX.Zap(holder, x + dx, y + dy, z, dx*1.2, dy*1.2, 22)
+  child = DWARFFX.Zap(holder, x + dx, y + dy, z, dx*1.2, dy*1.2, 22)
+  if(child)
+    child.misc7 = power
   return TRUE
 
 //-----------------------------------------------------------------------
-// Storm Orb...  Ticks every 2 frames...
+// Storm Orb...  Ticks every 2 frames...  Drifts toward the nearest foe and
+// zaps up to 1/2/3 foes around it every 12 frames...
 int DoStorm(int self)
-  int holder, i, first, life, count
+  int holder, i, first, second, life, count, power, who
+  float dx, dy, dist
   holder = FindOwner()
   if(!holder)
     GoPoof(POOF_SELF)
     return FALSE
   self.timer = 2
   self.misc5++
-  life = 120
+  life = 120 + (self.misc6*30)
+  power = 48
   if(self.misc6 > 0)
-    life = 150
+    power = 80
   if((self.misc5 & 3) == 0)
     PEMBER.Effect(self.x, self.y, self.z, (RollDice(1, 21)-11)*0.01, (RollDice(1, 21)-11)*0.01, 0.02, 0.8, 255, 20, "FILE:SPARK2.RGB")
   if(self.misc5 >= life)
@@ -897,26 +905,45 @@ int DoStorm(int self)
       // Bursts into chain lightning...
       PlaySound("FILE:-SHOCK.RAW", 240 + RollDice(1, 20), 255)
       PSPARK.Effect(self.x, self.y, self.z, 20, 4)
-      first = 65535
       count = 0
-      while(count < 4)
-        i = NthFoe(holder, self.x, self.y, 10.0, count)
-        if(i < MAX_CHARACTER && i != first)
-          ZapFrom(holder, self.x, self.y, self.z, FindByIndex(i))
-        if(count == 0)
-          first = i
+      while(count < 6)
+        i = NthFoe(holder, self.x, self.y, 12.0, count)
+        if(i < MAX_CHARACTER)
+          ZapFrom(holder, self.x, self.y, self.z, FindByIndex(i), 112)
         count++
     GoPoof(POOF_SELF)
     return TRUE
-  if((self.misc5 % 10) == 0)
-    i = Nearest(holder, self.x, self.y, 7.0, 65535)
+  if((self.misc5 % 3) == 0)
+    // Drifts toward the nearest foe (slower than a walk)...
+    i = Nearest(holder, self.x, self.y, 14.0, 65535)
+    if(i < MAX_CHARACTER)
+      who = FindByIndex(i)
+      dx = who.x - self.x
+      dy = who.y - self.y
+      dist = sqrt(dx*dx + dy*dy)
+      if(dist > 2.0)
+        self.vx = (self.vx*0.8) + ((dx/dist)*0.02)
+        self.vy = (self.vy*0.8) + ((dy/dist)*0.02)
+      else
+        self.vx = self.vx*0.5
+        self.vy = self.vy*0.5
+  if((self.misc5 % 6) == 0)
+    i = Nearest(holder, self.x, self.y, 9.0, 65535)
     if(i < MAX_CHARACTER)
       PlaySound("FILE:-SHOCK.RAW", 300 + RollDice(1, 40), 120)
-      ZapFrom(holder, self.x, self.y, self.z, FindByIndex(i))
+      ZapFrom(holder, self.x, self.y, self.z, FindByIndex(i), power)
       if(self.misc6 > 0)
-        first = Nearest(holder, self.x, self.y, 7.0, i)
+        first = Nearest(holder, self.x, self.y, 9.0, i)
         if(first < MAX_CHARACTER)
-          ZapFrom(holder, self.x, self.y, self.z, FindByIndex(first))
+          ZapFrom(holder, self.x, self.y, self.z, FindByIndex(first), power)
+          if(self.misc6 == 2)
+            count = 0
+            while(count < 3)
+              second = NthFoe(holder, self.x, self.y, 9.0, count)
+              if(second < MAX_CHARACTER && second != i && second != first)
+                ZapFrom(holder, self.x, self.y, self.z, FindByIndex(second), power)
+                count = 3
+              count++
   return TRUE
 
 //-----------------------------------------------------------------------
@@ -1008,6 +1035,8 @@ int DoSeed(int self)
 
 //-----------------------------------------------------------------------
 // A Halo blade circling the caster...  misc4 is its angle (256 a lap)...
+// A blade breaks on the first foe it cuts.  When the Halo's time is up,
+// the blades still circling fly off at the nearest foes (misc5 255)...
 int DoHalo(int self)
   int holder, i, who, damage, wound
   float dx, dy, angle
@@ -1016,32 +1045,58 @@ int DoHalo(int self)
     GoPoof(POOF_SELF)
     return FALSE
   self.timer = 1
-  self.misc4 = (self.misc4 + 3) & 255
-  self.misc5++
-  if(self.misc5 >= 85)
-    // Each blade hits a foe once a lap...
-    self.misc5 = 0
-    ClearListed(self)
-  angle = self.misc4 * 1.40625
-  self.x = holder.x + (sin(angle)*2.6)
-  self.y = holder.y + (sin(angle+90.0)*2.6)
-  self.z = holder.z + 1.8
+  if(self.misc5 == 255)
+    // Flying off...
+    if(self.evtimer == 0)
+      GoPoof(POOF_SELF)
+      return TRUE
+    who = FindTarget()
+    if(Foe(holder, who))
+      SteerAt(self, who, 0.7)
+    else
+      Fade(self, 20)
+      return TRUE
+  else
+    self.misc4 = (self.misc4 + 3) & 255
+    angle = self.misc4 * 1.40625
+    self.x = holder.x + (sin(angle)*2.6)
+    self.y = holder.y + (sin(angle+90.0)*2.6)
+    self.z = holder.z + 1.8
   i = 0
   while(i < MAX_CHARACTER)
     who = FindByIndex(i)
     if(Foe(holder, who))
       dx = who.x - self.x
       dy = who.y - self.y
-      if((dx*dx + dy*dy) < 2.0 && !Listed(self, i))
-        AddListed(self, i)
-        damage = 1
-        wound = 0
+      if(dx*dx + dy*dy < 2.0 && self.z > (who.z - 1.0) && self.z < (who.z + who.height + 1.5))
+        damage = RollDice(1, 2)+1
+        wound = 1
         if(Undead(who))
-          damage = 2
-          wound = 1
+          damage = damage + 2
+          wound = 2
         Hurt(self, i, DAMAGE_EDGE, damage, wound)
-        PEMBER.Effect(self.x, self.y, self.z, 0.0, 0.0, 0.05, 2.0, 255, 14, "FILE:SPARK4.RGB")
+        PlaySound("FILE:-SPELL01.RAW", 420 + RollDice(1, 40), 140)
+        PEMBER.Effect(self.x, self.y, self.z, 0.0, 0.0, 0.05, 2.5, 255, 12, "FILE:SPARK4.RGB")
+        GoPoof(POOF_SELF)
+        return TRUE
     i++
+  return TRUE
+
+//-----------------------------------------------------------------------
+// The Halo's time is up...  The blade flies at the nearest foe, if any...
+int HaloEnd(int self)
+  int holder, i
+  holder = FindOwner()
+  i = 65535
+  if(holder && self.misc5 != 255)
+    i = NthFoe(holder, self.x, self.y, 12.0, self.misc4 >> 5)
+  if(i >= MAX_CHARACTER)
+    GoPoof(POOF_SELF)
+    return TRUE
+  self.misc5 = 255
+  self.target = i
+  self.evtimer = 90
+  PlaySound("FILE:-SPELL01.RAW", 380 + RollDice(1, 40), 160)
   return TRUE
 
 //-----------------------------------------------------------------------
@@ -1143,6 +1198,10 @@ int Turret(int holder, int kind, int rank, int image, float size, float lift)
   x = holder.x + (holder.frontx*3.0)
   y = holder.y + (holder.fronty*3.0)
   z = holder.z + lift
+  if(kind == RUNE_EYE)
+    // Rises from the caster's hands...
+    x = holder.x + holder.frontx
+    y = holder.y + holder.fronty
   PlaySound("FILE:-SPELL01.RAW", 220 + RollDice(1, 20), 255)
   PEMBER.Effect(x, y, z, 0.0, 0.0, 0.05, 4.0, 255, 10, "FILE:LITESPRK.RGB")
   child = NewPart(holder, kind, rank, x, y, z, image, size)
@@ -1161,6 +1220,11 @@ int Turret(int holder, int kind, int rank, int image, float size, float lift)
       child.green = 170
       child.blue = 255
       child.timer = 10
+      child.vz = 0.06
+    if(kind == RUNE_SPORE)
+      child.red = 140
+      child.green = 255
+      child.blue = 110
   return child
 
 //-----------------------------------------------------------------------
@@ -1181,73 +1245,119 @@ int Wards(int holder, float x, float y)
   return TRUE
 
 //-----------------------------------------------------------------------
-// Shrine...  Ticks every 15 frames...
+// Shrine...  Ticks every 15 frames...  Heals allies around it every 3
+// ticks (Rank II every 2, Rank III every tick and wards them every 4
+// seconds)...
 int DoShrine(int self)
-  int holder, every, amount
+  int holder, every
   holder = FindOwner()
   self.timer = 15
   if(!holder)
     GoPoof(POOF_SELF)
     return FALSE
   self.misc5++
-  every = 4
-  amount = 1
-  if(self.misc6 > 0)
-    every = 3
-  if(self.misc6 == 2)
-    amount = 2
-  PEMBER.Effect(self.x, self.y, self.z + 0.5, 0.0, 0.0, 0.04, 0.8, 200, 10, "FILE:SPARK4.RGB")
+  every = 3 - self.misc6
+  PEMBER.Effect(self.x, self.y, self.z + 0.5, 0.0, 0.0, 0.05, 1.0, 220, 10, "FILE:SPARK4.RGB")
+  PEMBER.Effect(self.x + ((RollDice(1, 21)-11)*0.05), self.y + ((RollDice(1, 21)-11)*0.05), self.z, 0.0, 0.0, 0.12, 0.8, 200, 8, "FILE:SPARK4.RGB")
   if((self.misc5 % every) == 0)
-    PEMBER.Effect(self.x, self.y, self.z, 0.0, 0.0, 0.0, 6.0, 160, 12, "FILE:LITERING.RGB")
-    HEALFX.Area(holder, self.x, self.y, 6.0, 4, amount, 65535)
+    PEMBER.Effect(self.x, self.y, self.z - 0.4, 0.0, 0.0, 0.0, 8.0, 140, 14, "FILE:LITERING.RGB")
+    HEALFX.Area(holder, self.x, self.y, 8.0, 4, 1 + (self.misc6 >> 1), 65535)
   if(self.misc6 == 2 && (self.misc5 % 16) == 0)
     Wards(holder, self.x, self.y)
   return TRUE
 
 //-----------------------------------------------------------------------
-// Arcane Eye...  Ticks every 10 frames...  Floats and fires bolts...
+// Arcane Eye...  Ticks every 10 frames...  Rises up over the caster, then
+// shoots bolts that fly up and home in on foes anywhere in sight (Rank
+// III shoots two at different foes)...
 int DoEye(int self)
-  int holder, i, who, every, child
-  float dx, dy, dz, dist
+  int holder, i, every, count, first
   holder = FindOwner()
   self.timer = 10
   if(!holder)
     GoPoof(POOF_SELF)
     return FALSE
   self.misc5++
+  if(self.misc5 < 7)
+    // Still rising...
+    self.vz = 0.06
+    PEMBER.Effect(self.x, self.y, self.z - 0.5, 0.0, 0.0, -0.02, 1.0, 200, 12, "FILE:SPARK5.RGB")
+    return TRUE
   self.vz = sin(self.misc5 * 20.0) * 0.01
   every = 4
   if(self.misc6 > 0)
     every = 3
   if((self.misc5 % every) != 0)
     return TRUE
-  i = Nearest(holder, self.x, self.y, 13.0, 65535)
-  if(i >= MAX_CHARACTER)
+  first = 65535
+  count = 1
+  if(self.misc6 == 2)
+    count = 2
+  while(count > 0)
+    i = NthFoe(holder, self.x, self.y, 26.0, (self.misc5 / every) + count)
+    if(i == first)
+      i = Nearest(holder, self.x, self.y, 26.0, first)
+    if(i < MAX_CHARACTER)
+      EyeBolt(self, holder, i)
+      first = i
+    count--
+  return TRUE
+
+//-----------------------------------------------------------------------
+// A bolt from the Arcane Eye at foe i...  Shoots up, then dives...
+int EyeBolt(int self, int holder, int i)
+  int child
+  PlaySound("FILE:-SPELL01.RAW", 360 + RollDice(1, 40), 140)
+  child = NewPart(holder, RUNE_EYE_BOLT, self.misc6, self.x, self.y, self.z + 0.5, "FILE:SPARK5.RGB", 0.9)
+  if(child)
+    child.flags = PART_LIGHT_ON | PART_CHAR_COLLISION_ON
+    child.red = 230
+    child.green = 190
+    child.blue = 255
+    child.vx = (RollDice(1, 21)-11)*0.02
+    child.vy = (RollDice(1, 21)-11)*0.02
+    child.vz = 0.35
+    child.trail = 220
+    child.target = i
+    child.evtimer = 150
+  return child
+
+//-----------------------------------------------------------------------
+// Eye bolt flying...
+int DoEyeBolt(int self)
+  int holder, who
+  float dx, dy, dz, dist
+  holder = FindOwner()
+  if(!holder)
+    GoPoof(POOF_SELF)
+    return FALSE
+  self.timer = 1
+  if(self.misc5 < 250)
+    self.misc5++
+  if((self.misc5 & 1) == 0)
+    PEMBER.Effect(self.x, self.y, self.z, 0.0, 0.0, 0.0, 0.5, 220, 14, "FILE:SPARK5.RGB")
+  if(self.misc5 < 14)
+    // Climbing...
+    self.vz = self.vz*0.88
     return TRUE
-  who = FindByIndex(i)
+  if(self.misc5 == 14)
+    self.flags = PART_LIGHT_ON | PART_CHAR_COLLISION_ON | PART_WALL_COLLISION_ON
+  who = FindTarget()
+  if(!Foe(holder, who))
+    self.target = Nearest(holder, self.x, self.y, 26.0, 65535)
+    who = FindTarget()
+  if(!who)
+    Fade(self, 20)
+    return TRUE
+  // Turns toward the foe a little at a time...
   dx = who.x - self.x
   dy = who.y - self.y
   dz = (who.z + (who.height*0.5)) - self.z
   dist = sqrt(dx*dx + dy*dy + dz*dz)
-  if(dist < 0.5)
-    return TRUE
-  dx = dx/dist
-  dy = dy/dist
-  dz = dz/dist
-  PlaySound("FILE:-SPELL01.RAW", 360 + RollDice(1, 40), 140)
-  if(self.misc6 == 2)
-    // Homing bolts...
-    PMISSILE.DirectedEffect(self.x + dx, self.y + dy, self.z + dz, dx*0.6, dy*0.6, dz*0.6, self.owner, "FILE:SPARK5.RGB", "FILE:SPARK6.RGB")
-    return TRUE
-  child = NewPart(holder, RUNE_EYE_BOLT, self.misc6, self.x + dx, self.y + dy, self.z + dz, "FILE:SPARK5.RGB", 0.8)
-  if(child)
-    child.flags = PART_LIGHT_ON | PART_CHAR_COLLISION_ON | PART_WALL_COLLISION_ON
-    child.vx = dx*0.8
-    child.vy = dy*0.8
-    child.vz = dz*0.8
-    child.trail = 220
-    child.timer = 0
-    child.evtimer = 50
+  if(dist > 0.05)
+    self.vx = (self.vx*0.8) + ((dx/dist)*0.16)
+    self.vy = (self.vy*0.8) + ((dy/dist)*0.16)
+    self.vz = (self.vz*0.8) + ((dz/dist)*0.16)
   return TRUE
 
 //-----------------------------------------------------------------------
@@ -1268,7 +1378,7 @@ int DoSpore(int self)
   self.width = self.length
   if((self.misc5 % every) != 0)
     return TRUE
-  i = Nearest(holder, self.x, self.y, 10.0, 65535)
+  i = Nearest(holder, self.x, self.y, 16.0, 65535)
   if(i >= MAX_CHARACTER)
     return TRUE
   who = FindByIndex(i)
@@ -1427,6 +1537,8 @@ int FormStart(int self)
   who = FindTarget()
   if(who)
     FileWriteByte(who, RUNE_FORM_OFFSET, form)
+    FileWriteByte(who, RUNE_LEFT_OFFSET, FormTicks(self.misc6))
+    FileWriteByte(who, RUNE_WATCH_OFFSET, 48)
   self.misc5 = 0
   self.timer = 16
   self.evtimer = 0
@@ -1438,6 +1550,10 @@ int DoForm(int self)
   float dx, dy
   self.timer = 16
   who = FindTarget()
+  if(!who && self.misc0 < MAX_CHARACTER)
+    // Lost its target...  misc0 keeps the Mystic's index too...
+    self.target = self.misc0
+    who = FindTarget()
   if(!who)
     GoPoof(POOF_SELF)
     return FALSE
@@ -1450,6 +1566,9 @@ int DoForm(int self)
     return FALSE
   self.misc5++
   ticks = FormTicks(self.misc6)
+  if(self.misc5 < ticks)
+    FileWriteByte(who, RUNE_LEFT_OFFSET, ticks - self.misc5)
+  FileWriteByte(who, RUNE_WATCH_OFFSET, 48)
   if(RuneElement(self.misc4) == WEAPON_VARIANT_ICE && self.misc6 == 2)
     // Frost breath freezes solid...
     if(who.daction == ACTION_THRUST_LEFT)
@@ -1460,6 +1579,36 @@ int DoForm(int self)
   if(self.misc5 >= ticks)
     Unmorph(who)
     GoPoof(POOF_SELF)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Called every frame by a held rune (IRUNE.Refresh, self is the holder)...
+// Going through a door poofs every particle, timers too, so a monster
+// form whose timer stopped ticking gets a new one with the time it had
+// left...
+int Watch(int self)
+  int form, watch, left, child, index
+  form = FileReadByte(self, RUNE_FORM_OFFSET)
+  if(!form || !(self.eflags & ENCHANT_FLAG_MORPH) || self.hits == 0)
+    return FALSE
+  watch = FileReadByte(self, RUNE_WATCH_OFFSET)
+  if(watch > 0)
+    FileWriteByte(self, RUNE_WATCH_OFFSET, watch - 1)
+    return TRUE
+  FileWriteByte(self, RUNE_WATCH_OFFSET, 48)
+  left = FileReadByte(self, RUNE_LEFT_OFFSET)
+  if(left > FormTicks(RuneRank(form)))
+    left = FormTicks(RuneRank(form))
+  index = FindIndex(self)
+  child = NewPart(self, RUNE_FORM, RuneRank(form), self.x, self.y, self.z, NULL, 0.0)
+  if(child)
+    child.flags = 0
+    child.misc4 = form
+    child.misc0 = index
+    child.target = index
+    child.misc5 = FormTicks(RuneRank(form)) - left
+    child.timer = 16
+    child.evtimer = 0
   return TRUE
 
 //-----------------------------------------------------------------------
@@ -1624,6 +1773,8 @@ int Refresh()
     return DoShrine(self)
   if(kind == RUNE_EYE)
     return DoEye(self)
+  if(kind == RUNE_EYE_BOLT)
+    return DoEyeBolt(self)
   if(kind == RUNE_SPORE)
     return DoSpore(self)
   if(kind == RUNE_FORM)
@@ -1645,7 +1796,9 @@ int Event()
       return TRUE
     if(kind == RUNE_FORM)
       return FormStart(self)
-    if(kind == RUNE_HALO || kind == RUNE_EYE_BOLT)
+    if(kind == RUNE_HALO)
+      return HaloEnd(self)
+    if(kind == RUNE_EYE_BOLT)
       GoPoof(POOF_SELF)
       return TRUE
     if(kind >= RUNE_SHRINE && kind <= RUNE_SPORE)
@@ -1661,7 +1814,8 @@ int Event()
     if(kind == RUNE_STAR || kind == RUNE_STAR_SPLIT)
       return StarHit(self, holder, who)
     if(kind == RUNE_EYE_BOLT)
-      Hurt(self, FindIndex(who), DAMAGE_BASH, RollDice(1, 2)+1, 1)
+      Hurt(self, FindIndex(who), DAMAGE_BASH, RollDice(1, 2)+1+(self.misc6 >> 1), 1)
+      PEMBER.Effect(self.x, self.y, self.z, 0.0, 0.0, 0.0, 3.0, 255, 16, "FILE:SPARK5.RGB")
       PSPARK.Effect(self.x, self.y, self.z, 8, 2)
       GoPoof(POOF_SELF)
       return TRUE
