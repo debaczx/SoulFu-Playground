@@ -93,11 +93,12 @@ int MaxHelpers(int self, int monster_override)
   while(player < 4)
     target = FindByIndex(SystemGet(SYS_LOCALPLAYER, player, 0))
     if(target)
-      // Players with badge of compassion are limited to no helpers (must keep existing ones alive)
-      if(target.vircomp != 255)
-        number = number + (target.int/10)
-        if(target.class == CLASS_SOLDIER)
-          number++
+      number = number + (target.int/10)
+      if(target.class == CLASS_SOLDIER)
+        number++
+      // Badge of Compassion grants an extra helper slot...
+      if(target.vircomp == 255)
+        number++
     player++
   return number
 

@@ -31,12 +31,6 @@ int Event()
             return TRUE
 
 
-      // Don't allow us to hit guys on floor if we've got Badge of Honor...
-      if(owner.virhono == 255)
-        if(target.daction >= ACTION_KNOCK_OUT_BEGIN && target.daction <= ACTION_KNOCK_OUT_END)
-          return FALSE
-
-
       // Is the target in front of the attacker?
       if(self.flags & PART_STUCK_ON)
         // Particle is stuck...
@@ -99,7 +93,7 @@ int Event()
           if(special_flags & SPECIAL_FLAG_PETRIFY)
             STANDARD.PetrifyCharacter(self.target, self.owner, 600)
           // Code to backstab enemy...
-          if(target.team != self.team && owner.virhono < 255 && !(target.flags & CHAR_NO_BACKSTAB))
+          if(target.team != self.team && !(target.flags & CHAR_NO_BACKSTAB))
             if(target.daction < ACTION_KNOCK_OUT_BEGIN || target.daction > ACTION_KNOCK_OUT_END)
               // We already made sure our target is in front of us, but are we behind
               // the target?

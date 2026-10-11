@@ -34,11 +34,8 @@ int Event()
 
   self = FindSelf()
   grip = SystemGet(SYS_WEAPONGRIP, 0, 0)
-  if(self.vircour != 255)
-    STANDARD.AutoReload(self, grip)
-    Effect(self)
-  else
-    BuzzerSound()
+  STANDARD.AutoReload(self, grip)
+  Effect(self)
   ButtonHandled()
 
 //-----------------------------------------------------------------------
@@ -48,11 +45,8 @@ int DirectUsage()
 
   self = FindBinding()
   if(self)
-    if(self.vircour != 255)
-      Effect(self)
-      SystemSet(SYS_KEEPITEM, 0, 0, FALSE)
-    else
-      BuzzerSound()
+    Effect(self)
+    SystemSet(SYS_KEEPITEM, 0, 0, FALSE)
 
 //-----------------------------------------------------------------------
 

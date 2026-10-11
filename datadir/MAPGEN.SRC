@@ -59,7 +59,7 @@ int SetCurrentRoom(int room)
         index = SystemGet(SYS_LOCALPLAYER, i, 0)
         target = FindByIndex(index)
         if(target)
-          if(target.virdill < 100)
+          if(target.virdill < VIRTUE_MAX)
             ExperienceFunction(index, EXPERIENCE_VIRTUE_DILLIGENCE, -1, FALSE)
         i++
     if(flags & MAP_ROOM_FLAG_TOWN)

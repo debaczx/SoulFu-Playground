@@ -24,12 +24,6 @@ int Effect(int target, int item, float x, float y, float z)
         can_use = FALSE
     if(target.str < min_str || target.dex < min_dex || target.int < min_int || target.manamax < min_mana)
       can_use = FALSE
-    if(target.virfait == 255)
-      if(item == ITEM_PORC || item == ITEM_PORC_ROTTEN || item == ITEM_MEAT || item == ITEM_MEAT_ROTTEN || item == ITEM_SPELL_ANIMATE_DEAD)
-        can_use = FALSE
-    if(target.vircour == 255)
-      if(item == ITEM_HEAL || item == ITEM_SUPER_HEAL || item == ITEM_ONE_UP)
-        can_use = FALSE
 
 
 

@@ -34,7 +34,9 @@ unsigned short level_experience_needed[MAX_LEVEL] = {0, 100, 250, 700, 1500, 250
 //unsigned short level_experience_needed[MAX_LEVEL] = {0, 200, 500, 900, 1400, 2000, 2700, 3500, 4400, 5400};
 //unsigned short level_experience_needed[MAX_LEVEL] = {0, 100, 300, 600, 1000, 1500, 2100, 2800, 3600, 4500};
 //unsigned short level_experience_needed[MAX_LEVEL] = {0, 100, 250, 450, 700, 1000, 1350, 1750, 2200, 2700};
-unsigned char  level_badges_needed[MAX_LEVEL] = {0, 0, 0, 0, 0, 1, 2, 3, 4, 5};
+// Badges no longer gate levels...  They grant stat bonuses instead (see IPRAY.SRC)...
+unsigned char  level_badges_needed[MAX_LEVEL] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+#define VIRTUE_MAX 200
 
 
 //-----------------------------------------------------------------------------------------------
@@ -81,11 +83,6 @@ unsigned short experience_function_character(unsigned short character, unsigned 
                 // Level 0 characters (monsters) aren't elligible for experience...
                 good_guy = (character_data[78] == TEAM_GOOD);  // Bad guys don't worry about badges...
                 level = character_data[73];
-                if(character_data[90] == 255)
-                {
-                    // The character has the badge of dilligence...  Let's only give 'em half experience...
-                    experience_amount = (experience_amount+1)>>1;
-                }
                 if(level > 0 && level < MAX_LEVEL && experience_amount > 0)
                 {
                     // Figure out how much experience is needed for the character's next level...
@@ -159,7 +156,7 @@ unsigned short experience_function_character(unsigned short character, unsigned 
                     // The character doesn't have this badge yet...
                     experience_amount += character_data[experience_type];
                     experience_amount = (experience_amount < 0) ? 0 : experience_amount;
-                    experience_amount = (experience_amount > 100) ? 100 : experience_amount;
+                    experience_amount = (experience_amount > VIRTUE_MAX) ? VIRTUE_MAX : experience_amount;
                     character_data[experience_type] = (unsigned char) experience_amount;
                 }
             }

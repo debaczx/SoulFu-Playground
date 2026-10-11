@@ -784,6 +784,7 @@
 #define VIRTUE_FLAG_RUN_ME_OVER 32  // Can be run over by tankes (without being knocked down first)
 #define VIRTUE_FLAG_BUMP_IMMUNE 64  // Immune to damage from bumps (unless bumper is also immune)
 #define VIRTUE_FLAG_IMMUNE     128  // Immune to damage from own shots...
+#define VIRTUE_MAX             200  // Virtue score needed before praying at a shrine for the badge (shown as 0-100%)
 
 
 // More flags...  (for characters....  Because I ran out of character flags...)

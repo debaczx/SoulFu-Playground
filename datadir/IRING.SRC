@@ -4,7 +4,7 @@
 //-----------------------------------------------------------------------
 int GetName()
   if(XITEM.Current() == XITEM_TESTING_BRACELET)
-    STANDARD.ItemName("MAGIC RING", "GIVES 50 STAT POINTS", 255, 0, 0, 0, 0)
+    STANDARD.ItemName("MAGIC RING", "50 STAT POINTS, FULL VIRTUES", 255, 0, 0, 0, 0)
   else
     STANDARD.ItemName("MAGIC RING", NULL, 255, 0, 0, 0, 0)
 
@@ -24,6 +24,17 @@ int Effect(int self)
       self.statpts = self.statpts + 50
       if(self.statpts > 250)
         self.statpts = 250
+      // ...and fills every unearned virtue, ready to pray for badges at a virtue shrine...
+      if(self.vircomp != 255)
+        self.vircomp = VIRTUE_MAX
+      if(self.virdill != 255)
+        self.virdill = VIRTUE_MAX
+      if(self.virhono != 255)
+        self.virhono = VIRTUE_MAX
+      if(self.virfait != 255)
+        self.virfait = VIRTUE_MAX
+      if(self.vircour != 255)
+        self.vircour = VIRTUE_MAX
       return TRUE
     if(CHEAT)
       if(SUPER_CHEAT)

@@ -22,7 +22,7 @@ int Effect(int self)
       // by badge...
       oldcomp = self.vircomp
       self.vircomp = 0
-      if(self.int >= min_int && MagicWillWork(self.manamax, self.mana, MANA_COST) && self.virfait != 255 && ChildCount(self) < MaxHelpers(self, 2))
+      if(self.int >= min_int && MagicWillWork(self.manamax, self.mana, MANA_COST) && ChildCount(self) < MaxHelpers(self, 2))
         if(STANDARD.ItemReload(self))
           index = FindIndex(self)
           testx = self.x+self.frontx*(self.boxsize+3.0)

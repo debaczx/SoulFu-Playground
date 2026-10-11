@@ -320,9 +320,6 @@ WeaponRefresh(int percent, float scale)
         if(self.food > 2)
           self.food--
           self.food--
-          if(self.virfait == 255 && self.food > 4)
-            // The virtuous starve even more...
-            self.food = self.food-4
         return TRUE
       if(RollDice(1, 100) <= percent)
         PENCHANT.Effect(x, y, z-0.4, 0.06, size, image1, image2, TRUE, color, owner_index)

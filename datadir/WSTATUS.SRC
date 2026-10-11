@@ -750,12 +750,6 @@ int RowIcon(int icon_index, float x, float y)
     if(item_flags & ITEM_FLAG_LEGS)
       if(!(binding.sflags & SCRIPT_ALLOW_LEGS))
         color = DARK_RED
-    if(binding.virfait == 255)
-      if(item_type == ITEM_PORC || item_type == ITEM_PORC_ROTTEN || item_type == ITEM_MEAT || item_type == ITEM_MEAT_ROTTEN || item_type == ITEM_SPELL_ANIMATE_DEAD)
-        color = DARK_RED
-    if(binding.vircour == 255)
-      if(item_type == ITEM_HEAL || item_type == ITEM_SUPER_HEAL || item_type == ITEM_ONE_UP)
-        color = DARK_RED
   overlay_file=SystemGet(SYS_ITEMREGISTRYOVERLAY, item_type, 0)
   if(item_type == ITEM_NONE && icon_index > 245)
     image_file = "FILE:=IGNONE.RGB"
@@ -1131,8 +1125,10 @@ Badge(int virtue, int type, float x, float y)
       image = "FILE:=BADCOUR.RGB"
     badge_text = StringLanguage(78 + type)
     WindowImage(9.7 + (1.4*type), 0.2, 2.0, 2.0, image, badge_text, 255)
-  if(virtue > 100)
-    virtue = 100
+  // Virtues fill to VIRTUE_MAX but show as 0-100...
+  if(virtue > VIRTUE_MAX)
+    virtue = VIRTUE_MAX
+  virtue = (virtue*100)/VIRTUE_MAX
   NumberString(virtue, -1, 72+type, 18, x, y)
 
 //-----------------------------------------------------------------------
@@ -1311,8 +1307,7 @@ Refresh()
         mode = MODE_CANRESPAWNTOWN
       else
         if(CharacterHasItem(binding, ITEM_ONE_UP, FALSE))
-          if(binding.vircour != 255)
-            mode = MODE_CANRESPAWN
+          mode = MODE_CANRESPAWN
 
 
       // Draw a little status window...

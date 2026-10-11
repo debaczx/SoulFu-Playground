@@ -18,6 +18,37 @@ int SpecialEffect(int self)
 
 
 //-----------------------------------------------------------------------
+// Permanent stat bonus for earning a badge (badge order matches the prayer checks)...
+int VirtueBonus(int self, int badge)
+  int i
+
+  if(self)
+    if(badge == 0)
+      // Compassion (also +1 helper slot, see GENERIC.MaxHelpers)...
+      self.dex = self.dex + 5
+    if(badge == 1)
+      // Dilligence...
+      self.int = self.int + 5
+    if(badge == 2)
+      // Courage...
+      self.hitsmax = self.hitsmax + 10
+      self.hits = self.hits + 10
+    if(badge == 3)
+      // Honor...
+      self.str = self.str + 5
+    if(badge == 4)
+      // Faith gives 10 mana points, spent like stat points so classes without mana unlock it...
+      i = 0
+      while(i < 10)
+        if(self.manamax == 0 && self.manacst > 1)
+          self.manacst--
+        else
+          self.mana++
+          self.manamax++
+        i++
+  return 0
+
+//-----------------------------------------------------------------------
 // What this item does when used...
 int Effect(int self)
   int effect_ready, i, count, target, old_vflags, target_subtype, target_script
@@ -99,28 +130,33 @@ int Effect(int self)
 
           if(found)
             old_vflags = self.vflags
-            if(effect_ready && self.vircomp==100) // && type==0)
+            if(effect_ready && self.vircomp==VIRTUE_MAX) // && type==0)
               self.vircomp = 255
+              VirtueBonus(self, 0)
               self.vflags = self.vflags | VIRTUE_FLAG_HITS
               SpecialEffect(self)
               effect_ready = FALSE
-            if(effect_ready && self.virdill==100) // && type==1)
+            if(effect_ready && self.virdill==VIRTUE_MAX) // && type==1)
               self.virdill = 255
+              VirtueBonus(self, 1)
               self.vflags = self.vflags | VIRTUE_FLAG_HITS
               SpecialEffect(self)
               effect_ready = FALSE
-            if(effect_ready && self.vircour==100) // && type==2)
+            if(effect_ready && self.vircour==VIRTUE_MAX) // && type==2)
               self.vircour = 255
+              VirtueBonus(self, 2)
               self.vflags = self.vflags | VIRTUE_FLAG_HITS
               SpecialEffect(self)
               effect_ready = FALSE
-            if(effect_ready && self.virhono==100) // && type==3)
+            if(effect_ready && self.virhono==VIRTUE_MAX) // && type==3)
               self.virhono = 255
+              VirtueBonus(self, 3)
               self.vflags = self.vflags | VIRTUE_FLAG_HITS
               SpecialEffect(self)
               effect_ready = FALSE
-            if(effect_ready && self.virfait==100) // && type==4)
+            if(effect_ready && self.virfait==VIRTUE_MAX) // && type==4)
               self.virfait = 255
+              VirtueBonus(self, 4)
               self.vflags = self.vflags | VIRTUE_FLAG_HITS
               SpecialEffect(self)
               effect_ready = FALSE
