@@ -1,0 +1,21 @@
+// Test shop (unique-testing branch)...  Works just like PSHOP (put it on
+// the roof of a house), but sells the SHOP_TYPE_TEST stock...  Room
+// subtypes only go up to 15, so the shop type can't come from the room...
+#define SHOP_TEST_MARKER 77
+
+//-----------------------------------------------------------------------
+int Event()
+  PSHOP.Event()
+
+//-----------------------------------------------------------------------
+int Refresh()
+  PSHOP.Refresh()
+
+//-----------------------------------------------------------------------
+int Spawn()
+  int self
+  PSHOP.Spawn()
+  self = FindSelf()
+  self.misc6 = SHOP_TEST_MARKER
+
+//-----------------------------------------------------------------------

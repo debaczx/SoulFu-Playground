@@ -15,6 +15,8 @@
 #define SHOP_TYPE_BLACK_TWO    13
 #define SHOP_TYPE_SQUIRE       14
 #define SHOP_TYPE_PET          15
+#define SHOP_TYPE_TEST         16  // Test shop (unique-testing branch)...  Spawned by PTSHOP, since room subtypes stop at 15
+#define SHOP_TEST_MARKER       77  // misc6 value PTSHOP uses to mark its shop
 
 // Stuff for interacting with WSTATUS...
 #define shop_x    wstatus_data.stat06w
@@ -163,6 +165,17 @@ SetupShopInventory(int wstatus_data, int shop_type)
         shop_pet_two_file = "FILE:CSQUIRE.RUN"
 
 
+      if(shop_type == SHOP_TYPE_TEST)
+        // Test shop (unique-testing branch)...  Plain gear for the class wheels...
+        PlayCenterSound("FILE:SHOPWEP.RAW", 256, 255)
+        FileWriteByte(wstatus_data, 140, ITEM_BOW)
+        FileWriteByte(wstatus_data, 141, ITEM_LONG_BOW)
+        FileWriteByte(wstatus_data, 142, ITEM_GONNE)
+        FileWriteByte(wstatus_data, 143, ITEM_FLAMER)
+        FileWriteByte(wstatus_data, 144, ITEM_GRONNADE)
+        FileWriteByte(wstatus_data, 145, ITEM_SWORD | WEAPON_VARIANT_FIRE)
+
+
       if(shop_type == SHOP_TYPE_BLACK_ONE)
         PlayCenterSound("FILE:SHOPMAG.RAW", 256, 255)
         FileWriteByte(wstatus_data, 140, ITEM_SPELL_ANIMATE_DEAD)
@@ -269,7 +282,10 @@ int Event()
               if(IndexIsLocalPlayer(self.target))
                 window_data = FindWindow(self.target, "FILE:WSTATUS.RUN")
                 if(window_data)
-                  SetupShopInventory(window_data, self.misc7)
+                  if(self.misc6 == SHOP_TEST_MARKER)
+                    SetupShopInventory(window_data, SHOP_TYPE_TEST)
+                  else
+                    SetupShopInventory(window_data, self.misc7)
 
 
 
