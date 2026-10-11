@@ -426,6 +426,18 @@ GetSlotFlags(int slot)
   return 65535
 
 //-----------------------------------------------------------------------
+int TestShopCoreExt(int icon_index)
+  // Test shop (unique-testing branch)...  Only the test shop stocks cores, one per
+  // element from Fire (slot 140) to Unholy (slot 145)...  Returns the core's
+  // extension for a shop slot holding a core, or 0...
+  int self
+  self = FindSelf()
+  if(icon_index >= 140 && icon_index <= 145)
+    if(FileReadByte(self, icon_index) == ITEM_CORE)
+      return (XITEM_CORE_BASE + WEAPON_VARIANT_FIRE + icon_index - 140)
+  return 0
+
+//-----------------------------------------------------------------------
 int IconSwap(int icon1, int icon2)
   // Actually switches inventory/equipment items for the
   // character...  Return code tells whether it worked or not...
@@ -577,6 +589,9 @@ int IconSwap(int icon1, int icon2)
   // Check flags to make sure swap is okay...
   flags1 = SystemGet(SYS_ITEMREGISTRYFLAGS, value1, 0) & GetSlotFlags(icon2)
   flags2 = SystemGet(SYS_ITEMREGISTRYFLAGS, value2, 0) & GetSlotFlags(icon1)
+  if(icon1 < 224 && icon2 >= 224 && icon2 < 240 && TestShopCoreExt(icon1))
+    // Test shop (unique-testing branch)...  Cores have no slot flags, but can go in the backpack...
+    flags1 = 65535
   if((flags1 && flags2) || (icon2 < 224))
     // Are we buying from a shop???
     if(icon1 < 224 || icon2 < 224)
@@ -594,6 +609,9 @@ int IconSwap(int icon1, int icon2)
         // Some items can't be sold...
         BuzzerSound()
         return FALSE
+      if(icon1 < 224 && TestShopCoreExt(icon1))
+        // Test shop (unique-testing branch)...  Cores are free...
+        price1 = 0
 
 
 
@@ -633,6 +651,9 @@ int IconSwap(int icon1, int icon2)
       if(icon1 < 224)
         // Buying an item from shop...
         FileWriteByte(binding, icon2, value1)
+        if(TestShopCoreExt(icon1))
+          // Test shop (unique-testing branch)...  Give the core its element...
+          XITEM.Set(binding, icon2, TestShopCoreExt(icon1))
       else
         // Selling an item to the shop...
         FileWriteByte(binding, icon1, ITEM_NONE)
@@ -721,6 +742,7 @@ int RowIcon(int icon_index, float x, float y)
     if(icon_index < 224)
       // Shop's inventory...
       item_type = FileReadByte(self, icon_index)
+      item_ext = TestShopCoreExt(icon_index)  // Test shop (unique-testing branch)
     else
       // Character's inventory or equipment...
       item_type = FileReadByte(binding, icon_index)
@@ -783,6 +805,9 @@ int RowIcon(int icon_index, float x, float y)
     if(SystemGet(SYS_ITEMREGISTRYNAME, item_type, item_ext))
       if(shop_on && gem3)
         price = SystemGet(SYS_ITEMREGISTRYPRICE, item_type, 0)
+        if(icon_index < 224 && item_ext)
+          // Test shop (unique-testing branch)...  Free cores...
+          price = 0
         if(price < 0)
           StringAppend(NAME_STRING, " (CANNOT SELL)", 256)
         else

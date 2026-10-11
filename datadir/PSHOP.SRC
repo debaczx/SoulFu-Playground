@@ -166,14 +166,15 @@ SetupShopInventory(int wstatus_data, int shop_type)
 
 
       if(shop_type == SHOP_TYPE_TEST)
-        // Test shop (unique-testing branch)...  Plain gear for the class wheels...
-        PlayCenterSound("FILE:SHOPWEP.RAW", 256, 255)
-        FileWriteByte(wstatus_data, 140, ITEM_BOW)
-        FileWriteByte(wstatus_data, 141, ITEM_LONG_BOW)
-        FileWriteByte(wstatus_data, 142, ITEM_GONNE)
-        FileWriteByte(wstatus_data, 143, ITEM_FLAMER)
-        FileWriteByte(wstatus_data, 144, ITEM_GRONNADE)
-        FileWriteByte(wstatus_data, 145, ITEM_SWORD | WEAPON_VARIANT_FIRE)
+        // Test shop (unique-testing branch)...  Free element cores (Fire to Unholy, no Magic)...
+        // WSTATUS.TestShopCoreExt() gives each slot its element and makes them free...
+        PlayCenterSound("FILE:SHOPMAG.RAW", 256, 255)
+        FileWriteByte(wstatus_data, 140, ITEM_CORE)
+        FileWriteByte(wstatus_data, 141, ITEM_CORE)
+        FileWriteByte(wstatus_data, 142, ITEM_CORE)
+        FileWriteByte(wstatus_data, 143, ITEM_CORE)
+        FileWriteByte(wstatus_data, 144, ITEM_CORE)
+        FileWriteByte(wstatus_data, 145, ITEM_CORE)
 
 
       if(shop_type == SHOP_TYPE_BLACK_ONE)
