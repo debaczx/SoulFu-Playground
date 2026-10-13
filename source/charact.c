@@ -969,6 +969,25 @@ void char_floor_point(float* position_xyz)
 }
 
 //-----------------------------------------------------------------------------------------------
+// Two-handed spear stances...  A Spear held with the other hand empty swaps the stand and walk
+// animations for ACTION_SPECIAL_5/6 (spear in right hand) or ACTION_SPECIAL_7/8 (left hand),
+// if the model has them (PLAYER.DDD and PLAYERSM.DDD do).  .action itself stays STAND/WALK,
+// so scripts never see the swap...
+#define TWOHAND_ITEM_SPEAR 135
+#define TWOHAND_RIGHT_ADD  36   // ACTION_STAND (1) -> 37, ACTION_WALK (2) -> 38
+#define TWOHAND_LEFT_ADD   38   // ACTION_STAND (1) -> 39, ACTION_WALK (2) -> 40
+unsigned char twohand_action(unsigned char* character_data, unsigned short* action_first_frame, unsigned char action)
+{
+    unsigned char alt;
+    if(action != ACTION_STAND && action != ACTION_WALK) return action;
+    if(character_data[243] == TWOHAND_ITEM_SPEAR && character_data[242] == 0) alt = action + TWOHAND_RIGHT_ADD;
+    else if(character_data[242] == TWOHAND_ITEM_SPEAR && character_data[243] == 0) alt = action + TWOHAND_LEFT_ADD;
+    else return action;
+    if(action_first_frame[alt] == 65535) return action;
+    return alt;
+}
+
+//-----------------------------------------------------------------------------------------------
 void character_update_all()
 {
     // <ZZ> This function moves the characters around and stuff.
@@ -2090,10 +2109,10 @@ void character_update_all()
             if(character_data[65] != ACTION_BONING)
             {
                 // Start a new action if .action isn't what it was before...  Only allow if not petrified...
-                if(action != character_data[65] && (*((unsigned short*) (character_data+42)) == 0))
+                if(action != twohand_action(character_data, action_first_frame, character_data[65]) && (*((unsigned short*) (character_data+42)) == 0))
                 {
                     // Start a new action...
-                    *((unsigned short*) (character_data+178)) = action_first_frame[character_data[65]];
+                    *((unsigned short*) (character_data+178)) = action_first_frame[twohand_action(character_data, action_first_frame, character_data[65])];
                     if((*((unsigned short*) (character_data+178))) == 65535)
                     {
                         // Action wasn't found...
@@ -2105,19 +2124,19 @@ void character_update_all()
                             {
                                 // Bash action is valid...
                                 character_data[65] = ACTION_BASH_LEFT | j;
-                                *((unsigned short*) (character_data+178)) = action_first_frame[character_data[65]];
+                                *((unsigned short*) (character_data+178)) = action_first_frame[twohand_action(character_data, action_first_frame, character_data[65])];
                             }
                             else if(action_first_frame[ACTION_THRUST_LEFT | j] != 65535)
                             {
                                 // Thrust action is valid...
                                 character_data[65] = ACTION_THRUST_LEFT | j;
-                                *((unsigned short*) (character_data+178)) = action_first_frame[character_data[65]];
+                                *((unsigned short*) (character_data+178)) = action_first_frame[twohand_action(character_data, action_first_frame, character_data[65])];
                             }
                             else if(action_first_frame[ACTION_SLASH_LEFT | j] != 65535)
                             {
                                 // Slash action is valid...
                                 character_data[65] = ACTION_SLASH_LEFT | j;
-                                *((unsigned short*) (character_data+178)) = action_first_frame[character_data[65]];
+                                *((unsigned short*) (character_data+178)) = action_first_frame[twohand_action(character_data, action_first_frame, character_data[65])];
                             }
                             else
                             {
@@ -2130,7 +2149,7 @@ void character_update_all()
                                 {
                                     character_data[65] = ACTION_JUMP;
                                 }
-                                *((unsigned short*) (character_data+178)) = action_first_frame[character_data[65]];
+                                *((unsigned short*) (character_data+178)) = action_first_frame[twohand_action(character_data, action_first_frame, character_data[65])];
                             }
                         }
                         else
@@ -2144,7 +2163,7 @@ void character_update_all()
                             {
                                 character_data[65] = ACTION_JUMP;
                             }
-                            *((unsigned short*) (character_data+178)) = action_first_frame[character_data[65]];
+                            *((unsigned short*) (character_data+178)) = action_first_frame[twohand_action(character_data, action_first_frame, character_data[65])];
                         }
                     }
                 }
@@ -2154,11 +2173,11 @@ void character_update_all()
                     if(*((unsigned short*) (character_data+42)) == 0 && !chill_hold)
                     {
                         (*((unsigned short*) (character_data+178)))++;
-                        if(next_action != character_data[65])
+                        if(next_action != twohand_action(character_data, action_first_frame, character_data[65]))
                         {
                             // Done with this action...  Return to the default action...
                             character_data[65] = character_data[66];
-                            *((unsigned short*) (character_data+178)) = action_first_frame[character_data[65]];
+                            *((unsigned short*) (character_data+178)) = action_first_frame[twohand_action(character_data, action_first_frame, character_data[65])];
                             if((*((unsigned short*) (character_data+178))) == 65535)
                             {
                                 // Default to stand or jump action
@@ -2171,7 +2190,7 @@ void character_update_all()
                                     character_data[65] = ACTION_JUMP;
                                 }
                                 character_data[66] = character_data[65];
-                                *((unsigned short*) (character_data+178)) = action_first_frame[character_data[65]];
+                                *((unsigned short*) (character_data+178)) = action_first_frame[twohand_action(character_data, action_first_frame, character_data[65])];
                             }
                         }
                     }

@@ -1,6 +1,7 @@
 // Spear (item 135)...  Hits like a Dagger (quick thrust, low damage) but reaches
-// further than any other weapon.  Item 135 is a single item number, not a block of
-// 8 like the other weapons, so it has no built-in elemental variants and can't be
+// further than any other weapon.  Held in both hands (other hand empty) it slashes
+// instead of thrusting.  Item 135 is a single item number, not a block of 8 like
+// the other weapons, so it has no built-in elemental variants and can't be
 // enchanted (PATTACK.FrameEvent treats it as plain).
 #define DAMAGE_TYPE DAMAGE_EDGE
 #define DAMAGE_LOW  0
@@ -8,6 +9,7 @@
 #define WOUND_LOW   1
 #define WOUND_HIGH  1
 #define SPEAR_RANGE 127   // Hits at the spearhead...  WEAPON_RANGE_EXTRA_LONG is 115, the Dagger's is 80
+#define SWEEP_RANGE 110   // Two-handed slash hits a bit closer in, so foes inside the spearhead's arc don't slip by
 
 //-----------------------------------------------------------------------
 int GetName()
@@ -16,19 +18,32 @@ int GetName()
 //-----------------------------------------------------------------------
 // Called when attack particle is supposed to be spawned
 int FrameEvent()
-  int grip, damage, wound
+  int grip, damage, wound, self
 
   grip = SystemGet(SYS_WEAPONGRIP, 0, 0)
   damage = RollDice(1, DAMAGE_HIGH-DAMAGE_LOW+1)+DAMAGE_LOW-1
   wound = RollDice(1, WOUND_HIGH-WOUND_LOW+1)+WOUND_LOW-1
-  PATTACK.FrameEvent(DAMAGE_TYPE, damage, wound, grip, SPEAR_RANGE, WEAPON_RADIUS_MEDIUM, 0, 0)
+  self = FindSelf()
+  if(self.action == ACTION_SLASH_LEFT || self.action == ACTION_SLASH_RIGHT)
+    PATTACK.FrameEvent(DAMAGE_TYPE, damage, wound, grip, SWEEP_RANGE, WEAPON_RADIUS_LARGE, 0, 0)
+  else
+    PATTACK.FrameEvent(DAMAGE_TYPE, damage, wound, grip, SPEAR_RANGE, WEAPON_RADIUS_MEDIUM, 0, 0)
   PlaySound("FILE:SWIPE.RAW", 200 + RollDice(1, 50), 255)
 
 
 //-----------------------------------------------------------------------
-// Called when item is first used, to start proper animation
+// Called when item is first used, to start proper animation...  One hand thrusts,
+// two hands (other hand empty) sweep it around in a wide slash
 int Event()
-  STANDARD.WeaponAttackStart(WEAPON_RELOAD_SHORT, WEAPON_ATTACK_THRUST)
+  int self, other
+  self = FindSelf()
+  other = self.eqleft
+  if(SystemGet(SYS_WEAPONGRIP, 0, 0) == MODEL_LEFT_FILE)
+    other = self.eqright
+  if(other == ITEM_NONE)
+    STANDARD.WeaponAttackStart(WEAPON_RELOAD_SHORT, WEAPON_ATTACK_SLASH)
+  else
+    STANDARD.WeaponAttackStart(WEAPON_RELOAD_SHORT, WEAPON_ATTACK_THRUST)
 
 //-----------------------------------------------------------------------
 // Called to put item in character's hand
