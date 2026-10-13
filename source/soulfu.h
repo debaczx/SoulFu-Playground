@@ -384,6 +384,7 @@ SF_EXTERN unsigned char global_button_handled ; // = FALSE;
 #define EVENT_HIT_WAYPOINT     21
 #define EVENT_HUNGER_DAMAGED   22
 #define EVENT_NETWORK_UPDATE   23
+#define EVENT_UNIQUE_TIMER     24   // Unique item timer ran out (UNIQUE_TIMER_OFFSET, UNIQUE.SRC)
 
 
 

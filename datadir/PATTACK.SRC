@@ -7,7 +7,7 @@
 int Event()
   int self, owner, target, drain_amount, child, target_script
   int temp_damage_amount, temp_wound_amount
-  int dex, str, critical, rider, old_target, defwoun, mending, drain_cap, sword_bonus, sneak
+  int dex, str, critical, rider, old_target, defwoun, mending, drain_cap, sword_bonus, sneak, start_hits, killed
   float x, y, z, dot, scale
 
 
@@ -56,6 +56,7 @@ int Event()
             SWORDFX.Blocked(target)  // Charges Stormbringer...
             DWARFFX.Blocked(target, owner)  // Forged shields...
             KINDFX.Blocked(target, owner)  // Buckler and Spiked Shield...
+            UNIQUE.Blocked(target, owner, damage_amount, self.flags & PART_STUCK_ON)  // Medusa's Mirror, Thornback...
             self.evtimer = 1  // Poof after all collisions checked...
             return 0
           else
@@ -177,6 +178,7 @@ int Event()
             if(target.defwoun < 128)
               target.defwoun = -target.defwoun
           // Code to damage enemy...
+          start_hits = target.hits
           if(temp_damage_amount > 0 || temp_wound_amount > 0)
             DamageTarget(damage_type&15, temp_damage_amount, temp_wound_amount)
             DWARFFX.Hurt(target)  // Feeds the Grudge hatchet...
@@ -196,6 +198,12 @@ int Event()
               DWARFFX.Hit(owner, target)
             if(HEALFX.IsHallowed(self.red))
               HEALFX.Hit(owner, target)
+            // Unique weapons (UNIQUE.SRC)...
+            killed = FALSE
+            if(start_hits > 0)
+              if(target.hits == 0)
+                killed = TRUE
+            UNIQUE.Hit(owner, target, self.xhand, start_hits - target.hits, killed)
           // Allow free moving attack particles to burn guys automatically...
           if(!(self.flags & PART_STUCK_ON))
             if((damage_type & 15) == DAMAGE_FIRE)
@@ -376,8 +384,8 @@ int FrameEvent(int type, int damage, int wound, int grip, int weapon_range, floa
   self = FindSelf()
 
 
-  // Adjust stuff for enchantment types...
-  enchantment = SystemGet(SYS_ITEMINDEX, 0, 0)&7
+  // Adjust stuff for enchantment types...  Some uniques pick their own element...
+  enchantment = UNIQUE.SwingElement(SystemGet(SYS_ITEMINDEX, 0, 0)&7)
   if(enchantment == WEAPON_VARIANT_MAGIC)
     damage++
     flags = flags | SPECIAL_FLAG_INVERT_DEFWOUN // Makes it able to damage ghosts & stuff better...

@@ -62,7 +62,7 @@ int EnchantUsage()
     destroy_target = FALSE
     unmorph_target = FALSE
     mana_restore = 0 // Used to tell if it worked or not...
-    if(self.int >= min_int && MagicWillWork(self.manamax, self.mana, MANA_COST))
+    if(self.int >= min_int && MagicWillWork(self.manamax, self.mana, UNIQUE.SpellCost(self, MANA_COST)))
       target = FindByIndex(SystemGet(SYS_ENCHANTCURSOR, 0, ENCHANT_CURSOR_TARGET))
       target_item = SystemGet(SYS_ENCHANTCURSOR, 0, ENCHANT_CURSOR_TARGET_ITEM)
       if(target)

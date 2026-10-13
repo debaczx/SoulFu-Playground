@@ -26,8 +26,8 @@ int TeleportCharacterXY(int self, float x, float y, int cost_mana)
   else
     if(cost_mana)
       worked = FALSE
-      if(self.int >= min_int && MagicWillWork(self.manamax, self.mana, MANA_COST))
-        self.mana = self.mana-MANA_COST
+      if(self.int >= min_int && MagicWillWork(self.manamax, self.mana, UNIQUE.SpellCost(self, MANA_COST)))
+        self.mana = self.mana-UNIQUE.SpellCost(self, MANA_COST)
         self.manatap = self.manatap+MANA_TAP
         worked = TRUE
   z = AreaHeightXY(x, y, self.boxsize)

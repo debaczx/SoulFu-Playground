@@ -22,7 +22,7 @@ int Effect(int self)
       // by badge...
       oldcomp = self.vircomp
       self.vircomp = 0
-      if(self.int >= min_int && MagicWillWork(self.manamax, self.mana, MANA_COST) && ChildCount(self) < MaxHelpers(self, 2))
+      if(self.int >= min_int && MagicWillWork(self.manamax, self.mana, UNIQUE.SpellCost(self, MANA_COST)) && ChildCount(self) < MaxHelpers(self, 2))
         if(STANDARD.ItemReload(self))
           index = FindIndex(self)
           testx = self.x+self.frontx*(self.boxsize+3.0)
@@ -43,7 +43,7 @@ int Effect(int self)
               if(child.team == TEAM_GOOD)
                 child.level = 1
                 child.item00 = ITEM_NONE
-              self.mana = self.mana-MANA_COST
+              self.mana = self.mana-UNIQUE.SpellCost(self, MANA_COST)
               self.manatap = self.manatap+MANA_TAP
               ExperienceFunction(FindIndex(self), EXPERIENCE_VIRTUE_FAITH, -25, FALSE)
               self.action = ACTION_MAGIC

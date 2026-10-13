@@ -26,8 +26,8 @@ int FirestormXY(int self, float x, float y)
       worked = FALSE
     else
       worked = FALSE
-      if(self.int >= min_int && MagicWillWork(self.manamax, self.mana, MANA_COST))
-        self.mana = self.mana-MANA_COST
+      if(self.int >= min_int && MagicWillWork(self.manamax, self.mana, UNIQUE.SpellCost(self, MANA_COST)))
+        self.mana = self.mana-UNIQUE.SpellCost(self, MANA_COST)
         self.manatap = self.manatap+MANA_TAP
         worked = TRUE
     if(worked)

@@ -60,6 +60,7 @@ int EnchantUsage()
 
     min_int = SystemGet(SYS_ITEMREGISTRYINT, item_type, 0)
     worked = FALSE
+    mana_cost = UNIQUE.SpellCost(self, mana_cost)  // Hood of Whispers...
     if(self.int >= min_int && MagicWillWork(self.manamax, self.mana, mana_cost))
       target = FindByIndex(SystemGet(SYS_ENCHANTCURSOR, 0, ENCHANT_CURSOR_TARGET))
       target_item = SystemGet(SYS_ENCHANTCURSOR, 0, ENCHANT_CURSOR_TARGET_ITEM)

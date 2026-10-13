@@ -1004,6 +1004,7 @@ float kind_speed(unsigned char* character_data)
         if(flags & KIND_FLAG_SLOW) speed -= ARMOR_SLOW_STEP;
         if(flags & KIND_FLAG_NIMBLE) speed += ARMOR_FAST_STEP;
     }
+    speed += ((signed char) character_data[UNIQUE_SPEED_OFFSET]) * 0.01f;  // Worn uniques (UNIQUE.SRC)
     if(character_data[242] && (item_kind_flags[item_ext_kind(xitem_get(character_data, 242))] & KIND_FLAG_SLOW)) speed *= KIND_SLOW_SPEED;
     else if(character_data[243] && (item_kind_flags[item_ext_kind(xitem_get(character_data, 243))] & KIND_FLAG_SLOW)) speed *= KIND_SLOW_SPEED;
     return speed;
@@ -2303,6 +2304,19 @@ void character_update_all()
             if(*((unsigned short*) (character_data+CHILL_OFFSET)) > 0)
             {
                 (*((unsigned short*) (character_data+CHILL_OFFSET)))--;
+            }
+
+
+            // Unique item timer (worn uniques' auras, minions...)
+            if(*((unsigned short*) (character_data+UNIQUE_TIMER_OFFSET)) > 0)
+            {
+                (*((unsigned short*) (character_data+UNIQUE_TIMER_OFFSET)))--;
+                if(*((unsigned short*) (character_data+UNIQUE_TIMER_OFFSET)) == 0)
+                {
+                    // Call the event handler...
+                    character_data[67] = EVENT_UNIQUE_TIMER;
+                    fast_run_script(main_character_script_start[i], FAST_FUNCTION_EVENT, character_data);
+                }
             }
 
 

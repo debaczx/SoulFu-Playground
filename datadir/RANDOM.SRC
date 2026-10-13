@@ -181,8 +181,8 @@ int ChestLoot(int level, int rich, int lucky)
   kind = FileReadByte("FILE:LOOT.DAT", offset+1)
   item = LootEnchant(item, level, rich)
   if(kind > 0)
-    return (item | (XITEM.KindExt(kind, 0) << 8))
-  return item
+    item = (item | (XITEM.KindExt(kind, 0) << 8))
+  return UNIQUE.MaybeUnique(item)  // Sometimes the item's unique instead...
 
 //-----------------------------------------------------------------------
 // Maybe enchants a chest item...  1 in 6 on the first level down to 1 in 3 in the Abyss,

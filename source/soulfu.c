@@ -482,6 +482,7 @@ if(map_room_data[map_current_room][13] & MAP_ROOM_FLAG_OUTSIDE) {
         x+=12.0f;
         y+=12.0f;
         alt_text = mouse_text;
+        if(alt_text[0] == '^') alt_text++;  // Unique items' names start with ^ and draw in gold...
         brx = x+script_window_scale*(strlen(alt_text)+1);
         bry = y+(script_window_scale*1.2f);
         if(brx > virtual_x)
@@ -491,9 +492,11 @@ if(map_room_data[map_current_room][13] & MAP_ROOM_FLAG_OUTSIDE) {
         }
         display_color_alpha(whiter);
         display_mouse_text_box(x, y, brx, bry, texture_winalt);
-        display_color(white);
+        if(alt_text != mouse_text) { display_color(gold); }
+        else { display_color(white); }
         display_pick_texture(texture_ascii);
         display_string(alt_text, x+(script_window_scale*.5f), y+(script_window_scale*0.1f), script_window_scale);
+        display_color(white);
         if(mouse_text_timer == 0)
         {
           mouse_text[0] = 0;

@@ -21,7 +21,7 @@ int EnchantUsage()
     item_type = SystemGet(SYS_ITEMINDEX, 0, 0)
     min_int = SystemGet(SYS_ITEMREGISTRYINT, item_type, 0)
     worked = FALSE
-    if(self.int >= min_int && MagicWillWork(self.manamax, self.mana, MANA_COST))
+    if(self.int >= min_int && MagicWillWork(self.manamax, self.mana, UNIQUE.SpellCost(self, MANA_COST)))
       target = FindByIndex(SystemGet(SYS_ENCHANTCURSOR, 0, ENCHANT_CURSOR_TARGET))
       target_item = SystemGet(SYS_ENCHANTCURSOR, 0, ENCHANT_CURSOR_TARGET_ITEM)
       if(target && target_item == 0)
@@ -30,7 +30,7 @@ int EnchantUsage()
           if(PDFLECT.Effect(target, TRUE))
             worked = TRUE
     if(worked)
-      self.mana = self.mana-MANA_COST
+      self.mana = self.mana-UNIQUE.SpellCost(self, MANA_COST)
       self.manatap = self.manatap+MANA_TAP
       if(self.action != ACTION_RIDE)
         self.action = ACTION_MAGIC

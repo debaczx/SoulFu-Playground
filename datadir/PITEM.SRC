@@ -44,6 +44,10 @@ int Effect(int target, int item, float x, float y, float z)
   child = Spawn(PARTICLE, x, y, z, 0)
   if(child)
     child.image = SystemGet(SYS_ITEMREGISTRYICON, item, 0)
+    if(item > 255)
+      if(XITEM.ItemIcon(item >> 8, item & 255))
+        // Uniques and other extended items show their own icon...
+        child.image = XITEM.ItemIcon(item >> 8, item & 255)
     if(!can_use)
       child.green = 0
       child.blue = 0

@@ -710,9 +710,14 @@ int IconSwap(int icon1, int icon2)
 
 //-----------------------------------------------------------------------
 int MockText(float x, float y, int text)
-  int length
+  int length, color
   float lx, ty, rx, by
 
+  color = WHITE
+  if(FileReadByte(text, 0) == 94)
+    // Unique items' names start with ^ and draw in gold (UNIQUE.SRC)...
+    text = text + 1
+    color = UNIQUE_GOLD
   length = StringLength(text)
   lx = x - (length*0.5) - 0.5
   rx = x + (length*0.5) + 0.5
@@ -721,7 +726,7 @@ int MockText(float x, float y, int text)
   WindowMegaImage(lx,ty,  lx+0.5,ty,  lx+0.5,by,  lx,by,  0.0,0.0,  0.02,1.0,  WHITE, ALPHA_TRANS | 180, "FILE:WINALT.RGB")
   WindowMegaImage(lx+0.5,ty,  rx-0.5,ty,  rx-0.5,by,  lx+0.5,by,  0.02,0.0,  0.98,1.0,  WHITE, ALPHA_TRANS | 180, "FILE:WINALT.RGB")
   WindowMegaImage(rx-0.5,ty,  rx,ty,  rx,by,  rx-0.5,by,  0.98,0.0,  1.00,1.0,  WHITE, ALPHA_TRANS | 180, "FILE:WINALT.RGB")
-  WindowString(WHITE, lx+0.5, ty+0.125, text)
+  WindowString(color, lx+0.5, ty+0.125, text)
 
 
 //-----------------------------------------------------------------------
@@ -776,8 +781,8 @@ int RowIcon(int icon_index, float x, float y)
   // Get the image...  Some slots have special images...
   image_file = SystemGet(SYS_ITEMREGISTRYICON, XITEM.Key(item_type, item_ext), 0)
   if(item_ext & ITEM_EXT_MOD_MASK)
-    if(XITEM.ItemIcon(item_ext & ITEM_EXT_MOD_MASK, item_type))
-      image_file = XITEM.ItemIcon(item_ext & ITEM_EXT_MOD_MASK, item_type)
+    if(XITEM.ItemIcon(item_ext, item_type))
+      image_file = XITEM.ItemIcon(item_ext, item_type)  // Raw value: uniques need the kind too...
   min_str = SystemGet(SYS_ITEMREGISTRYSTR, XITEM.Key(item_type, item_ext), 0)
   min_dex = SystemGet(SYS_ITEMREGISTRYDEX, XITEM.Key(item_type, item_ext), 0)
   min_int = SystemGet(SYS_ITEMREGISTRYINT, XITEM.Key(item_type, item_ext), 0)

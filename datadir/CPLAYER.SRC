@@ -895,6 +895,7 @@ int ModelSetup()
 int DefenseRating()
   STANDARD.DefenseRating()
   MREGEN.CheckTimer(FindSelf())  // Armor changed...  The Archmage Robe speeds up mana right away
+  UNIQUE.Sync(FindSelf())  // Worn uniques (speed, Starwoven Sash, item minion)...
 
 //-----------------------------------------------------------------------
 int ButtonEvent()
@@ -904,7 +905,11 @@ int ButtonEvent()
 int Event()
   int self, temp, pitch
   self = FindSelf()
+  if(self.event == EVENT_UNIQUE_TIMER)
+    UNIQUE.Tick(self)
+    return 0
   if(self.event == EVENT_DAMAGED)
+    UNIQUE.Damaged(self)  // Unbroken may leave 1 hit, Blinkhide may blink...
     temp = RollDice(1, 3)
     pitch = 235 + RollDice(1, 40)
     if(self.class == CLASS_SOLDIER)
@@ -1010,6 +1015,7 @@ int AIScript()
 //-----------------------------------------------------------------------
 int Refresh()
   STANDARD.Refresh()
+  UNIQUE.Sync(FindSelf())  // Restarts the unique timer after a load...
 
 //-----------------------------------------------------------------------
 int Spawn()

@@ -482,7 +482,7 @@ int Cast(int self, int ext)
     if(IndexIsLocalPlayer(index))
       BuzzerSound()
     return FALSE
-  cost = ManaCost(ext)
+  cost = UNIQUE.SpellCost(self, ManaCost(ext))  // Hood of Whispers...
   if(!MagicWillWork(self.manamax, self.mana, cost))
     if(IndexIsLocalPlayer(index))
       BuzzerSound()

@@ -393,6 +393,8 @@ ItemName(int base_text, int paren_text, int damage_type, int damage_low, int dam
 
 
   StringClear(NAME_STRING)
+  if(artifact)
+    UNIQUE.NameStart()  // Uniques' names are gold...
   StringAppend(NAME_STRING, base_text, 256)
   if(reqstr > 0 || reqint > 0 || reqdex > 0 || reqmana > 0)
     // Item is unuseable...  Tell which stats are unmet...
@@ -429,7 +431,7 @@ ItemName(int base_text, int paren_text, int damage_type, int damage_low, int dam
       // Show weapon's modified damage ratings...
       if(item_index > 135 && item_index < 232)
         // Item is an enchantable weapon...
-        enchantment = item_index&7
+        enchantment = UNIQUE.ShownElement(item_index&7)
         if(enchantment == WEAPON_VARIANT_MAGIC)
           damage_low++
           damage_high++
@@ -454,6 +456,8 @@ ItemName(int base_text, int paren_text, int damage_type, int damage_low, int dam
         damage_low = damage_low + (strength/10)
         damage_high = damage_high + (strength/10)
       ItemNameDamage(damage_type, damage_low, damage_high, wound_low, wound_high)
+  if(artifact)
+    UNIQUE.NameEnd()  // What the unique does...
 
 
 //-----------------------------------------------------------------------
@@ -547,6 +551,7 @@ DefenseRating()
     SystemSet(SYS_ITEMDEFENSERATING, 0, 0, XITEM.SlotKey(self, 248, self.eqlegs))
   SystemSet(SYS_ITEMDEFENSERATING, 0, 0, XITEM.SlotKey(self, 242, self.eqleft))
   SystemSet(SYS_ITEMDEFENSERATING, 0, 0, XITEM.SlotKey(self, 243, self.eqright))
+  UNIQUE.Defense(self)  // Some uniques have weaknesses...
   self.defedge = SystemGet(SYS_DEFENSERATING, 0, DAMAGE_EDGE)
   self.defbash = SystemGet(SYS_DEFENSERATING, 0, DAMAGE_BASH)
   self.defacid = SystemGet(SYS_DEFENSERATING, 0, DAMAGE_ACID)
@@ -579,6 +584,7 @@ int SpellEffect(int self, int mana_cost, int mana_tap)
       ButtonHandled()
       item_type = SystemGet(SYS_ITEMINDEX, 0, 0)
       min_int = SystemGet(SYS_ITEMREGISTRYINT, item_type, 0)
+      mana_cost = UNIQUE.SpellCost(self, mana_cost)  // Hood of Whispers...
       if(self.int >= min_int && MagicWillWork(self.manamax, self.mana, mana_cost))
         if(STANDARD.ItemReload(self))
           self.mana = self.mana-mana_cost

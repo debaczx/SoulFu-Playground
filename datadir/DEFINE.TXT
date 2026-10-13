@@ -165,6 +165,7 @@
 #define EVENT_HIT_WAYPOINT     21
 #define EVENT_HUNGER_DAMAGED   22
 #define EVENT_NETWORK_UPDATE   23
+#define EVENT_UNIQUE_TIMER     24   // UNIQUE_TIMER_OFFSET counted down to 0 (UNIQUE.SRC)
 
 
 // Damage types...
@@ -473,6 +474,7 @@
 #define SYS_PAUSE                   230
 #define SYS_ITEMEXT                 231 // Item extension (artifact) value of the item whose script is running...
 #define SYS_KINDREGISTRY            232 // Item kind registry...  SystemSet(SYS_KINDREGISTRY, kind, KIND_FIELD_*, value), SystemGet(SYS_KINDREGISTRY, kind, KIND_FIELD_*)
+#define SYS_UNIQUEFOUND             233 // Times a unique dropped this game (UNIQUE.SRC)
 
 
 // Item kinds...  The top 7 bits of a slot's item extension pick a kind (0 is the normal
@@ -1481,6 +1483,9 @@
 #define XITEM_RUNE_MYSTIC_BASE 184   // Mystic (Invoke) runes     185-207: base + (rank*8) + element, rank 0-2 (RUNEFX.SRC)
 #define XITEM_UNIQUE_BASE      208   // Unique items (found, not crafted) use 208 and up (UNIQUE.SRC)
 #define XITEM_ARCHMAGE_ROBE    208   // Unique body armor (Leather Cuirass base): faster mana regeneration
+#define XITEM_UNIQUE           209   // "This item's unique": the base item and kind say which one (UNIQUE.SRC)
+#define UNIQUE_GOLD            15124540   // Name colour of uniques (names start with ^, see soulfu.c)
+// Unique numbers (UQ_), drop odds and the character data they use are in UNIQUE.SRC...
 #define ROBE_MANA_REGEN        1600  // Archmage Robe: extra mana regeneration in percent (1600 = 17x as fast; plan is 300 after testing)
 #define RUNE_FORM_OFFSET       669   // Character data (unsaved): on a Mystic's monster form, the rune that made it (RUNEFX.SRC)
 #define RUNE_LEFT_OFFSET       670   // Character data (unsaved): on a monster form, ticks of 16 frames left before it turns back

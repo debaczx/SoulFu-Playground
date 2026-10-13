@@ -286,6 +286,7 @@ const char ff_map[MAX_FAST_FUNCTION][32] = {
 #define SYS_PAUSE                   230
 #define SYS_ITEMEXT                 231
 #define SYS_KINDREGISTRY            232
+#define SYS_UNIQUEFOUND             233
 #define SYS_MODELCHECKHACK          255
 
 
@@ -2737,6 +2738,11 @@ sprintf(DEBUG_STRING, "Autotrim length == %f", autotrim_length);
                         // Sets the extension (artifact) value for the item script about to be run...
                         global_item_ext = (unsigned short) m;
                         break;
+                    case SYS_UNIQUEFOUND:
+                        // Sets how many times a unique item dropped this game...
+                        // j is the unique number, m is the count...
+                        unique_found[j & (MAX_UNIQUE-1)] = (unsigned char) m;
+                        break;
                     case SYS_KINDREGISTRY:
                         // Registers one field of an item kind...
                         // j is the kind (1-127), k is the KIND_FIELD_ number, m is the value...
@@ -2985,8 +2991,9 @@ sprintf(DEBUG_STRING, "Autotrim length == %f", autotrim_length);
                         sound_flip_pan = (unsigned char) m;
                         break;
                     case SYS_MAPCLEAR:
-                        // Clears the map of all rooms...
+                        // Clears the map of all rooms...  A new game, so no uniques found yet either...
                         map_clear();
+                        memset(unique_found, 0, MAX_UNIQUE);
                         break;
                     case SYS_MAPROOM:
                         // Used to add a room to the map...  Called several times to specify all the parameters...
@@ -3479,6 +3486,15 @@ sprintf(DEBUG_STRING, "Autotrim length == %f", autotrim_length);
                             }
                             size += 4 + (MAX_CHARACTER*XITEM_SIZE);
 
+                            // Unique item state (per character) and how often each unique dropped...
+                            fwrite("UNIQ", 1, 4, savefile);
+                            repeat(i, MAX_CHARACTER)
+                            {
+                                fwrite(main_character_data[i]+UNIQUE_OFFSET, 1, UNIQUE_SIZE, savefile);
+                            }
+                            fwrite(unique_found, 1, MAX_UNIQUE, savefile);
+                            size += 4 + (MAX_CHARACTER*UNIQUE_SIZE) + MAX_UNIQUE;
+
                             // The End
                             fclose(savefile);
                             fclose(savelog);
@@ -3677,6 +3693,19 @@ sprintf(DEBUG_STRING, "Autotrim length == %f", autotrim_length);
                                         current_object_data = call_address;
                                         current_object_item = script_temp_i;
                                     }
+                                }
+
+                                // Unique item state and drop counts, if this save has them...
+                                memset(unique_found, 0, MAX_UNIQUE);
+                                file_name[0] = 0;
+                                if(fread(file_name, 1, 4, loadfile) == 4 && file_name[0] == 'U' && file_name[1] == 'N' && file_name[2] == 'I' && file_name[3] == 'Q')
+                                {
+                                    repeat(i, MAX_CHARACTER)
+                                    {
+                                        fread(main_character_data[i]+UNIQUE_OFFSET, 1, UNIQUE_SIZE, loadfile);
+                                    }
+                                    fread(unique_found, 1, MAX_UNIQUE, loadfile);
+                                    fprintf(savelog,"   Unique item state loaded\n");
                                 }
                             }
 
@@ -4427,6 +4456,11 @@ log_message("ERROR:  Membuffer MAPBUFFER requested...");
                         // Returns the extension (artifact) value of the item that the current script is for...
                         // 0 means a normal item...  The kind bits are hidden unless k is 1 (raw value)...
                         i = (k == 1) ? global_item_ext : (global_item_ext & ITEM_EXT_MOD_MASK);
+                        break;
+                    case SYS_UNIQUEFOUND:
+                        // Returns how many times a unique item dropped this game...
+                        // j is the unique number...
+                        i = unique_found[j & (MAX_UNIQUE-1)];
                         break;
                     case SYS_KINDREGISTRY:
                         // Returns one field of an item kind's registry entry...

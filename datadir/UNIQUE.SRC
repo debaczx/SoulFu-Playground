@@ -2,6 +2,60 @@
 // <ZZ> Unique items...  Found, not crafted.  Each one is a normal item
 //      type (which supplies the model and base stats) plus an extension
 //      value from XITEM_UNIQUE_BASE up (see DEFINE.TXT and XITEM.SRC).
+//
+//      Every base item and kind has exactly one unique.  Those all share
+//      the extension XITEM_UNIQUE, and the base item and kind say which
+//      unique it is (UQ_ numbers below).  The Archmage Robe came
+//      first and keeps its own value, XITEM_ARCHMAGE_ROBE.
+//
+//      Uniques can't be enchanted, modified or salvaged (any extension
+//      that isn't a mod blocks those).  A chest item that has a unique
+//      becomes it UNIQUE_CHANCE percent of the time, at most
+//      UNIQUE_MAX_DROPS times per game (SYS_UNIQUEFOUND)...
+//
+//      Worn uniques keep a little state in the character (UNIQUE_*_OFFSET,
+//      saved with the game).  A one second timer (EVENT_UNIQUE_TIMER, see
+//      CPLAYER.Event) runs auras and the item minion.  A character has at
+//      most one item minion at a time...
+//-----------------------------------------------------------------------
+#define UNIQUE_MAX_DROPS       2     // Each unique drops at most this many times per game
+#define UNIQUE_CHANCE          10    // Percent chance a chest item that has a unique is that unique
+// Character data: unique item state (16 bytes, saved with the game, see object.c)...
+#define UNIQUE_TIMER_OFFSET    672   // unsigned short: counts down, EVENT_UNIQUE_TIMER at 0
+#define UNIQUE_SPEED_OFFSET    674   // signed char: walk speed percent from worn uniques (charact.c)
+#define UNIQUE_SASH_OFFSET     675   // Starwoven Sash: 1 while its mana/hits change is applied
+#define UNIQUE_MINION_OFFSET   676   // unsigned short: the item minion's character index + 1 (0 = none)
+#define UNIQUE_MLEFT_OFFSET    678   // Seconds the minion has left (255 = while the item is worn)
+#define UNIQUE_MWAIT_OFFSET    679   // Seconds before a lost minion comes back
+#define UNIQUE_ROOM_OFFSET     680   // unsigned short: Unbroken: the room it saved the wearer in + 1
+#define UNIQUE_MANA_OFFSET     682   // Starwoven Sash: mana max it added
+#define UNIQUE_HITS_OFFSET     683   // Starwoven Sash: hits max it took
+#define UNIQUE_TICK_OFFSET     684   // Seconds counter for slower auras
+// Unique numbers (UNIQUE.SRC), one per base item and kind...  Never renumber (saves count drops by number)...
+#define UQ_NIGHTS_EDGE         1     // Obsidian Blade
+#define UQ_MEDUSAS_MIRROR      2     // Mirror Shield
+#define UQ_THORNBACK           3     // Spiked Shield kind
+#define UQ_UNBROKEN            4     // Heavy Platemail
+#define UQ_HOOD_OF_WHISPERS    5     // Apprentice Hood kind
+#define UQ_TEMPLARS_MANTLE     6     // Light Platemail
+#define UQ_CIRCLET_OF_STORMS   7     // Archon Hood kind
+#define UQ_ROAD_BOOTS          8     // Leather Pants
+#define UQ_STARWOVEN_SASH      9     // Archon Sash kind
+#define UQ_RAT_KINGS_TOOTH     10    // Dagger
+#define UQ_SHROUD_OF_THE_LICH  11    // Archon Vestments kind
+#define UQ_BLINKHIDE           12    // Shadow Vest kind
+#define UQ_TRICKSTERS_KRIS     13    // Kris kind
+#define UQ_LAST                13
+#define TICK_FRAMES      60    // Frames per unique timer tick (one second)
+#define MINION_FOREVER   255   // UNIQUE_MLEFT_OFFSET value: stays while the item is worn
+#define RAT_SECONDS      20    // Rat King's Tooth: how long a rat stays
+#define RAT_CHANCE       15    // Rat King's Tooth: percent chance per hit to call a rat
+#define WRAITH_WAIT      30    // Shroud of the Lich: seconds before a lost wraith comes back
+#define BLINK_CHANCE     20    // Blinkhide: percent chance per hit taken to blink away
+#define AURA_RANGE       6.0   // Templar's Mantle: reach of the holy aura
+#define ZAP_RANGE        10.0  // Circlet of Storms: reach of the zaps
+
+
 //-----------------------------------------------------------------------
 // Archmage Robe...  A Leather Cuirass with its own name, colors and
 // ROBE_MANA_REGEN percent faster mana regeneration (MREGEN.SRC)...
@@ -23,4 +77,646 @@ int RobeName()
   StringAppend(NAME_STRING, "%)", 256)
   return TRUE
 
+
+//-----------------------------------------------------------------------
+// Which unique...
+//-----------------------------------------------------------------------
+// Unique number of an item (0 if it isn't one)...  item is the item byte,
+// raw_ext the slot's whole extension (kind bits and all)...
+int Id(int item, int raw_ext)
+  int kind
+  if((raw_ext & 255) != XITEM_UNIQUE)
+    return 0
+  return IdFor(item, XITEM.KindOf(raw_ext))
+
+//-----------------------------------------------------------------------
+// Unique number for a base item and kind, whether or not it is one...
+// Enchant variants are ignored (item & 248 for weapons, & 252 for armour)...
+int IdFor(int item, int kind)
+  if(item >= ITEM_DAGGER)
+    item = item & 248
+  else
+    item = item & 252
+  if(kind == 0)
+    if(item == ITEM_OBSIDIAN_BLADE)
+      return UQ_NIGHTS_EDGE
+    if(item == ITEM_MIRROR_SHIELD)
+      return UQ_MEDUSAS_MIRROR
+    if(item == ITEM_BODY_4)
+      return UQ_UNBROKEN
+    if(item == ITEM_BODY_3)
+      return UQ_TEMPLARS_MANTLE
+    if(item == ITEM_LEGS_1)
+      return UQ_ROAD_BOOTS
+    if(item == ITEM_DAGGER)
+      return UQ_RAT_KINGS_TOOTH
+    return 0
+  if(kind == KIND_SPIKED_SHIELD)
+    return UQ_THORNBACK
+  if(kind == KIND_APPRENTICE_HOOD)
+    return UQ_HOOD_OF_WHISPERS
+  if(kind == KIND_ARCHON_HOOD)
+    return UQ_CIRCLET_OF_STORMS
+  if(kind == KIND_ARCHON_SASH)
+    return UQ_STARWOVEN_SASH
+  if(kind == KIND_ARCHON_VESTMENTS)
+    return UQ_SHROUD_OF_THE_LICH
+  if(kind == KIND_SHADOW_VEST)
+    return UQ_BLINKHIDE
+  if(kind == KIND_KRIS)
+    return UQ_TRICKSTERS_KRIS
+  return 0
+
+//-----------------------------------------------------------------------
+// Unique number of the item in a character's slot...
+int IdIn(int who, int slot)
+  return Id(FileReadByte(who, slot), XITEM.GetRaw(who, slot))
+
+//-----------------------------------------------------------------------
+// Unique number of the item whose callback is running right now...
+int CurrentId()
+  return Id(SystemGet(SYS_ITEMINDEX, 0, 0), SystemGet(SYS_ITEMEXT, 0, 1))
+
+//-----------------------------------------------------------------------
+// TRUE if a character wears or holds the unique...
+int Worn(int who, int uq)
+  if(!who)
+    return FALSE
+  if(IdIn(who, 242) == uq || IdIn(who, 243) == uq)
+    return TRUE
+  if(who.sflags & SCRIPT_ALLOW_HELM)
+    if(IdIn(who, 246) == uq)
+      return TRUE
+  if(who.sflags & SCRIPT_ALLOW_BODY)
+    if(IdIn(who, 247) == uq)
+      return TRUE
+  if(who.sflags & SCRIPT_ALLOW_LEGS)
+    if(IdIn(who, 248) == uq)
+      return TRUE
+  return FALSE
+
+
+//-----------------------------------------------------------------------
+// Names and icons...
+//-----------------------------------------------------------------------
+int Name(int uq)
+  if(uq == UQ_NIGHTS_EDGE)
+    return "NIGHT'S EDGE"
+  if(uq == UQ_MEDUSAS_MIRROR)
+    return "MEDUSA'S MIRROR"
+  if(uq == UQ_THORNBACK)
+    return "THORNBACK"
+  if(uq == UQ_UNBROKEN)
+    return "UNBROKEN"
+  if(uq == UQ_HOOD_OF_WHISPERS)
+    return "HOOD OF WHISPERS"
+  if(uq == UQ_TEMPLARS_MANTLE)
+    return "TEMPLAR'S MANTLE"
+  if(uq == UQ_CIRCLET_OF_STORMS)
+    return "CIRCLET OF STORMS"
+  if(uq == UQ_ROAD_BOOTS)
+    return "ROAD BOOTS"
+  if(uq == UQ_STARWOVEN_SASH)
+    return "STARWOVEN SASH"
+  if(uq == UQ_RAT_KINGS_TOOTH)
+    return "RAT KING'S TOOTH"
+  if(uq == UQ_SHROUD_OF_THE_LICH)
+    return "SHROUD OF THE LICH"
+  if(uq == UQ_BLINKHIDE)
+    return "BLINKHIDE"
+  if(uq == UQ_TRICKSTERS_KRIS)
+    return "TRICKSTER'S KRIS"
+  return NULL
+
+//-----------------------------------------------------------------------
+// What it does, appended to the name (short: tooltips are one line)...
+int Info(int uq)
+  if(uq == UQ_NIGHTS_EDGE)
+    return "KILLS HEAL 3, -1 WOUND DEF"
+  if(uq == UQ_MEDUSAS_MIRROR)
+    return "BLOCKS PETRIFY, -2 FIRE DEF"
+  if(uq == UQ_THORNBACK)
+    return "MELEE FOES TAKE HALF BACK"
+  if(uq == UQ_UNBROKEN)
+    return "SURVIVE 1 DEATH A ROOM, -10% SPEED"
+  if(uq == UQ_HOOD_OF_WHISPERS)
+    return "SPELLS COST 1 LESS"
+  if(uq == UQ_TEMPLARS_MANTLE)
+    return "HOLY AURA HURTS UNDEAD"
+  if(uq == UQ_CIRCLET_OF_STORMS)
+    return "ZAPS FOES, 1 MANA A ZAP"
+  if(uq == UQ_ROAD_BOOTS)
+    return "+15% SPEED"
+  if(uq == UQ_STARWOVEN_SASH)
+    return "+50% MANA, -20% HITS"
+  if(uq == UQ_RAT_KINGS_TOOTH)
+    return "HITS CALL RATS, -2 DAMAGE"
+  if(uq == UQ_SHROUD_OF_THE_LICH)
+    return "WRAITH ALLY, -2 WOUND DEF"
+  if(uq == UQ_BLINKHIDE)
+    return "MAY BLINK AWAY WHEN HIT"
+  if(uq == UQ_TRICKSTERS_KRIS)
+    return "RANDOM ELEMENT EACH SWING"
+  return NULL
+
+//-----------------------------------------------------------------------
+// Inventory icons (gold tinted, made by tools/mkunique.py)...
+int Icon(int uq)
+  if(uq == UQ_NIGHTS_EDGE)
+    return "FILE:=IUQ01.RGB"
+  if(uq == UQ_MEDUSAS_MIRROR)
+    return "FILE:=IUQ02.RGB"
+  if(uq == UQ_THORNBACK)
+    return "FILE:=IUQ03.RGB"
+  if(uq == UQ_UNBROKEN)
+    return "FILE:=IUQ04.RGB"
+  if(uq == UQ_HOOD_OF_WHISPERS)
+    return "FILE:=IUQ05.RGB"
+  if(uq == UQ_TEMPLARS_MANTLE)
+    return "FILE:=IUQ06.RGB"
+  if(uq == UQ_CIRCLET_OF_STORMS)
+    return "FILE:=IUQ07.RGB"
+  if(uq == UQ_ROAD_BOOTS)
+    return "FILE:=IUQ08.RGB"
+  if(uq == UQ_STARWOVEN_SASH)
+    return "FILE:=IUQ09.RGB"
+  if(uq == UQ_RAT_KINGS_TOOTH)
+    return "FILE:=IUQ10.RGB"
+  if(uq == UQ_SHROUD_OF_THE_LICH)
+    return "FILE:=IUQ11.RGB"
+  if(uq == UQ_BLINKHIDE)
+    return "FILE:=IUQ12.RGB"
+  if(uq == UQ_TRICKSTERS_KRIS)
+    return "FILE:=IUQ13.RGB"
+  return NULL
+
+//-----------------------------------------------------------------------
+// Called by STANDARD.ItemName for any item with an extension, before the
+// name is written...  Uniques' names start with ^ (drawn in gold)...
+int NameStart()
+  if(CurrentId())
+    StringAppend(NAME_STRING, "^", 256)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Called by STANDARD.ItemName after the name is written...
+int NameEnd()
+  int uq
+  uq = CurrentId()
+  if(uq)
+    StringAppend(NAME_STRING, " - ", 256)
+    StringAppend(NAME_STRING, Info(uq), 256)
+  return TRUE
+
+
+//-----------------------------------------------------------------------
+// Drops...
+//-----------------------------------------------------------------------
+// Maybe turns a chest roll into its unique...  key is item | (raw_ext<<8),
+// as RANDOM.ChestLoot makes it...  The drop is only counted when the chest
+// actually gives it (Found)...
+int MaybeUnique(int key)
+  int item, uq
+  item = key & 255
+  uq = IdFor(item, XITEM.KindOf(key >> 8))
+  if(uq == 0)
+    return key
+  if(SystemGet(SYS_UNIQUEFOUND, uq, 0) >= UNIQUE_MAX_DROPS)
+    return key
+  if(RollDice(1, 100) > UNIQUE_CHANCE)
+    return key
+  // Uniques are always the plain item...
+  if(item >= ITEM_DAGGER)
+    item = item & 248
+  else
+    item = item & 252
+  return (item | (XITEM.KindExt(XITEM.KindOf(key >> 8), XITEM_UNIQUE) << 8))
+
+//-----------------------------------------------------------------------
+// A chest gave this item...  Counts it if it's a unique...
+int Found(int key)
+  int uq
+  uq = Id(key & 255, key >> 8)
+  if(uq)
+    SystemSet(SYS_UNIQUEFOUND, uq, 0, SystemGet(SYS_UNIQUEFOUND, uq, 0) + 1)
+  return uq
+
+
+//-----------------------------------------------------------------------
+// Item hooks...
+//-----------------------------------------------------------------------
+// Weapon element for this swing (PATTACK.FrameEvent)...  e is the item's
+// own enchant variant...
+int SwingElement(int e)
+  int uq
+  uq = CurrentId()
+  if(uq == UQ_NIGHTS_EDGE)
+    return WEAPON_VARIANT_UNHOLY
+  if(uq == UQ_TRICKSTERS_KRIS)
+    return RollDice(1, 7)
+  return e
+
+//-----------------------------------------------------------------------
+// Weapon element shown in the name (STANDARD.ItemName)...
+int ShownElement(int e)
+  if(CurrentId() == UQ_NIGHTS_EDGE)
+    return WEAPON_VARIANT_UNHOLY
+  return e
+
+//-----------------------------------------------------------------------
+// Extra damage per hit (XITEM.ArtifactDamage)...
+int Damage()
+  if(CurrentId() == UQ_RAT_KINGS_TOOTH)
+    return -2
+  return 0
+
+//-----------------------------------------------------------------------
+// Defense changes, while STANDARD.DefenseRating adds up the worn items...
+int Defense(int self)
+  if(Worn(self, UQ_NIGHTS_EDGE))
+    SystemSet(SYS_DEFENSERATING, 0, DAMAGE_WOUND, -1)
+  if(Worn(self, UQ_SHROUD_OF_THE_LICH))
+    SystemSet(SYS_DEFENSERATING, 0, DAMAGE_WOUND, -2)
+  if(Worn(self, UQ_MEDUSAS_MIRROR))
+    SystemSet(SYS_DEFENSERATING, 0, DAMAGE_FIRE, -2)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Mana a spell costs (Hood of Whispers takes 1 off, never below 1)...
+int SpellCost(int self, int cost)
+  if(cost > 1)
+    if(Worn(self, UQ_HOOD_OF_WHISPERS))
+      return (cost - 1)
+  return cost
+
+
+//-----------------------------------------------------------------------
+// Combat hooks (PATTACK.SRC and CPLAYER.Event)...
+//-----------------------------------------------------------------------
+// Resistance of a character to a damage type (negative is a weakness)...
+int Resist(int who, int type)
+  int value
+  value = FileReadByte(who, 97 + type)
+  if(value > 127)
+    value = value - 256
+  return value
+
+//-----------------------------------------------------------------------
+// Damages a character by amount after its defense (so 1 always hurts)...
+int Hurt(int who, int type, int amount, int attacker)
+  int res
+  if(!who || amount < 1)
+    return FALSE
+  res = Resist(who, type)
+  if(res > 0)
+    amount = amount + res
+  if(amount > 255)
+    amount = 255
+  SystemSet(SYS_DAMAGECHARACTER, FindIndex(who), (type<<16) | (amount<<8), FindIndex(attacker))
+  return TRUE
+
+//-----------------------------------------------------------------------
+// A melee swing from a weapon in hand xhand (1 left, 2 right) hit a foe...
+// dealt is the hits the foe lost, killed is TRUE if that knocked it out...
+int Hit(int owner, int target, int xhand, int dealt, int killed)
+  int uq
+  if(xhand != 1 && xhand != 2)
+    return FALSE
+  uq = IdIn(owner, 241 + xhand)
+  if(uq == UQ_NIGHTS_EDGE && killed)
+    GENERIC.RestoreCharacterHits(owner, 3, 0)
+    PFLASH.Effect(owner, "FILE:LITESPRK.RGB", 8388736, TRUE, 1.0)
+    return TRUE
+  if(uq == UQ_RAT_KINGS_TOOTH)
+    if(RollDice(1, 100) <= RAT_CHANCE)
+      Summon(owner, "FILE:CRAT.RUN", 1, RAT_SECONDS)  // A big rat...
+    return TRUE
+  return FALSE
+
+//-----------------------------------------------------------------------
+// The holder was just hurt (Damaged)...  Thornback bites back at foes
+// close enough to be fighting hand to hand (bites and stings too)...
+int Struck(int holder)
+  int attacker, dealt
+  float dx, dy, reach
+  if(IdIn(holder, 242) != UQ_THORNBACK)
+    return FALSE
+  attacker = FindByIndex(SystemGet(SYS_GLOBALATTACKER, 0, 0))
+  if(!attacker || attacker == holder)
+    return FALSE
+  if(attacker.team == holder.team || attacker.hits == 0)
+    return FALSE
+  dx = attacker.x - holder.x
+  dy = attacker.y - holder.y
+  reach = holder.boxsize + attacker.boxsize + 3.0
+  if(dx*dx + dy*dy > reach*reach)
+    return FALSE
+  dealt = SystemGet(SYS_DAMAGEAMOUNT, 0, 0)
+  if(dealt < 1)
+    return FALSE
+  Hurt(attacker, DAMAGE_EDGE, (dealt + 1) >> 1, holder)
+  PSPARK.Effect(attacker.x, attacker.y, attacker.z + (attacker.height*0.6), 6, 1)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// holder blocked attacker's attack, which would have done damage...
+// melee is TRUE for swings (not arrows and such)...
+int Blocked(int holder, int attacker, int amount, int melee)
+  int uq
+  if(!melee || holder.team == attacker.team || attacker.hits == 0)
+    return FALSE
+  uq = IdIn(holder, 242)
+  if(uq == UQ_MEDUSAS_MIRROR)
+    STANDARD.PetrifyCharacter(FindIndex(attacker), FindIndex(holder), 120)
+    return TRUE
+  if(uq == UQ_THORNBACK)
+    Hurt(attacker, DAMAGE_EDGE, (amount + 1) >> 1, holder)
+    return TRUE
+  return FALSE
+
+//-----------------------------------------------------------------------
+// The wearer was just damaged (CPLAYER.Event, before anything else)...
+int Damaged(int self)
+  int room
+  Struck(self)
+  if(self.hits == 0)
+    // Unbroken: a killing blow leaves 1 hit, once per room...
+    if(Worn(self, UQ_UNBROKEN))
+      room = SystemGet(SYS_MAPROOM, 0, MAP_ROOM_CURRENT) + 1
+      if(ReadShort(self, UNIQUE_ROOM_OFFSET) != room)
+        WriteShort(self, UNIQUE_ROOM_OFFSET, room)
+        self.hits = 1
+        if(self.intimer < 120)
+          self.intimer = 120
+        PFLASH.Effect(self, "FILE:LITESPRK.RGB", UNIQUE_GOLD, TRUE, 2.0)
+        PlaySound("FILE:BAD5.RAW", 160, 255)
+        StartTimer(self)
+    return TRUE
+  // Blinkhide: sometimes blinks a short way off...
+  if(Worn(self, UQ_BLINKHIDE))
+    if(RollDice(1, 100) <= BLINK_CHANCE)
+      Blink(self)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Moves a character a short way in a random direction, if there's room...
+int Blink(int self)
+  int tries
+  float angle, x, y, z
+  tries = 0
+  while(tries < 8)
+    angle = RollDice(1, 360)
+    x = self.x + sin(angle)*4.0
+    y = self.y + sin(angle+90.0)*4.0
+    z = GENERIC.AreaHeightXY(x, y, self.boxsize)
+    if(z < (self.z+2.0) && z > (self.z-3.0))
+      if(TestLocation(x, y, z, self.boxsize))
+        PFLASH.Effect(self, "FILE:LITESPRK.RGB", 8421631, TRUE, 1.0)
+        self.x = x
+        self.y = y
+        self.z = z
+        self.vx = 0.0
+        self.vy = 0.0
+        PFLASH.Effect(self, "FILE:LITESPRK.RGB", 8421631, TRUE, 1.0)
+        PlaySound("FILE:-SPELL00.RAW", 300, 160)
+        return TRUE
+    tries++
+  return FALSE
+
+
+//-----------------------------------------------------------------------
+// Minions...
+//-----------------------------------------------------------------------
+int ReadShort(int who, int offset)
+  return (FileReadByte(who, offset) | (FileReadByte(who, offset+1) << 8))
+
+//-----------------------------------------------------------------------
+int WriteShort(int who, int offset, int value)
+  FileWriteByte(who, offset, value & 255)
+  FileWriteByte(who, offset+1, (value >> 8) & 255)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// The character's item minion, if it's still around...
+int Minion(int self)
+  int index, pet, script
+  index = ReadShort(self, UNIQUE_MINION_OFFSET)
+  if(index == 0)
+    return NULL
+  index--
+  pet = FindByIndex(index)
+  if(pet)
+    if(pet.owner == FindIndex(self) && pet.hits > 0)
+      script = SystemGet(SYS_CHARACTERSCRIPTFILE, 0, index)
+      if(script == "FILE:CRAT.RUN" || script == "FILE:CWRAITHE.RUN")
+        return pet
+  WriteShort(self, UNIQUE_MINION_OFFSET, 0)
+  return NULL
+
+//-----------------------------------------------------------------------
+// Calls a minion for seconds (MINION_FOREVER: while the item is worn)...
+// subtype goes in the top 2 bits (SetSpawnSubtype)...  Only one item minion at a time...
+int Summon(int self, int script, int subtype, int seconds)
+  int index, child
+  float x, y, z
+  if(Minion(self))
+    return NULL
+  index = FindIndex(self)
+  x = self.x + self.frontx*(self.boxsize + 2.0)
+  y = self.y + self.fronty*(self.boxsize + 2.0)
+  z = GENERIC.AreaHeightXY(x, y, 1.5)
+  if(!TestLocation(x, y, z, 1.5) || z > (self.z + 2.0))
+    x = self.x
+    y = self.y
+    z = self.z
+  SetSpawnOwner(index)
+  SetSpawnTeam(self.team)
+  SetSpawnSubtype(subtype << 6)
+  child = Spawn(CHARACTER, x, y, z, script)
+  SetSpawnOwner(index)
+  SetSpawnTeam(self.team)
+  if(child)
+    child.aitimer = 30
+    child.spin = self.spin
+    child.level = 1
+    child.item00 = ITEM_NONE
+    WriteShort(self, UNIQUE_MINION_OFFSET, FindIndex(child) + 1)
+    FileWriteByte(self, UNIQUE_MLEFT_OFFSET, seconds)
+    PFLASH.Effect(child, "FILE:LITESPRK.RGB", UNIQUE_GOLD, TRUE, 1.5)
+    StartTimer(self)
+  return child
+
+//-----------------------------------------------------------------------
+// Sends the item minion away...
+int Dismiss(int self)
+  int pet, old
+  pet = Minion(self)
+  if(pet)
+    PFLASH.Effect(pet, "FILE:LITESPRK.RGB", UNIQUE_GOLD, TRUE, 1.5)
+    old = self.target
+    self.target = FindIndex(pet)
+    GoPoof(POOF_TARGET)
+    self.target = old
+  WriteShort(self, UNIQUE_MINION_OFFSET, 0)
+  return TRUE
+
+
+//-----------------------------------------------------------------------
+// Worn effects...
+//-----------------------------------------------------------------------
+// Starts the one second timer if it isn't running...
+int StartTimer(int self)
+  if(ReadShort(self, UNIQUE_TIMER_OFFSET) == 0)
+    WriteShort(self, UNIQUE_TIMER_OFFSET, TICK_FRAMES)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Brings the worn effects up to date (equipment changed, or a timer tick)...
+// Called from CPLAYER.DefenseRating and Tick...
+int Sync(int self)
+  int speed, mana, hits, wear, pet
+  // Walk speed (charact.c reads it)...
+  speed = 0
+  if(Worn(self, UQ_ROAD_BOOTS))
+    speed = speed + 15
+  if(Worn(self, UQ_UNBROKEN))
+    speed = speed - 10
+  FileWriteByte(self, UNIQUE_SPEED_OFFSET, speed & 255)
+  // Starwoven Sash: more max mana, fewer max hits...
+  wear = Worn(self, UQ_STARWOVEN_SASH)
+  if(wear && FileReadByte(self, UNIQUE_SASH_OFFSET) == 0)
+    mana = self.manamax >> 1
+    if(self.manamax + mana > 255)
+      mana = 255 - self.manamax
+    hits = self.hitsmax / 5
+    if(hits >= self.hitsmax)
+      hits = self.hitsmax - 1
+    self.manamax = self.manamax + mana
+    self.hitsmax = self.hitsmax - hits
+    if(self.hits > self.hitsmax - self.hitstap)
+      self.hits = self.hitsmax - self.hitstap
+    FileWriteByte(self, UNIQUE_MANA_OFFSET, mana)
+    FileWriteByte(self, UNIQUE_HITS_OFFSET, hits)
+    FileWriteByte(self, UNIQUE_SASH_OFFSET, 1)
+  if(!wear && FileReadByte(self, UNIQUE_SASH_OFFSET))
+    mana = FileReadByte(self, UNIQUE_MANA_OFFSET)
+    if(mana > self.manamax)
+      mana = self.manamax
+    self.manamax = self.manamax - mana
+    if(self.mana > self.manamax)
+      self.mana = self.manamax
+    self.hitsmax = self.hitsmax + FileReadByte(self, UNIQUE_HITS_OFFSET)
+    FileWriteByte(self, UNIQUE_MANA_OFFSET, 0)
+    FileWriteByte(self, UNIQUE_HITS_OFFSET, 0)
+    FileWriteByte(self, UNIQUE_SASH_OFFSET, 0)
+  // A wraith only stays while the Shroud is worn...
+  pet = Minion(self)
+  if(pet && FileReadByte(self, UNIQUE_MLEFT_OFFSET) == MINION_FOREVER)
+    if(!Worn(self, UQ_SHROUD_OF_THE_LICH))
+      Dismiss(self)
+  if(NeedsTimer(self))
+    StartTimer(self)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// TRUE if anything the character wears (or its minion) needs the timer...
+int NeedsTimer(int self)
+  if(ReadShort(self, UNIQUE_MINION_OFFSET))
+    return TRUE
+  if(ReadShort(self, UNIQUE_ROOM_OFFSET))
+    return TRUE
+  if(Worn(self, UQ_TEMPLARS_MANTLE) || Worn(self, UQ_CIRCLET_OF_STORMS) || Worn(self, UQ_SHROUD_OF_THE_LICH))
+    return TRUE
+  return FALSE
+
+//-----------------------------------------------------------------------
+// Once a second (EVENT_UNIQUE_TIMER)...
+int Tick(int self)
+  int left, wait, secs, room
+  if(self.hits == 0)
+    WriteShort(self, UNIQUE_TIMER_OFFSET, TICK_FRAMES)
+    return FALSE
+  secs = (FileReadByte(self, UNIQUE_TICK_OFFSET) + 1) & 255
+  FileWriteByte(self, UNIQUE_TICK_OFFSET, secs)
+  // Unbroken is ready again in a new room...
+  room = ReadShort(self, UNIQUE_ROOM_OFFSET)
+  if(room && room != SystemGet(SYS_MAPROOM, 0, MAP_ROOM_CURRENT) + 1)
+    WriteShort(self, UNIQUE_ROOM_OFFSET, 0)
+  // Auras...
+  if(Worn(self, UQ_TEMPLARS_MANTLE))
+    HolyAura(self)
+  if(Worn(self, UQ_CIRCLET_OF_STORMS))
+    if((secs & 1) == 0)
+      StormZap(self)
+  // Minions...
+  if(Minion(self))
+    left = FileReadByte(self, UNIQUE_MLEFT_OFFSET)
+    if(left != MINION_FOREVER)
+      left--
+      FileWriteByte(self, UNIQUE_MLEFT_OFFSET, left)
+      if(left <= 0)
+        Dismiss(self)
+  else
+    if(Worn(self, UQ_SHROUD_OF_THE_LICH))
+      wait = FileReadByte(self, UNIQUE_MWAIT_OFFSET)
+      if(wait > 0)
+        FileWriteByte(self, UNIQUE_MWAIT_OFFSET, wait - 1)
+      else
+        if(Summon(self, "FILE:CWRAITHE.RUN", 2, MINION_FOREVER))  // A sword wraith...
+          FileWriteByte(self, UNIQUE_MWAIT_OFFSET, WRAITH_WAIT)
+  Sync(self)
+  if(NeedsTimer(self))
+    WriteShort(self, UNIQUE_TIMER_OFFSET, TICK_FRAMES)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Templar's Mantle: undead foes nearby take 1 damage...
+int HolyAura(int self)
+  int i, who, any
+  float dx, dy
+  any = FALSE
+  i = 0
+  while(i < MAX_CHARACTER)
+    who = FindByIndex(i)
+    if(DWARFFX.Foe(self, who))
+      if(who.defwoun >= 50 && who.defwoun < 128)
+        dx = who.x - self.x
+        dy = who.y - self.y
+        if(dx*dx + dy*dy < AURA_RANGE*AURA_RANGE)
+          Hurt(who, DAMAGE_FIRE, 1, self)
+          PFLASH.Effect(who, "FILE:LITESPRK.RGB", 16777088, TRUE, 0.8)
+          any = TRUE
+    i++
+  return any
+
+//-----------------------------------------------------------------------
+// Circlet of Storms: zaps the nearest foe for 1 mana...
+int StormZap(int self)
+  int i, who, best
+  float dx, dy, sl, bestsl
+  if(self.mana < 1)
+    return FALSE
+  best = NULL
+  bestsl = ZAP_RANGE
+  i = 0
+  while(i < MAX_CHARACTER)
+    who = FindByIndex(i)
+    if(DWARFFX.Foe(self, who))
+      dx = who.x - self.x
+      dy = who.y - self.y
+      sl = sqrt(dx*dx + dy*dy)
+      if(sl < bestsl)
+        bestsl = sl
+        best = who
+    i++
+  if(!best)
+    return FALSE
+  self.mana = self.mana - 1
+  PlaySound("FILE:-SHOCK.RAW", 245 + RollDice(1, 20), 200)
+  DWARFFX.ZapAt(self, best)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// NOTE: The script compiler doesn't close an if() block that sits on the
+// very last line of a file, so files end with a function level line.
 //-----------------------------------------------------------------------
