@@ -32,7 +32,7 @@
 #define PARTICLE 1          //
 #define WINDOW 2            //
 
-#define CHARACTER_SIZE 688  // The number of bytes for a character's data (616 original + item extension block + unique item state)
+#define CHARACTER_SIZE 704  // The number of bytes for a character's data (616 original + item extension block + unique item state)
 #define PARTICLE_SIZE 88    // The number of bytes for a particle's data
 #define MAX_WINDOW 16       // The maximum number of windows a machine can have open
 #define WINDOW_SIZE 616     // The number of bytes for a window's data
@@ -48,9 +48,9 @@
 #define XITEM_SIZE       ((XITEM_LAST_SLOT-XITEM_FIRST_SLOT+1)*2)
 #define CHILL_OFFSET     666   // unsigned short...  Frames left of the Chilled status (0 = not chilled).  Not saved.
 #define CHILL_SPEED      0.55f // Movement multiplier while chilled
-// Unique items (UNIQUE.SRC)...  Characters carry 16 bytes of unique item state, saved with the game...
+// Unique items (UNIQUE.SRC)...  Characters carry 32 bytes of unique item state, saved with the game...
 #define UNIQUE_OFFSET       672   // Start of the unique item state block
-#define UNIQUE_SIZE         16
+#define UNIQUE_SIZE         32
 #define UNIQUE_TIMER_OFFSET 672   // unsigned short...  Counts down, calls EVENT_UNIQUE_TIMER at 0
 #define UNIQUE_SPEED_OFFSET 674   // signed char...  Walk speed percent from worn uniques
 #define MAX_UNIQUE          128   // Unique item numbers (each can drop a limited number of times per game)

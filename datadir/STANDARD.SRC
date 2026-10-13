@@ -1157,6 +1157,8 @@ int PetrifyCharacter(int character_index, int owner_index, int amount)
 
   target = FindByIndex(character_index)
   owner = FindByIndex(owner_index)
+  if(UNIQUE.Steadfast(target))
+    return FALSE  // Ironbrow...
   if(target && owner)
     if(!(target.sflags & SCRIPT_NO_PETRIFY) && (target.action != ACTION_KNOCK_OUT_BEGIN))
       oldpttimer = target.pttimer
@@ -1441,6 +1443,11 @@ DamageAction()
         if(self.combo >= 3)
           Dismount()
         self.combo = 0
+      if(UNIQUE.Steadfast(self))
+        // Ironbrow: no knock down or stun, unless we're out of hits...
+        self.combo = 0
+        if(self.hits > 0)
+          return 0
       if(self.hits < 1)
         // We're done for...  Knock out right away...
         self.combo = 3

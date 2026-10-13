@@ -617,6 +617,8 @@ int IconSwap(int icon1, int icon2)
         // Some items can't be sold...
         BuzzerSound()
         return FALSE
+      if(icon1 < 224)
+        price1 = UNIQUE.ShopPrice(binding, price1)  // Stride of Kings...
       if(icon1 < 224 && TestShopExt(icon1))
         // Test shop (unique-testing branch)...  Everything is free...
         price1 = 0
@@ -859,6 +861,8 @@ int RowIcon(int icon_index, float x, float y)
         if(price < 0)
           StringAppend(NAME_STRING, " (CANNOT SELL)", 256)
         else
+          if(icon_index < 224)
+            price = UNIQUE.ShopPrice(binding, price)  // Stride of Kings...
           if(icon_index >= 224)
             if(item_type != ITEM_GOLD_BAR)
               // Selling price of items is usually half of buying price...

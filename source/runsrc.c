@@ -3487,7 +3487,7 @@ sprintf(DEBUG_STRING, "Autotrim length == %f", autotrim_length);
                             size += 4 + (MAX_CHARACTER*XITEM_SIZE);
 
                             // Unique item state (per character) and how often each unique dropped...
-                            fwrite("UNIQ", 1, 4, savefile);
+                            fwrite("UNQ2", 1, 4, savefile);  // UNQ2: 32 bytes a character (UNIQ saves had 16)
                             repeat(i, MAX_CHARACTER)
                             {
                                 fwrite(main_character_data[i]+UNIQUE_OFFSET, 1, UNIQUE_SIZE, savefile);
@@ -3698,11 +3698,12 @@ sprintf(DEBUG_STRING, "Autotrim length == %f", autotrim_length);
                                 // Unique item state and drop counts, if this save has them...
                                 memset(unique_found, 0, MAX_UNIQUE);
                                 file_name[0] = 0;
-                                if(fread(file_name, 1, 4, loadfile) == 4 && file_name[0] == 'U' && file_name[1] == 'N' && file_name[2] == 'I' && file_name[3] == 'Q')
+                                if(fread(file_name, 1, 4, loadfile) == 4 && file_name[0] == 'U' && file_name[1] == 'N' && ((file_name[2] == 'I' && file_name[3] == 'Q') || (file_name[2] == 'Q' && file_name[3] == '2')))
                                 {
+                                    j = (file_name[2] == 'Q') ? UNIQUE_SIZE : 16;  // Older UNIQ saves kept 16 bytes a character
                                     repeat(i, MAX_CHARACTER)
                                     {
-                                        fread(main_character_data[i]+UNIQUE_OFFSET, 1, UNIQUE_SIZE, loadfile);
+                                        fread(main_character_data[i]+UNIQUE_OFFSET, 1, j, loadfile);
                                     }
                                     fread(unique_found, 1, MAX_UNIQUE, loadfile);
                                     fprintf(savelog,"   Unique item state loaded\n");
