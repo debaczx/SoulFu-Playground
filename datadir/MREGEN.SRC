@@ -15,15 +15,19 @@ int PlayerManaTimer()
   self.tetimer = TimerFor(self)
 
 //-----------------------------------------------------------------------
-// Frames between mana points...  The Archmage Robe (UNIQUE.SRC) speeds it up...
+// Frames between mana points...  The Archmage Robe (UNIQUE.SRC) and caster armour speed it up...
 int TimerFor(int self)
-  int timer
+  int timer, bonus
   if(self.class == CLASS_WIZARD)
     timer = (1800-(self.int*15))
   else
     timer = (1800-(self.int*10))
   if(UNIQUE.WearingRobe(self))
     timer = (timer*100) / (100+ROBE_MANA_REGEN)
+  bonus = KINDFX.ManaRegen(self)
+  if(bonus > 0)
+    // Caster armour line (KINDFX.SRC)...
+    timer = (timer*100) / (100+bonus)
   if(timer < 1)
     timer = 1
   return timer

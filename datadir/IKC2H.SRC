@@ -1,0 +1,21 @@
+//-----------------------------------------------------------------------
+// MYSTIC HOOD: caster line armour, tier 2 (item kind 32, KINDFX.SRC handles its look and bonus)
+int GetName()
+  STANDARD.ItemName("MYSTIC HOOD", NULL, 255, 0, 0, 0, 0)
+  KINDFX.ArmorName(XITEM.CurrentKind())
+
+//-----------------------------------------------------------------------
+// Called to get item's defense ratings
+int DefenseRating()
+  int variant
+  variant = SystemGet(SYS_ITEMINDEX, 0, 0) & 3
+  STANDARD.DefenseBoost(variant, 2)
+  SystemSet(SYS_DEFENSERATING, 0, DAMAGE_EDGE,  1)
+  SystemSet(SYS_DEFENSERATING, 0, DAMAGE_BASH,  0)
+  SystemSet(SYS_DEFENSERATING, 0, DAMAGE_FIRE,  2)
+  SystemSet(SYS_DEFENSERATING, 0, DAMAGE_ICE,   2)
+  SystemSet(SYS_DEFENSERATING, 0, DAMAGE_VOLT,  1)
+  SystemSet(SYS_DEFENSERATING, 0, DAMAGE_ACID,  1)
+  SystemSet(SYS_DEFENSERATING, 0, DAMAGE_WOUND, 0)
+
+//-----------------------------------------------------------------------

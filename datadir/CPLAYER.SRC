@@ -9,6 +9,7 @@ int ModelSetup()
   int flesh_color, foot_color
   int head_type, hat_type, mouth_type, tunic_type, pants_type, hair_type, skin_type, hair_color_index
   int helm_type, armor_type, legging_type
+  int base_steel, base_gold
   int subtype
   int openfile, offset
   self = FindSelf()
@@ -38,6 +39,11 @@ int ModelSetup()
   helm_type = self.eqhelm & 252
   armor_type = self.eqbody & 252
   legging_type = self.eqlegs & 252
+  // Armour kinds (caster, rogue, heavy lines) borrow a stock model and recolour it (KINDFX.SRC)...
+  // (An empty slot's extension is 0, so its kind is 0)
+  helm_type = KINDFX.ArmorLook(XITEM.Kind(self, 246), helm_type)
+  armor_type = KINDFX.ArmorLook(XITEM.Kind(self, 247), armor_type)
+  legging_type = KINDFX.ArmorLook(XITEM.Kind(self, 248), legging_type)
 
 
   // Figger which hair color the user wants...
@@ -140,6 +146,15 @@ int ModelSetup()
 
 
 
+  // Each armour piece can swap these colours for its kind's own...
+  base_steel = steel_color
+  base_gold = gold_color
+  steel_color = KINDFX.LookTex(XITEM.Kind(self, 246), LOOK_METAL, base_steel)
+  gold_color = KINDFX.LookTex(XITEM.Kind(self, 246), LOOK_TRIM, base_gold)
+  body_color_rgb = KINDFX.LookTex(XITEM.Kind(self, 246), LOOK_TINT, RGBColor(self.eqcol23 >> 4))
+  body_color_dull = KINDFX.LookTex(XITEM.Kind(self, 246), LOOK_CLOTH, DullColor(self.eqcol23 >> 4))
+  body_color_gloss = KINDFX.LookTex(XITEM.Kind(self, 246), LOOK_CLOTH_GLOSS, GlossColor(self.eqcol23 >> 4))
+  limb_color_dull = KINDFX.LookTex(XITEM.Kind(self, 246), LOOK_CLOTH, DullColor(self.eqcol23 & 15))
   // Give the character a head...
   if(helm_type >= ITEM_HELM_1 && helm_type <= ITEM_HELM_5)
     // Character is wearing a helm...
@@ -147,7 +162,7 @@ int ModelSetup()
       // Stuff for helm type 1
       ModelAssign(self+MODEL_HEAD_FILE, "FILE:PLRHELM0.RDY")
       ModelAssign(self+MODEL_HEAD_TEX0, flesh_color)
-      ModelAssign(self+MODEL_HEAD_TEX1, "FILE:DYELLOW.RGB")
+      ModelAssign(self+MODEL_HEAD_TEX1, KINDFX.LookTex(XITEM.Kind(self, 246), LOOK_LEATHER, "FILE:DYELLOW.RGB"))
       ModelAssign(self+MODEL_HEAD_TEX2, "FILE:DBLACK.RGB")
       ModelAssign(self+MODEL_HEAD_TEX3, "FILE:=ARMOR.RGB")
       ModelAssign(self+MODEL_HEAD_COLOR, body_color_rgb)
@@ -381,6 +396,12 @@ int ModelSetup()
         ModelAssign(self+MODEL_HAIR_COLOR, YELLOW)
 
 
+  steel_color = KINDFX.LookTex(XITEM.Kind(self, 247), LOOK_METAL, base_steel)
+  gold_color = KINDFX.LookTex(XITEM.Kind(self, 247), LOOK_TRIM, base_gold)
+  body_color_rgb = KINDFX.LookTex(XITEM.Kind(self, 247), LOOK_TINT, RGBColor(self.eqcol23 >> 4))
+  body_color_dull = KINDFX.LookTex(XITEM.Kind(self, 247), LOOK_CLOTH, DullColor(self.eqcol23 >> 4))
+  body_color_gloss = KINDFX.LookTex(XITEM.Kind(self, 247), LOOK_CLOTH_GLOSS, GlossColor(self.eqcol23 >> 4))
+  limb_color_dull = KINDFX.LookTex(XITEM.Kind(self, 247), LOOK_CLOTH, DullColor(self.eqcol23 & 15))
   // Give the character a chest and arms...
   if(armor_type >= ITEM_BODY_1 && armor_type <= ITEM_BODY_5)
     // Character is wearing armor...
@@ -388,7 +409,7 @@ int ModelSetup()
       // Stuff for armor type 1
       ModelAssign(self+MODEL_CHEST_FILE, "FILE:PLRBODY0.RDY")
       ModelAssign(self+MODEL_CHEST_TEX0, flesh_color)
-      ModelAssign(self+MODEL_CHEST_TEX1, "FILE:NYELLOW.RGB")
+      ModelAssign(self+MODEL_CHEST_TEX1, KINDFX.LookTex(XITEM.Kind(self, 247), LOOK_LEATHER_GLOSS, "FILE:NYELLOW.RGB"))
       ModelAssign(self+MODEL_CHEST_TEX2, body_color_gloss)
       ModelAssign(self+MODEL_CHEST_TEX3, "FILE:SHADBOD0.RGB")
       ModelAssign(self+MODEL_CHEST_COLOR, WHITE)
@@ -402,7 +423,7 @@ int ModelSetup()
 
       ModelAssign(self+MODEL_ARMS_FILE, "FILE:PLRARMS0.RDY")
       ModelAssign(self+MODEL_ARMS_TEX0, flesh_color)
-      ModelAssign(self+MODEL_ARMS_TEX1, "FILE:DYELLOW.RGB")
+      ModelAssign(self+MODEL_ARMS_TEX1, KINDFX.LookTex(XITEM.Kind(self, 247), LOOK_LEATHER, "FILE:DYELLOW.RGB"))
       ModelAssign(self+MODEL_ARMS_TEX2, limb_color_dull)
       ModelAssign(self+MODEL_ARMS_TEX3, "FILE:=ARMOR.RGB")
       ModelAssign(self+MODEL_ARMS_COLOR, WHITE)
@@ -594,6 +615,13 @@ int ModelSetup()
 
 
 
+  steel_color = KINDFX.LookTex(XITEM.Kind(self, 248), LOOK_METAL, base_steel)
+  gold_color = KINDFX.LookTex(XITEM.Kind(self, 248), LOOK_TRIM, base_gold)
+  body_color_rgb = KINDFX.LookTex(XITEM.Kind(self, 248), LOOK_TINT, RGBColor(self.eqcol23 >> 4))
+  body_color_dull = KINDFX.LookTex(XITEM.Kind(self, 248), LOOK_CLOTH, DullColor(self.eqcol23 >> 4))
+  body_color_gloss = KINDFX.LookTex(XITEM.Kind(self, 248), LOOK_CLOTH_GLOSS, GlossColor(self.eqcol23 >> 4))
+  limb_color_dull = KINDFX.LookTex(XITEM.Kind(self, 248), LOOK_CLOTH, DullColor(self.eqcol23 & 15))
+  foot_color = KINDFX.LookTex(XITEM.Kind(self, 248), LOOK_CLOTH, foot_color)
   // Give the character some legs and feet...
   if(legging_type >= ITEM_LEGS_1 && legging_type <= ITEM_LEGS_5)
     // Character is wearing leggings...
@@ -601,7 +629,7 @@ int ModelSetup()
       // Stuff for leggings type 1
       ModelAssign(self+MODEL_LEGS_FILE, "FILE:PLRLEGS0.RDY")
       ModelAssign(self+MODEL_LEGS_TEX0, "FILE:DBLACK.RGB")
-      ModelAssign(self+MODEL_LEGS_TEX1, "FILE:DYELLOW.RGB")
+      ModelAssign(self+MODEL_LEGS_TEX1, KINDFX.LookTex(XITEM.Kind(self, 248), LOOK_LEATHER, "FILE:DYELLOW.RGB"))
       ModelAssign(self+MODEL_LEGS_TEX2, foot_color)
       ModelAssign(self+MODEL_LEGS_TEX3, "FILE:SHADLEG0.RGB")
       ModelAssign(self+MODEL_LEGS_COLOR, WHITE)
@@ -751,6 +779,12 @@ int ModelSetup()
 
 
 
+  steel_color = KINDFX.LookTex(0, LOOK_METAL, base_steel)
+  gold_color = KINDFX.LookTex(0, LOOK_TRIM, base_gold)
+  body_color_rgb = KINDFX.LookTex(0, LOOK_TINT, RGBColor(self.eqcol23 >> 4))
+  body_color_dull = KINDFX.LookTex(0, LOOK_CLOTH, DullColor(self.eqcol23 >> 4))
+  body_color_gloss = KINDFX.LookTex(0, LOOK_CLOTH_GLOSS, GlossColor(self.eqcol23 >> 4))
+  limb_color_dull = KINDFX.LookTex(0, LOOK_CLOTH, DullColor(self.eqcol23 & 15))
   // Give the character some extra details, depending on class...
   // Not really a mouth...  Things more like ears and beards and stuff...
   if(mouth_type == 0)

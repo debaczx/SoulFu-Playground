@@ -24,3 +24,151 @@ int Blocked(int holder, int attacker)
   return FALSE
 
 //-----------------------------------------------------------------------
+// Armour lines (kinds KIND_ARMOR_FIRST to KIND_ARMOR_LAST)...  Kinds run caster, rogue,
+// heavy; each line has 3 tiers of helm, body and legs...
+//   Caster: mana regenerates faster (ManaRegen, MREGEN.SRC)
+//   Rogue:  KIND_FLAG_NIMBLE, walk ARMOR_SPEED_UP percent faster per piece (charact.c)
+//   Heavy:  KIND_FLAG_SLOW, walk ARMOR_SPEED_DOWN percent slower per piece (charact.c)
+int ArmorLine(int kind)
+  if(kind < KIND_ARMOR_FIRST || kind > KIND_ARMOR_LAST)
+    return -1
+  return ((kind - KIND_ARMOR_FIRST) / 9)
+
+//-----------------------------------------------------------------------
+int ArmorTier(int kind)
+  return (((kind - KIND_ARMOR_FIRST) / 3) % 3)
+
+//-----------------------------------------------------------------------
+// Mana regen percent of one caster piece...
+int PieceRegen(int kind)
+  int tier
+  if(ArmorLine(kind) != 0)
+    return 0
+  tier = ArmorTier(kind)
+  if(tier == 0)
+    return 10
+  if(tier == 1)
+    return 20
+  return 35
+
+//-----------------------------------------------------------------------
+// Total mana regen percent from the caster pieces a character wears...
+int ManaRegen(int who)
+  int total
+  total = 0
+  if(who.sflags & SCRIPT_ALLOW_HELM)
+    total = total + PieceRegen(XITEM.Kind(who, 246))
+  if(who.sflags & SCRIPT_ALLOW_BODY)
+    total = total + PieceRegen(XITEM.Kind(who, 247))
+  if(who.sflags & SCRIPT_ALLOW_LEGS)
+    total = total + PieceRegen(XITEM.Kind(who, 248))
+  return total
+
+//-----------------------------------------------------------------------
+// Appended to an armour kind's name...
+int ArmorName(int kind)
+  int line
+  line = ArmorLine(kind)
+  if(line == 0)
+    StringAppend(NAME_STRING, " (MANA REGEN +", 256)
+    StringAppendNumber(NAME_STRING, PieceRegen(kind), 256)
+    StringAppend(NAME_STRING, "%)", 256)
+  if(line == 1)
+    StringAppend(NAME_STRING, " (SPEED +", 256)
+    StringAppendNumber(NAME_STRING, ARMOR_SPEED_UP, 256)
+    StringAppend(NAME_STRING, "%)", 256)
+  if(line == 2)
+    StringAppend(NAME_STRING, " (SPEED -", 256)
+    StringAppendNumber(NAME_STRING, ARMOR_SPEED_DOWN, 256)
+    StringAppend(NAME_STRING, "%)", 256)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Stock armour model an armour kind is drawn with (CPLAYER.ModelSetup), as the
+// stock item number (ITEM_HELM_1 ...)...  def for anything else...
+int ArmorLook(int kind, int def)
+  int line, tier, slot, block
+  line = ArmorLine(kind)
+  if(line < 0)
+    return def
+  tier = ArmorTier(kind)
+  slot = (kind - KIND_ARMOR_FIRST) % 3
+  block = 0
+  if(line == 0)
+    if(tier == 2 && slot > 0)
+      block = 4
+  if(line == 1)
+    if(tier == 2)
+      block = 1
+    if(tier == 1 && slot > 0)
+      block = 1
+  if(line == 2)
+    block = 3
+    if(tier == 2)
+      block = 4
+  if(slot == 0)
+    return (ITEM_HELM_1 + (block << 2))
+  if(slot == 1)
+    return (ITEM_BODY_1 + (block << 2))
+  return (ITEM_LEGS_1 + (block << 2))
+
+//-----------------------------------------------------------------------
+// Colour texture (or tint) an armour kind uses for one material of its look...
+// field is LOOK_*, def is what the model uses without the kind...
+int LookTex(int kind, int field, int def)
+  int line, tier
+  line = ArmorLine(kind)
+  if(line < 0)
+    return def
+  tier = ArmorTier(kind)
+  if(line == 0)
+    // Caster: blue, purple, then crimson cloth...
+    if(field == LOOK_TINT)
+      return WHITE
+    if(field == LOOK_METAL || field == LOOK_TRIM)
+      return def
+    if(field == LOOK_LEATHER || field == LOOK_CLOTH)
+      if(tier == 0)
+        return "FILE:DBLUE.RGB"
+      if(tier == 1)
+        return "FILE:DPURPLE.RGB"
+      return "FILE:DRED.RGB"
+    if(tier == 0)
+      return "FILE:NBLUE.RGB"
+    if(tier == 1)
+      return "FILE:NPURPLE.RGB"
+    return "FILE:NRED.RGB"
+  if(line == 1)
+    // Rogue: dark leather, then black with dark (then violet) steel...
+    if(field == LOOK_TINT)
+      return WHITE
+    if(field == LOOK_TRIM)
+      return def
+    if(tier == 0)
+      if(field == LOOK_METAL)
+        return def
+      return "FILE:DBRONZE.RGB"
+    if(field == LOOK_METAL)
+      if(tier == 1)
+        return "FILE:DSTEEL.RGB"
+      return "FILE:DSTEEL1.RGB"
+    return "FILE:DSHADOW.RGB"
+  // Heavy: iron, bronze, then blackened ancient plate with a red cape...  Untinted, so the metal shows...
+  if(field == LOOK_TINT)
+    return WHITE
+  if(field == LOOK_METAL)
+    if(tier == 0)
+      return "FILE:IRON.RGB"
+    if(tier == 1)
+      return "FILE:BRONZE.RGB"
+    return def
+  if(tier == 2)
+    if(field == LOOK_TRIM)
+      return "FILE:DSTEEL.RGB"
+    if(field == LOOK_CLOTH)
+      return "FILE:DRED.RGB"
+    if(field == LOOK_CLOTH_GLOSS)
+      return "FILE:NRED.RGB"
+  return def
+
+//-----------------------------------------------------------------------

@@ -494,6 +494,7 @@
 #define KIND_FLAG_POLE_STANCE 1 // Held in both hands while the other hand is empty (stance and slash)
 #define KIND_FLAG_TWO_HANDED  2 // Heavy two-hander: equipping it moves the other hand's item to the pack (XITEM.TwoHandFix)
 #define KIND_FLAG_SLOW        8 // Slows the holder's walk to 80% (Tower Shield)
+#define KIND_FLAG_NIMBLE     16 // Armour piece: walk 4% faster per piece (rogue line)
 #define KIND_FLAG_RIGHT_HAND  4 // Right hand though the block is left-handed (crossbows on the Bow block)...  SYS_ITEMREGISTRYFLAGS with a key answers for it
 #define KIND_NONE           0
 #define KIND_SPEAR          1   // Stored on ITEM_DAGGER...  Never renumber kinds once released
@@ -524,7 +525,45 @@
 #define KIND_BUCKLER       26   // Shield block (IBUCKLER.SRC)
 #define KIND_TOWER_SHIELD  27   // Shield block (ITOWER.SRC), slows
 #define KIND_SPIKED_SHIELD 28   // Shield block (ISPIKSH.SRC)
-#define KIND_LAST          28   // Highest kind in use (test shop pages run through 1 to this)
+#define KIND_APPRENTICE_HOOD       29   // Helm block, caster line tier 1 (IKC1H.SRC)
+#define KIND_APPRENTICE_ROBE       30   // Body block, caster line tier 1 (IKC1B.SRC)
+#define KIND_APPRENTICE_SASH       31   // Legs block, caster line tier 1 (IKC1L.SRC)
+#define KIND_MYSTIC_HOOD           32   // Helm block, caster line tier 2 (IKC2H.SRC)
+#define KIND_MYSTIC_ROBE           33   // Body block, caster line tier 2 (IKC2B.SRC)
+#define KIND_MYSTIC_SASH           34   // Legs block, caster line tier 2 (IKC2L.SRC)
+#define KIND_ARCHON_HOOD           35   // Helm block, caster line tier 3 (IKC3H.SRC)
+#define KIND_ARCHON_VESTMENTS      36   // Body block, caster line tier 3 (IKC3B.SRC)
+#define KIND_ARCHON_SASH           37   // Legs block, caster line tier 3 (IKC3L.SRC)
+#define KIND_SCOUT_BANDANA         38   // Helm block, rogue line tier 1 (IKR1H.SRC)
+#define KIND_SCOUT_JERKIN          39   // Body block, rogue line tier 1 (IKR1B.SRC)
+#define KIND_SCOUT_BREECHES        40   // Legs block, rogue line tier 1 (IKR1L.SRC)
+#define KIND_SHADOW_HOOD           41   // Helm block, rogue line tier 2 (IKR2H.SRC)
+#define KIND_SHADOW_VEST           42   // Body block, rogue line tier 2 (IKR2B.SRC)
+#define KIND_SHADOW_BREECHES       43   // Legs block, rogue line tier 2 (IKR2L.SRC)
+#define KIND_NIGHTBLADE_MASK       44   // Helm block, rogue line tier 3 (IKR3H.SRC)
+#define KIND_NIGHTBLADE_LEATHERS   45   // Body block, rogue line tier 3 (IKR3B.SRC)
+#define KIND_NIGHTBLADE_BOOTS      46   // Legs block, rogue line tier 3 (IKR3L.SRC)
+#define KIND_IRON_GREATHELM        47   // Helm block, heavy line tier 1 (IKH1H.SRC)
+#define KIND_IRON_BRIGANDINE       48   // Body block, heavy line tier 1 (IKH1B.SRC)
+#define KIND_IRON_GREAVES          49   // Legs block, heavy line tier 1 (IKH1L.SRC)
+#define KIND_BASTION_HELM          50   // Helm block, heavy line tier 2 (IKH2H.SRC)
+#define KIND_BASTION_PLATE         51   // Body block, heavy line tier 2 (IKH2B.SRC)
+#define KIND_BASTION_GREAVES       52   // Legs block, heavy line tier 2 (IKH2L.SRC)
+#define KIND_JUGGERNAUT_HELM       53   // Helm block, heavy line tier 3 (IKH3H.SRC)
+#define KIND_JUGGERNAUT_PLATE      54   // Body block, heavy line tier 3 (IKH3B.SRC)
+#define KIND_JUGGERNAUT_GREAVES    55   // Legs block, heavy line tier 3 (IKH3L.SRC)
+#define KIND_ARMOR_FIRST   29   // Armour lines: 9 caster, 9 rogue, 9 heavy; each tier is helm, body, legs (KINDFX.SRC)
+#define KIND_ARMOR_LAST    55
+#define KIND_LAST          55   // Highest kind in use (test shop pages run through 1 to this)
+#define LOOK_METAL         1    // KINDFX.LookTex fields (armour kinds recolour the stock armour models)
+#define LOOK_TRIM          2
+#define LOOK_LEATHER       3
+#define LOOK_LEATHER_GLOSS 4
+#define LOOK_CLOTH         5
+#define LOOK_CLOTH_GLOSS   6
+#define LOOK_TINT          7
+#define ARMOR_SPEED_UP     4    // Percent per rogue armour piece (charact.c ARMOR_FAST_STEP)
+#define ARMOR_SPEED_DOWN   6    // Percent per heavy armour piece (charact.c ARMOR_SLOW_STEP)
 #define SYS_MODELCHECKHACK          255
 
 

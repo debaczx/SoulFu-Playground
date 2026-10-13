@@ -988,11 +988,25 @@ unsigned char twohand_pole(unsigned char* character_data, int slot)
 #define HEAVY_LEFT_STAND   51
 // Kinds with KIND_FLAG_SLOW (the Tower Shield) slow their holder's walk...
 #define KIND_SLOW_SPEED 0.8f
-unsigned char kind_slows(unsigned char* character_data)
+#define ARMOR_SLOW_STEP 0.06f   // Each heavy armour piece (KIND_FLAG_SLOW on helm, body or legs)
+#define ARMOR_FAST_STEP 0.04f   // Each nimble armour piece (KIND_FLAG_NIMBLE)
+// Walk speed multiplier from the kinds a character holds and wears...
+float kind_speed(unsigned char* character_data)
 {
-    if(character_data[242] && (item_kind_flags[item_ext_kind(xitem_get(character_data, 242))] & KIND_FLAG_SLOW)) return TRUE;
-    if(character_data[243] && (item_kind_flags[item_ext_kind(xitem_get(character_data, 243))] & KIND_FLAG_SLOW)) return TRUE;
-    return FALSE;
+    float speed;
+    int slot;
+    unsigned char flags;
+    speed = 1.0f;
+    for(slot = 246; slot <= 248; slot++)
+    {
+        if(character_data[slot] == 0) continue;
+        flags = item_kind_flags[item_ext_kind(xitem_get(character_data, slot))];
+        if(flags & KIND_FLAG_SLOW) speed -= ARMOR_SLOW_STEP;
+        if(flags & KIND_FLAG_NIMBLE) speed += ARMOR_FAST_STEP;
+    }
+    if(character_data[242] && (item_kind_flags[item_ext_kind(xitem_get(character_data, 242))] & KIND_FLAG_SLOW)) speed *= KIND_SLOW_SPEED;
+    else if(character_data[243] && (item_kind_flags[item_ext_kind(xitem_get(character_data, 243))] & KIND_FLAG_SLOW)) speed *= KIND_SLOW_SPEED;
+    return speed;
 }
 unsigned char twohand_heavy(unsigned char* character_data, int slot)
 {
@@ -1031,7 +1045,7 @@ void character_update_all()
     float* velocity_xyz;
     float* position_xyz;
     float velx, boxsize;
-    float vely;
+    float vely, kind_mult;
     float x, y;
     unsigned short rider;
     unsigned char can_swim;
@@ -2049,7 +2063,7 @@ void character_update_all()
                     velx = (velx + (velx*dexterity*0.02f));
                     vely = (vely + (vely*dexterity*0.02f));
                     if(chilled) { velx *= CHILL_SPEED;  vely *= CHILL_SPEED; }
-                    if(kind_slows(character_data)) { velx *= KIND_SLOW_SPEED;  vely *= KIND_SLOW_SPEED; }
+                    kind_mult = kind_speed(character_data);  velx *= kind_mult;  vely *= kind_mult;
 
                     velocity_xyz[X] = (*((float*) (character_data+108)))*velx + (*((float*) (character_data+120)))*vely;
                     velocity_xyz[Y] = (*((float*) (character_data+112)))*velx + (*((float*) (character_data+124)))*vely;

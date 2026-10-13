@@ -1,0 +1,21 @@
+//-----------------------------------------------------------------------
+// BASTION GREAVES: heavy line armour, tier 2 (item kind 52, KINDFX.SRC handles its look and bonus)
+int GetName()
+  STANDARD.ItemName("BASTION GREAVES", NULL, 255, 0, 0, 0, 0)
+  KINDFX.ArmorName(XITEM.CurrentKind())
+
+//-----------------------------------------------------------------------
+// Called to get item's defense ratings
+int DefenseRating()
+  int variant
+  variant = SystemGet(SYS_ITEMINDEX, 0, 0) & 3
+  STANDARD.DefenseBoost(variant, 1)
+  SystemSet(SYS_DEFENSERATING, 0, DAMAGE_EDGE,  4)
+  SystemSet(SYS_DEFENSERATING, 0, DAMAGE_BASH,  3)
+  SystemSet(SYS_DEFENSERATING, 0, DAMAGE_FIRE,  0)
+  SystemSet(SYS_DEFENSERATING, 0, DAMAGE_ICE,   0)
+  SystemSet(SYS_DEFENSERATING, 0, DAMAGE_VOLT,  2)
+  SystemSet(SYS_DEFENSERATING, 0, DAMAGE_ACID,  0)
+  SystemSet(SYS_DEFENSERATING, 0, DAMAGE_WOUND, 0)
+
+//-----------------------------------------------------------------------
