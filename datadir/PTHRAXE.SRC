@@ -1,0 +1,49 @@
+// Thrown Throwing Axe (ITHRAXE)...  Spins along an arc and chops whatever it hits...
+#define axe_type   self.misc5
+#define axe_damage self.misc6
+#define axe_wound  self.misc7
+
+//-----------------------------------------------------------------------
+int Effect(float x, float y, float z, float vx, float vy, float vz, int type, int damage, int wound)
+  int child
+  child = Spawn(PARTICLE, x, y, z, 0)
+  if(child)
+    child.vx = vx
+    child.vy = vy
+    child.vz = vz
+    child.image = "FILE:=THRAXE.RGB"
+    child.flags = PART_SPIN_ON | PART_WALL_COLLISION_ON | PART_CHAR_COLLISION_ON | PART_GRAVITY_ON
+    child.length = 1.4
+    child.width = 1.4
+    child.alpha = 255
+    child.misc5 = type
+    child.misc6 = damage
+    child.misc7 = wound
+    child.evtimer = 120  // Falls away if it never hits anything...
+  return child
+
+//-----------------------------------------------------------------------
+int Event()
+  int self, target
+
+  self = FindSelf()
+  if(DEFLECT.Event(255, 1.0, FALSE))
+    return TRUE
+  if(self.event == EVENT_TIMER)
+    GoPoof(POOF_SELF)
+  if(self.event == EVENT_HIT_WATER)
+    if(RoomWaterType() == WATER_TYPE_WATER)
+      PSPLASH.Effect(self.x, self.y, 0.5)
+    GoPoof(POOF_SELF)
+  if(self.event == EVENT_HIT_CHARACTER)
+    target = FindTarget()
+    if(target)
+      DamageTarget(axe_type, axe_damage, axe_wound)
+    PSPARK.Effect(self.lastx, self.lasty, self.lastz, 4, 3)
+    GoPoof(POOF_SELF)
+  if(self.event == EVENT_HIT_FLOOR || self.event == EVENT_HIT_WALL)
+    PlaySound("FILE:-BOW00.RAW", 300, 200)
+    GoPoof(POOF_SELF)
+
+
+//-----------------------------------------------------------------------

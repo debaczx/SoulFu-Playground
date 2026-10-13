@@ -1,0 +1,98 @@
+// Throwing Axe (KIND_THROWING_AXE, Hatchet block)...  Small bearded axe that's hurled at the
+// nearest foe instead of swung.  It spins through the air (PTHRAXE) and a fresh one is
+// always at hand, so it never runs out...
+#define DAMAGE_TYPE DAMAGE_EDGE
+#define DAMAGE_LOW  2
+#define DAMAGE_HIGH 4
+#define WOUND_LOW   1
+#define WOUND_HIGH  2
+
+//-----------------------------------------------------------------------
+int GetName()
+  STANDARD.ItemName("THROWING AXE", "THROWN", DAMAGE_TYPE, DAMAGE_LOW, DAMAGE_HIGH, WOUND_LOW, WOUND_HIGH)
+
+//-----------------------------------------------------------------------
+int FrameEvent()
+  return 0
+
+//-----------------------------------------------------------------------
+// Called when item is first used...  Throws the axe straight away (like a Gronnade)...
+int Event()
+  int self, grip, reload_time, dex, damage, wound, type, enchantment, child
+  float speed, vx, vy, vz
+
+  self = FindSelf()
+  grip = SystemGet(SYS_WEAPONGRIP, 0, 0)
+  if(self.action == ACTION_WALK || self.action == ACTION_STAND || self.action == ACTION_JUMP || self.action == ACTION_DOUBLE)
+    ButtonHandled()
+    if(grip == MODEL_LEFT_FILE && self.rltimer != 0)
+      return 0
+    if(grip == MODEL_RIGHT_FILE && self.rrtimer != 0)
+      return 0
+    dex = self.dex
+    if(dex > 50)
+      dex = 50
+    reload_time = WEAPON_RELOAD_LONG - ((dex*WEAPON_RELOAD_LONG)/50)
+    if(grip == MODEL_LEFT_FILE)
+      self.rltimer = reload_time
+    else
+      self.rrtimer = reload_time
+    self.action = ACTION_SPECIAL_2
+    self.daction = ACTION_STAND
+
+
+    // Damage, with the usual enchantment bonuses...
+    type = DAMAGE_TYPE
+    damage = RollDice(1, DAMAGE_HIGH-DAMAGE_LOW+1)+DAMAGE_LOW-1 + (self.str/10)
+    wound = RollDice(1, WOUND_HIGH-WOUND_LOW+1)+WOUND_LOW-1
+    enchantment = SystemGet(SYS_ITEMINDEX, 0, 0)&7
+    if(enchantment == WEAPON_VARIANT_MAGIC || enchantment == WEAPON_VARIANT_POISON)
+      damage++
+    if(enchantment == WEAPON_VARIANT_FIRE)
+      damage = damage + 2
+      type = DAMAGE_FIRE
+    if(enchantment == WEAPON_VARIANT_ICE)
+      damage = damage + 2
+      type = DAMAGE_ICE
+    if(enchantment == WEAPON_VARIANT_VOLT)
+      damage = damage + 2
+      type = DAMAGE_VOLT
+    if(enchantment == WEAPON_VARIANT_HOLY)
+      wound++
+    if(enchantment == WEAPON_VARIANT_UNHOLY)
+      damage = damage + 3
+
+
+    // Aim at the best enemy target...
+    speed = 1.1 + (0.006*self.str)
+    AutoAim(speed, 70.0, self.spin, self.team, dex, 8192 + (164*dex), AUTOAIM_CRUNCH_BALLISTIC)
+    vx = AutoAim(0.0, 0.0, 0, 0, 0, 0, AUTOAIM_X)
+    vy = AutoAim(0.0, 0.0, 0, 0, 0, 0, AUTOAIM_Y)
+    vz = AutoAim(0.0, 0.0, 0, 0, 0, 0, AUTOAIM_Z)
+    SetSpawnOwner(FindIndex(self))
+    SetSpawnTeam(self.team)
+    child = PTHRAXE.Effect(self.x, self.y, self.z+(self.height*0.6), vx, vy, vz, type, damage, wound)
+    PlaySound("FILE:SWIPE.RAW", 180 + RollDice(1, 50), 255)
+
+//-----------------------------------------------------------------------
+// Called to put item in character's hand
+int ModelSetup()
+  int self, grip
+
+  grip = SystemGet(SYS_WEAPONGRIP, 0, 0)
+  if(grip == MODEL_LEFT_FILE || grip == MODEL_RIGHT_FILE)
+    self = FindSelf()
+
+    ModelAssign(self+grip, "FILE:THRAXE.RDY")
+    ModelAssign(self+grip+4, "FILE:STEEL.RGB")
+    ModelAssign(self+grip+8, "FILE:=SPEAR.RGB")
+    XITEM.WeaponModelSetup(self, grip)  // Artifact texture, if any...
+    ModelAssign(self+grip+12, "FILE:LITESWIP.RGB")
+    ModelAssign(self+grip+16, "FILE:GOLD.RGB")
+    ModelAssign(self+grip+20, WHITE)
+
+//-----------------------------------------------------------------------
+int Refresh()
+  STANDARD.WeaponRefresh(100, 1.0)
+
+//-----------------------------------------------------------------------

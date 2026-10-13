@@ -508,7 +508,12 @@
 #define KIND_FLAMBERGE     12   // Great Sword block (IFLAMBRG.SRC), heavy two-hander
 #define KIND_GREAT_AXE     13   // Broad Axe block (IGRTAXE.SRC), heavy two-hander
 #define KIND_MAUL          14   // War Hammer block (IMAUL.SRC), heavy two-hander
-#define KIND_LAST          14   // Highest kind in use (test shop pages run through 1 to this)
+#define KIND_RAPIER        15   // Sword block (IRAPIER.SRC)
+#define KIND_SABRE         16   // Sword block (ISABRE.SRC)
+#define KIND_MORNING_STAR  17   // Mace block (IMSTAR.SRC)
+#define KIND_FLAIL         18   // Mace block (IFLAIL.SRC)
+#define KIND_THROWING_AXE  19   // Hatchet block (ITHRAXE.SRC), thrown (PTHRAXE.SRC)
+#define KIND_LAST          19   // Highest kind in use (test shop pages run through 1 to this)
 #define SYS_MODELCHECKHACK          255
 
 
