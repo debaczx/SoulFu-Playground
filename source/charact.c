@@ -982,9 +982,28 @@ unsigned char twohand_pole(unsigned char* character_data, int slot)
     if(character_data[slot] == 0) return FALSE;
     return (item_kind_flags[item_ext_kind(xitem_get(character_data, slot))] & KIND_FLAG_POLE_STANCE) ? TRUE : FALSE;
 }
+// Heavy two-handers (Claymore, Maul...) use their own guard stand/walk and a two-handed side swing
+// for every attack: 48/49/50 with the weapon in the right hand, 51/52/53 in the left...
+#define HEAVY_RIGHT_STAND  48
+#define HEAVY_LEFT_STAND   51
+unsigned char twohand_heavy(unsigned char* character_data, int slot)
+{
+    if(character_data[slot] == 0) return FALSE;
+    return (item_kind_flags[item_ext_kind(xitem_get(character_data, slot))] & KIND_FLAG_TWO_HANDED) ? TRUE : FALSE;
+}
 unsigned char twohand_action(unsigned char* character_data, unsigned short* action_first_frame, unsigned char action)
 {
-    unsigned char alt;
+    unsigned char alt, base;
+    base = 0;
+    if(twohand_heavy(character_data, 243)) base = HEAVY_RIGHT_STAND;
+    else if(twohand_heavy(character_data, 242)) base = HEAVY_LEFT_STAND;
+    if(base)
+    {
+        alt = 255;
+        if(action == ACTION_STAND || action == ACTION_WALK) alt = base + action - ACTION_STAND;
+        else if(action >= ACTION_BASH_LEFT && action <= ACTION_SLASH_RIGHT && (action & 1) == (base == HEAVY_RIGHT_STAND)) alt = base + 2;
+        if(alt != 255 && action_first_frame[alt] != 65535) return alt;
+    }
     if(action != ACTION_STAND && action != ACTION_WALK) return action;
     if(character_data[242] == 0 && twohand_pole(character_data, 243)) alt = action + TWOHAND_RIGHT_ADD;
     else if(character_data[243] == 0 && twohand_pole(character_data, 242)) alt = action + TWOHAND_LEFT_ADD;

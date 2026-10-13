@@ -51,6 +51,7 @@ unsigned short weapon_setup_grip = 0;  // For scripted ModelAssign() call to wea
 #define KIND_FIELD_BASE     7           // Plain item number the kind is stored on (price markup of enchants is relative to it)
 #define KIND_FIELD_FLAGS    8
 #define KIND_FLAG_POLE_STANCE 1         // Two-handed stand/walk poses while the other hand is empty
+#define KIND_FLAG_TWO_HANDED  2         // Heavy two-hander: guard stance and side swing (charact.c twohand_action)
 unsigned char* item_kind_script[MAX_ITEM_KIND];
 unsigned char* item_kind_icon[MAX_ITEM_KIND];
 signed short   item_kind_price[MAX_ITEM_KIND];
