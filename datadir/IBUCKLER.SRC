@@ -1,0 +1,73 @@
+// Buckler (KIND_BUCKLER, Shield block)...  Small fist shield.  Light, and a block readies an instant counter (KINDFX.Blocked).
+//-----------------------------------------------------------------------
+int GetName()
+  STANDARD.ItemName("BUCKLER", "QUICK COUNTER", 255, 0, 0, 0, 0)
+
+//-----------------------------------------------------------------------
+// Called to put item in character's hand
+int ModelSetup()
+  int self, grip, owner, class, type
+  grip = SystemGet(SYS_WEAPONGRIP, 0, 0)
+  if(grip == MODEL_LEFT_FILE || grip == MODEL_RIGHT_FILE)
+    self = FindSelf()
+    owner = FindOwner()
+    ModelAssign(self+grip, "FILE:BUCKLER.RDY")
+    ModelAssign(self+grip+4, "FILE:STEEL.RGB")
+    if(owner)
+      ModelAssign(self+grip+8, DullColor(owner.eqcol23>>4))
+    else
+      ModelAssign(self+grip+8, DullColor(self.eqcol23>>4))
+    ModelAssign(self+grip+12, "FILE:DSTEEL.RGB")
+    type = 0
+    if(self.team == TEAM_NEUTRAL || self.team == TEAM_GOOD)
+      type++
+      class = self.class
+      if(owner)
+        class = owner.class
+      if(class != CLASS_NONE)
+        type = type+(class>>1)
+    if(type == 0)
+      ModelAssign(self+grip+16, "FILE:=SHIELD0.RGB")
+    if(type == 1)
+      ModelAssign(self+grip+16, "FILE:=SHIELD1.RGB")
+    if(type == 2)
+      ModelAssign(self+grip+16, "FILE:=SHIELD2.RGB")
+    if(type == 3)
+      ModelAssign(self+grip+16, "FILE:=SHIELD3.RGB")
+    if(type == 4)
+      ModelAssign(self+grip+16, "FILE:=SHIELD4.RGB")
+    ModelAssign(self+grip+20, WHITE)
+
+//-----------------------------------------------------------------------
+int Event()
+  int grip, self
+  grip = SystemGet(SYS_WEAPONGRIP, 0, 0)
+  self = FindSelf()
+  if(self.action == ACTION_WALK || self.action == ACTION_STAND || self.action == ACTION_JUMP || self.action == ACTION_DOUBLE)
+    if(grip == MODEL_LEFT_FILE)
+      self.action = ACTION_BLOCK_BEGIN
+      self.daction = ACTION_BLOCK
+      ButtonPress(BUTTON_HANDLED, 0, 0)
+
+//-----------------------------------------------------------------------
+int Unpressed()
+  int self
+  self = FindSelf()
+  if(self.action == ACTION_BLOCK || self.action == ACTION_BLOCK_BEGIN)
+    self.action = ACTION_BLOCK_END
+    self.daction = ACTION_STAND
+
+//-----------------------------------------------------------------------
+int DefenseRating()
+  int variant
+  variant = SystemGet(SYS_ITEMINDEX, 0, 0) & 3
+  STANDARD.DefenseBoost(variant, 1)
+  SystemSet(SYS_DEFENSERATING, 0, DAMAGE_EDGE,  1)
+  SystemSet(SYS_DEFENSERATING, 0, DAMAGE_BASH,  0)
+  SystemSet(SYS_DEFENSERATING, 0, DAMAGE_FIRE,  0)
+  SystemSet(SYS_DEFENSERATING, 0, DAMAGE_ICE,   0)
+  SystemSet(SYS_DEFENSERATING, 0, DAMAGE_VOLT,  0)
+  SystemSet(SYS_DEFENSERATING, 0, DAMAGE_ACID,  0)
+  SystemSet(SYS_DEFENSERATING, 0, DAMAGE_WOUND, 0)
+
+//-----------------------------------------------------------------------

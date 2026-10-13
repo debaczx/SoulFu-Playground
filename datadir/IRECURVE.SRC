@@ -1,0 +1,110 @@
+// Recurve Bow (KIND_RECURVE, Bow block)...  Short bow with curled tips.  Quick to draw: fast shots, normal arrows.
+#define SPEED_BONUS  0.15   // Added to the arrow's launch speed
+#define DAMAGE_BONUS 0   // Extra arrow damage (PARROW reads it from bits 3-4 of misc7)
+#define RELOAD       WEAPON_RELOAD_SHORT
+
+//-----------------------------------------------------------------------
+int GetName()
+  int enchantment, damage_type, damage_low, damage_high, binding, strength
+  enchantment = SystemGet(SYS_ITEMINDEX, 0, 0) & 3
+  damage_type = DAMAGE_EDGE
+  damage_low = 1 + DAMAGE_BONUS + 0
+  damage_high = 3 + DAMAGE_BONUS + 0
+  strength = 0
+  binding = FindBinding()
+  if(binding)
+    strength = binding.str
+  if(enchantment == WEAPON_VARIANT_MAGIC)
+    damage_low++
+    damage_high++
+  if(enchantment == WEAPON_VARIANT_FIRE)
+    damage_type = DAMAGE_FIRE
+    damage_low = damage_low+2
+    damage_high = damage_high+2
+  if(enchantment == WEAPON_VARIANT_ICE)
+    damage_type = DAMAGE_ICE
+    damage_low = damage_low+2
+    damage_high = damage_high+2
+  damage_low = damage_low + (strength/10)
+  damage_high = damage_high + (strength/10)
+  STANDARD.ItemName("RECURVE BOW", NULL, damage_type, damage_low, damage_high, 1, 1)
+
+//-----------------------------------------------------------------------
+// Called to put item in character's hand
+int ModelSetup()
+  int self, grip
+  grip = SystemGet(SYS_WEAPONGRIP, 0, 0)
+  if(grip == MODEL_LEFT_FILE)
+    self = FindSelf()
+    ModelAssign(self+grip, "FILE:RECURVE.RDY")
+    ModelAssign(self+grip+4, "FILE:=BOWDARK.RGB")
+    ModelAssign(self+grip+8, "FILE:GOLD.RGB")
+    ModelAssign(self+grip+12, "FILE:=HAMMER.RGB")
+    ModelAssign(self+grip+16, "FILE:=ARROW.RGB")
+    ModelAssign(self+grip+20, WHITE)
+    XITEM.WeaponModelSetup(self, grip)  // Artifact texture, if any...
+    IQUIVER.ModelTweak()
+
+//-----------------------------------------------------------------------
+// Called when attack particle is supposed to be spawned
+int FrameEvent()
+  int self, dex, type, str, child
+  float speed, vx, vy, vz
+  self = FindSelf()
+  dex = self.dex
+  if(dex > 50)
+    dex = 50
+  str = self.str
+  if(str > 50)
+    str = 50
+  speed = 1.0 + (0.006*str) + SPEED_BONUS
+  AutoAim(speed, 70.0, self.spin, self.team, dex, 8192 + (164*dex), AUTOAIM_CRUNCH_BALLISTIC)
+  vx = AutoAim(0.0, 0.0, 0, 0, 0, 0, AUTOAIM_X)
+  vy = AutoAim(0.0, 0.0, 0, 0, 0, 0, AUTOAIM_Y)
+  vz = AutoAim(0.0, 0.0, 0, 0, 0, 0, AUTOAIM_Z)
+  type = (SystemGet(SYS_ITEMINDEX, 0, 0) & 3) | 0
+  child = PARROW.Effect(type, vx, vy, vz, TRUE)
+  if(child)
+    child.misc7 = child.misc7 | (DAMAGE_BONUS << 3)
+    child.xhand = 1  // Bows are always left hand...
+
+//-----------------------------------------------------------------------
+// Called when item is first used, to start proper animation
+int Event()
+  int self, grip, reload_time, dex, i, item_type, found, index
+  self = FindSelf()
+  grip = SystemGet(SYS_WEAPONGRIP, 0, 0)
+  reload_time = RELOAD
+  dex = self.dex
+  if(dex > 50)
+    dex = 50
+  reload_time = reload_time - ((dex*reload_time)/50)
+  if(self.action == ACTION_WALK || self.action == ACTION_STAND || self.action == ACTION_JUMP || self.action == ACTION_DOUBLE)
+    if(grip == MODEL_LEFT_FILE)
+      if(self.rltimer == 0)
+        found = FALSE
+        i = 224
+        while(i < 246)
+          if(i != 240 && i != 241)
+            item_type = FileReadByte(self, i)
+            if(item_type >= ITEM_QUIVER_10 && item_type <= ITEM_QUIVER_1)
+              found = TRUE
+              i = 255
+          i++
+        index = FindIndex(self)
+        SystemSet(SYS_CHARFASTFUNCTION, index, 0, FAST_FUNCTION_MODELSETUP)
+        SystemSet(SYS_CHARFASTFUNCTION, index, 0, FAST_FUNCTION_DEFENSERATING)
+        if(found)
+          ModelAssign(self+MODEL_LEFT_FILE+16, "FILE:=ARROW.RGB")
+        else
+          ModelAssign(self+MODEL_LEFT_FILE+16, "FILE:=ARROWX.RGB")
+        self.action = ACTION_BOW_LEFT
+        self.daction = ACTION_STAND
+        self.rltimer = reload_time
+        ButtonHandled()
+
+//-----------------------------------------------------------------------
+int Refresh()
+  IBOW.Refresh()
+
+//-----------------------------------------------------------------------

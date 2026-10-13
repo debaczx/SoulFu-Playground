@@ -504,9 +504,11 @@ int IconSwap(int icon1, int icon2)
   if(icon2 == 255)
     if(icon1 < 224)
       value1 = FileReadByte(self, icon1)
+      key1 = value1
     else
       value1 = FileReadByte(from_binding, icon1)
-    flags1 = SystemGet(SYS_ITEMREGISTRYFLAGS, value1, 0) & GetSlotFlags(icon2)
+      key1 = XITEM.SlotKey(from_binding, icon1, value1)
+    flags1 = SystemGet(SYS_ITEMREGISTRYFLAGS, key1, 0) & GetSlotFlags(icon2)
     if(flags1 & ITEM_FLAG_WEAPON)
       icon2 = 243
     if(flags1 & ITEM_FLAG_SPECIAL)
@@ -593,8 +595,8 @@ int IconSwap(int icon1, int icon2)
 
 
   // Check flags to make sure swap is okay...
-  flags1 = SystemGet(SYS_ITEMREGISTRYFLAGS, value1, 0) & GetSlotFlags(icon2)
-  flags2 = SystemGet(SYS_ITEMREGISTRYFLAGS, value2, 0) & GetSlotFlags(icon1)
+  flags1 = SystemGet(SYS_ITEMREGISTRYFLAGS, key1, 0) & GetSlotFlags(icon2)  // Keys, so crossbows go in the right hand...
+  flags2 = SystemGet(SYS_ITEMREGISTRYFLAGS, key2, 0) & GetSlotFlags(icon1)
   if(icon1 < 224 && icon2 >= 224 && icon2 < 240 && TestShopExt(icon1))
     // Test shop (unique-testing branch)...  Cores have no slot flags, but can go in the backpack...
     flags1 = 65535

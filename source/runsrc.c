@@ -4285,8 +4285,13 @@ sprintf(DEBUG_STRING, "Autotrim length == %f", autotrim_length);
                     case SYS_ITEMREGISTRYFLAGS:
                         // Returns an item's flags...
                         // j is the item type index number...
-                        j = (j%MAX_ITEM_TYPE);
-                        i = item_type_flags[j];
+                        // The item's extension may ride in bits 8-23: a KIND_FLAG_RIGHT_HAND kind
+                        // (crossbows on the Bow block) goes in the right hand instead of the left...
+                        i = item_type_flags[(j & 255)];
+                        if(item_kind_flags[item_ext_kind((unsigned short) ((((uintptr_t) j) >> 8) & 65535))] & KIND_FLAG_RIGHT_HAND)
+                        {
+                            i = (i & ~2) | 128;   // ITEM_FLAG_LEFT -> ITEM_FLAG_RIGHT
+                        }
                         break;
                     case SYS_ITEMREGISTRYSTR:
                         // Returns an item's minimum strength requirement...

@@ -1,0 +1,88 @@
+// Blunderbuss (KIND_BLUNDERBUSS, Gonne block)...  Flared brass gonne that sprays a wide, short
+// cone of shot: one round of ammo, five pellets...  Fired like the Gonne...
+#define MUZZLE_OUT   1.8
+#define PELLETS      5
+#define SMOKE_COLOR  (128)
+
+//-----------------------------------------------------------------------
+int GetName()
+  STANDARD.ItemName("BLUNDERBUSS", "SPREAD", DAMAGE_EDGE, 2, 3, 1, 1)
+
+//-----------------------------------------------------------------------
+int ModelSetup()
+  int self, grip
+  grip = SystemGet(SYS_WEAPONGRIP, 0, 0)
+  if(grip == MODEL_RIGHT_FILE)
+    self = FindSelf()
+    ModelAssign(self+grip, "FILE:BLUNDER.RDY")
+    ModelAssign(self+grip+4, "FILE:DULL.RGB")
+    ModelAssign(self+grip+8, "FILE:=SPEAR.RGB")
+    ModelAssign(self+grip+12, "FILE:LITESWIP.RGB")
+    ModelAssign(self+grip+16, "FILE:GOLD.RGB")
+    ModelAssign(self+grip+20, WHITE)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Called when the shot goes off (Gonne animation)...
+int FrameEvent()
+  int self, dex, i, child
+  float dx, dy, dz, length, sx, sy, a, tx, ty, x, y, z
+  self = FindSelf()
+  if(IGONNE.UseAmmo(self, 1) == 0)
+    ButtonSound()
+    self.action = ACTION_GONNE_NO_AMMO
+    return FALSE
+  dex = self.dex
+  if(dex > 50)
+    dex = 50
+  AutoAim(1.5, 0.0, self.spin, self.team, dex, 8192 + (164*dex), AUTOAIM_CRUNCH)
+  dx = AutoAim(0.0, 0.0, 0, 0, 0, 0, AUTOAIM_X)
+  dy = AutoAim(0.0, 0.0, 0, 0, 0, 0, AUTOAIM_Y)
+  dz = AutoAim(0.0, 0.0, 0, 0, 0, 0, AUTOAIM_Z)
+  length = sqrt(dx*dx + dy*dy + dz*dz)
+  if(length < 0.01)
+    dx = self.frontx
+    dy = self.fronty
+    dz = 0.0
+    length = 1.0
+  dx = dx/length
+  dy = dy/length
+  dz = dz/length
+  sx = -dy
+  sy = dx
+  x = self.x + (self.frontx*MUZZLE_OUT)
+  y = self.y + (self.fronty*MUZZLE_OUT)
+  z = self.z + (self.height*0.55)
+
+
+  // Bang...
+  PlaySound("FILE:BAD3.RAW", 160 + RollDice(1, 30), 255)
+  PCASING.Effect(0, self.x + (self.frontx*0.8), self.y + (self.fronty*0.8), z)
+  PEMBER.Effect(x, y, z, dx*0.05, dy*0.05, 0.0, 2.0, 192, 12, "FILE:FIRE0.RGB")
+  PEXPLODE.Effect(x, y, z, (0.3*dx), (0.3*dy), 0.0, DAMAGE_FIRE, 0, 0, FindIndex(self), self.team, NULL, SMOKE_COLOR, 48)
+  i = 0
+  while(i < PELLETS)
+    a = (i - 2)*0.22
+    tx = dx + (sx*a)
+    ty = dy + (sy*a)
+    child = PATTACK.Effect(x, y, z, tx*0.6, ty*0.6, dz*0.6, DAMAGE_EDGE, 2 + RollDice(1, 2) - 1, 1, 1.0, 0.15, 14, 0)
+    i++
+  i = 0
+  while(i < 10)
+    a = (RollDice(1, 100) - 50) * 0.012
+    tx = (dx + (sx*a)) * (0.25 + (RollDice(1, 100)*0.004))
+    ty = (dy + (sy*a)) * (0.25 + (RollDice(1, 100)*0.004))
+    PSMOKE.Effect(x, y, z, tx, ty, (RollDice(1, 100)-50)*0.002, 0.8, 0.08, FALSE, SMOKE_COLOR, 200, 18)
+    i++
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Called when item is first used...  Same as the Gonne...
+int Event()
+  IGONNE.Event()
+
+//-----------------------------------------------------------------------
+int Refresh()
+  return 0
+
+//-----------------------------------------------------------------------

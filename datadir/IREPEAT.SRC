@@ -1,0 +1,123 @@
+// Repeater (KIND_REPEATER, Bow block, right hand)...  Magazine crossbow: looses three light bolts at once.
+// Shot with the Gonne's aim-and-fire animation, using arrows from quivers...
+#define SPEED        1.6
+#define DAMAGE_BONUS 0   // Extra bolt damage (PARROW reads it from bits 3-4 of misc7)
+#define BOLTS        3
+#define RELOAD       WEAPON_RELOAD_LONG
+#define MUZZLE_OUT   1.6
+
+//-----------------------------------------------------------------------
+int GetName()
+  int enchantment, damage_type, damage_low, damage_high
+  enchantment = SystemGet(SYS_ITEMINDEX, 0, 0) & 3
+  damage_type = DAMAGE_EDGE
+  damage_low = 1 + DAMAGE_BONUS
+  damage_high = 3 + DAMAGE_BONUS
+  if(enchantment == WEAPON_VARIANT_MAGIC)
+    damage_low++
+    damage_high++
+  if(enchantment == WEAPON_VARIANT_FIRE)
+    damage_type = DAMAGE_FIRE
+    damage_low = damage_low+2
+    damage_high = damage_high+2
+  if(enchantment == WEAPON_VARIANT_ICE)
+    damage_type = DAMAGE_ICE
+    damage_low = damage_low+2
+    damage_high = damage_high+2
+  STANDARD.ItemName("REPEATER", "3 BOLTS", damage_type, damage_low, damage_high, 1, 1)
+
+//-----------------------------------------------------------------------
+int ModelSetup()
+  int self, grip
+  grip = SystemGet(SYS_WEAPONGRIP, 0, 0)
+  if(grip == MODEL_RIGHT_FILE)
+    self = FindSelf()
+    ModelAssign(self+grip, "FILE:REPEATER.RDY")
+    ModelAssign(self+grip+4, "FILE:STEEL.RGB")
+    ModelAssign(self+grip+8, "FILE:=SPEAR.RGB")
+    XITEM.WeaponModelSetup(self, grip)  // Artifact texture, if any...
+    ModelAssign(self+grip+12, "FILE:LITESWIP.RGB")
+    ModelAssign(self+grip+16, "FILE:GOLD.RGB")
+    ModelAssign(self+grip+20, WHITE)
+
+//-----------------------------------------------------------------------
+// Takes up to count arrows from the quivers...  Returns how many it found...
+int UseArrows(int self, int count)
+  int i, used, item_type
+  used = 0
+  i = 224
+  while(i < 246)
+    item_type = ITEM_NONE
+    if(i != 240 && i != 241)
+      item_type = FileReadByte(self, i)
+    if(used < count && item_type >= ITEM_QUIVER_10 && item_type <= ITEM_QUIVER_1)
+      if(item_type == ITEM_QUIVER_1)
+        item_type = ITEM_NONE
+      else
+        item_type++
+      FileWriteByte(self, i, item_type)
+      used++
+    else
+      i++
+  return used
+
+//-----------------------------------------------------------------------
+// Called when the bolt is loosed (Gonne animation)...
+int FrameEvent()
+  int self, dex, type, used, i, child, index
+  float vx, vy, vz, length, sx, sy, a, x, y, z
+  self = FindSelf()
+  dex = self.dex
+  if(dex > 50)
+    dex = 50
+  used = UseArrows(self, BOLTS)
+  if(used == 0)
+    PlaySound("FILE:-BOW00.RAW", 256, 255)
+    self.action = ACTION_GONNE_NO_AMMO
+    return FALSE
+  AutoAim(SPEED, 70.0, self.spin, self.team, dex, 8192 + (164*dex), AUTOAIM_CRUNCH_BALLISTIC)
+  vx = AutoAim(0.0, 0.0, 0, 0, 0, 0, AUTOAIM_X)
+  vy = AutoAim(0.0, 0.0, 0, 0, 0, 0, AUTOAIM_Y)
+  vz = AutoAim(0.0, 0.0, 0, 0, 0, 0, AUTOAIM_Z)
+  sx = -vy * 0.08
+  sy = vx * 0.08
+  x = self.x + (self.frontx*MUZZLE_OUT)
+  y = self.y + (self.fronty*MUZZLE_OUT)
+  z = self.z + (self.height*0.55)
+  index = FindIndex(self)
+  type = SystemGet(SYS_ITEMINDEX, 0, 0) & 3
+  PlaySound("FILE:-BOW01.RAW", 350, 255)
+  i = 0
+  while(i < used)
+    a = i - ((used-1)*0.5)
+    SetSpawnTarget(65535)
+    child = PARROW.FullEffect(type, x, y, z, vx + (sx*a), vy + (sy*a), vz, self.team, index)
+    if(child)
+      child.misc7 = child.misc7 | (DAMAGE_BONUS << 3)
+      child.xhand = 2  // Right hand
+    i++
+  return TRUE
+
+//-----------------------------------------------------------------------
+int Event()
+  int self, grip, reload_time, dex
+  self = FindSelf()
+  grip = SystemGet(SYS_WEAPONGRIP, 0, 0)
+  reload_time = RELOAD
+  dex = self.dex
+  if(dex > 50)
+    dex = 50
+  reload_time = reload_time - ((dex*reload_time)/50)
+  if(self.action == ACTION_WALK || self.action == ACTION_STAND || self.action == ACTION_JUMP || self.action == ACTION_DOUBLE)
+    if(grip == MODEL_RIGHT_FILE)
+      if(self.rrtimer == 0)
+        self.rrtimer = reload_time
+        self.action = ACTION_GONNE_RIGHT
+        self.daction = ACTION_STAND
+        ButtonHandled()
+
+//-----------------------------------------------------------------------
+int Refresh()
+  IBOW.Refresh()
+
+//-----------------------------------------------------------------------

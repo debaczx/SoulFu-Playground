@@ -1,0 +1,26 @@
+// Effects for item kinds that don't fit in their item scripts...
+
+//-----------------------------------------------------------------------
+// Called from PATTACK when a melee attack is blocked (holder = blocker, attacker = attacker)...
+//   Buckler:       the block readies an instant counter (right-hand reload cleared)
+//   Spiked Shield: the attacker is stabbed by the spike
+int Blocked(int holder, int attacker)
+  int kind, child
+  if(holder.eqleft < ITEM_SHIELD || holder.eqleft > (ITEM_SHIELD+3))
+    return FALSE
+  kind = XITEM.Kind(holder, 242)
+  if(kind == KIND_BUCKLER)
+    holder.rrtimer = 0
+    PSPARK.Effect(holder.x + holder.frontx, holder.y + holder.fronty, holder.z + (holder.height*0.6), 4, 2)
+    return TRUE
+  if(kind == KIND_SPIKED_SHIELD)
+    if(attacker.team != holder.team && attacker.hits > 0)
+      child = PATTACK.Effect(attacker.x, attacker.y, attacker.z + (attacker.height*0.5), 0.0, 0.0, 0.0, DAMAGE_EDGE, 1 + RollDice(1, 2), 1, 1.5, 0.0, 3, 0)
+      if(child)
+        child.owner = FindIndex(holder)
+        child.team = holder.team
+      PSPARK.Effect(attacker.x, attacker.y, attacker.z + (attacker.height*0.6), 6, 1)
+    return TRUE
+  return FALSE
+
+//-----------------------------------------------------------------------

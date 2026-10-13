@@ -986,6 +986,14 @@ unsigned char twohand_pole(unsigned char* character_data, int slot)
 // for every attack: 48/49/50 with the weapon in the right hand, 51/52/53 in the left...
 #define HEAVY_RIGHT_STAND  48
 #define HEAVY_LEFT_STAND   51
+// Kinds with KIND_FLAG_SLOW (the Tower Shield) slow their holder's walk...
+#define KIND_SLOW_SPEED 0.8f
+unsigned char kind_slows(unsigned char* character_data)
+{
+    if(character_data[242] && (item_kind_flags[item_ext_kind(xitem_get(character_data, 242))] & KIND_FLAG_SLOW)) return TRUE;
+    if(character_data[243] && (item_kind_flags[item_ext_kind(xitem_get(character_data, 243))] & KIND_FLAG_SLOW)) return TRUE;
+    return FALSE;
+}
 unsigned char twohand_heavy(unsigned char* character_data, int slot)
 {
     if(character_data[slot] == 0) return FALSE;
@@ -2041,6 +2049,7 @@ void character_update_all()
                     velx = (velx + (velx*dexterity*0.02f));
                     vely = (vely + (vely*dexterity*0.02f));
                     if(chilled) { velx *= CHILL_SPEED;  vely *= CHILL_SPEED; }
+                    if(kind_slows(character_data)) { velx *= KIND_SLOW_SPEED;  vely *= KIND_SLOW_SPEED; }
 
                     velocity_xyz[X] = (*((float*) (character_data+108)))*velx + (*((float*) (character_data+120)))*vely;
                     velocity_xyz[Y] = (*((float*) (character_data+112)))*velx + (*((float*) (character_data+124)))*vely;

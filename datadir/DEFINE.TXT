@@ -493,6 +493,8 @@
 #define KIND_FIELD_FLAGS    8
 #define KIND_FLAG_POLE_STANCE 1 // Held in both hands while the other hand is empty (stance and slash)
 #define KIND_FLAG_TWO_HANDED  2 // Heavy two-hander: equipping it moves the other hand's item to the pack (XITEM.TwoHandFix)
+#define KIND_FLAG_SLOW        8 // Slows the holder's walk to 80% (Tower Shield)
+#define KIND_FLAG_RIGHT_HAND  4 // Right hand though the block is left-handed (crossbows on the Bow block)...  SYS_ITEMREGISTRYFLAGS with a key answers for it
 #define KIND_NONE           0
 #define KIND_SPEAR          1   // Stored on ITEM_DAGGER...  Never renumber kinds once released
 #define KIND_STILETTO       2   // Dagger block (ISTILETO.SRC)
@@ -513,7 +515,16 @@
 #define KIND_MORNING_STAR  17   // Mace block (IMSTAR.SRC)
 #define KIND_FLAIL         18   // Mace block (IFLAIL.SRC)
 #define KIND_THROWING_AXE  19   // Hatchet block (ITHRAXE.SRC), thrown (PTHRAXE.SRC)
-#define KIND_LAST          19   // Highest kind in use (test shop pages run through 1 to this)
+#define KIND_RECURVE       20   // Bow block (IRECURVE.SRC)
+#define KIND_COMPOSITE     21   // Bow block (ICOMPBOW.SRC)
+#define KIND_LIGHT_CROSSBOW 22  // Bow block, right hand (ILXBOW.SRC)
+#define KIND_HEAVY_CROSSBOW 23  // Bow block, right hand (IHXBOW.SRC)
+#define KIND_REPEATER      24   // Bow block, right hand (IREPEAT.SRC)
+#define KIND_BLUNDERBUSS   25   // Gonne (no enchant block) (IBLUNDER.SRC)
+#define KIND_BUCKLER       26   // Shield block (IBUCKLER.SRC)
+#define KIND_TOWER_SHIELD  27   // Shield block (ITOWER.SRC), slows
+#define KIND_SPIKED_SHIELD 28   // Shield block (ISPIKSH.SRC)
+#define KIND_LAST          28   // Highest kind in use (test shop pages run through 1 to this)
 #define SYS_MODELCHECKHACK          255
 
 
