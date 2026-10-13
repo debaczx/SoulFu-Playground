@@ -128,6 +128,47 @@ int IdFor(int item, int kind)
   return 0
 
 //-----------------------------------------------------------------------
+// Highest unique number in use (the test shop runs through 1 to this)...
+int Last()
+  return UQ_LAST
+
+//-----------------------------------------------------------------------
+// Item key (item | (raw_ext<<8)) of a unique, as a chest would give it...
+// New uniques need a line here too (the test shop stocks them from it)...
+int KeyOf(int uq)
+  if(uq == UQ_NIGHTS_EDGE)
+    return MakeKey(ITEM_OBSIDIAN_BLADE, 0)
+  if(uq == UQ_MEDUSAS_MIRROR)
+    return MakeKey(ITEM_MIRROR_SHIELD, 0)
+  if(uq == UQ_THORNBACK)
+    return MakeKey(ITEM_SHIELD, KIND_SPIKED_SHIELD)
+  if(uq == UQ_UNBROKEN)
+    return MakeKey(ITEM_BODY_4, 0)
+  if(uq == UQ_HOOD_OF_WHISPERS)
+    return MakeKey(ITEM_HELM_1, KIND_APPRENTICE_HOOD)
+  if(uq == UQ_TEMPLARS_MANTLE)
+    return MakeKey(ITEM_BODY_3, 0)
+  if(uq == UQ_CIRCLET_OF_STORMS)
+    return MakeKey(ITEM_HELM_1, KIND_ARCHON_HOOD)
+  if(uq == UQ_ROAD_BOOTS)
+    return MakeKey(ITEM_LEGS_1, 0)
+  if(uq == UQ_STARWOVEN_SASH)
+    return MakeKey(ITEM_LEGS_1, KIND_ARCHON_SASH)
+  if(uq == UQ_RAT_KINGS_TOOTH)
+    return MakeKey(ITEM_DAGGER, 0)
+  if(uq == UQ_SHROUD_OF_THE_LICH)
+    return MakeKey(ITEM_BODY_1, KIND_ARCHON_VESTMENTS)
+  if(uq == UQ_BLINKHIDE)
+    return MakeKey(ITEM_BODY_1, KIND_SHADOW_VEST)
+  if(uq == UQ_TRICKSTERS_KRIS)
+    return MakeKey(ITEM_DAGGER, KIND_KRIS)
+  return 0
+
+//-----------------------------------------------------------------------
+int MakeKey(int item, int kind)
+  return (item | (XITEM.KindExt(kind, XITEM_UNIQUE) << 8))
+
+//-----------------------------------------------------------------------
 // Unique number of the item in a character's slot...
 int IdIn(int who, int slot)
   return Id(FileReadByte(who, slot), XITEM.GetRaw(who, slot))

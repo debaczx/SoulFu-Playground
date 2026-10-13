@@ -456,8 +456,8 @@ ItemName(int base_text, int paren_text, int damage_type, int damage_low, int dam
         damage_low = damage_low + (strength/10)
         damage_high = damage_high + (strength/10)
       ItemNameDamage(damage_type, damage_low, damage_high, wound_low, wound_high)
-  if(artifact)
-    UNIQUE.NameEnd()  // What the unique does...
+    if(artifact)
+      UNIQUE.NameEnd()  // What the unique does (left out while NEED shows, tooltips are one line)...
 
 
 //-----------------------------------------------------------------------

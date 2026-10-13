@@ -46,24 +46,30 @@ TestShopSlot(int wstatus_data, int slot, int item, int ext)
 
 //-----------------------------------------------------------------------
 // Test shop (unique-testing branch)...  Stocks the current page and moves on to the next...
+// Page 0 is the cores, then the uniques (UNIQUE.KeyOf), then every item kind, 6 a page...
 TestShopStock(int wstatus_data)
-  int page, i, kind
+  int page, i, kind, upages, kpages, key
   page = FileReadByte(wstatus_data, TEST_SHOP_PAGE)
-  if(page == 0)
-    i = 0
-    while(i < 6)
+  upages = (UNIQUE.Last() + 5) / 6
+  kpages = (KIND_LAST + 5) / 6
+  if(page > upages + kpages)
+    page = 0
+  i = 0
+  while(i < 6)
+    if(page == 0)
       TestShopSlot(wstatus_data, i, ITEM_CORE, XITEM_CORE_BASE + WEAPON_VARIANT_FIRE + i)
-      i++
-  else
-    i = 0
-    while(i < 6)
-      kind = ((page-1)*6) + i + 1
-      if(kind <= KIND_LAST)
-        TestShopSlot(wstatus_data, i, SystemGet(SYS_KINDREGISTRY, kind, KIND_FIELD_BASE), XITEM.KindExt(kind, 0))
-      i++
+    else
+      if(page <= upages)
+        key = UNIQUE.KeyOf(((page-1)*6) + i + 1)
+        if(key)
+          TestShopSlot(wstatus_data, i, key & 255, key >> 8)
+      else
+        kind = ((page-1-upages)*6) + i + 1
+        if(kind <= KIND_LAST)
+          TestShopSlot(wstatus_data, i, SystemGet(SYS_KINDREGISTRY, kind, KIND_FIELD_BASE), XITEM.KindExt(kind, 0))
+    i++
   page++
-  kind = ((page-1)*6) + 1  // First kind the next page would show...
-  if(kind > KIND_LAST)
+  if(page > upages + kpages)
     page = 0
   FileWriteByte(wstatus_data, TEST_SHOP_PAGE, page)
 
@@ -203,8 +209,8 @@ SetupShopInventory(int wstatus_data, int shop_type)
 
       if(shop_type == SHOP_TYPE_TEST)
         // Test shop (unique-testing branch)...  Everything is free.  Each visit shows the
-        // next page: the 6 element cores (Fire to Unholy), then every item kind, 6 at a
-        // time...  WSTATUS.TestShopExt() reads each slot's extension from TEST_SHOP_EXT...
+        // next page: the 6 element cores (Fire to Unholy), then every unique, then every
+        // item kind, 6 at a time...  WSTATUS.TestShopExt() reads each slot's extension from TEST_SHOP_EXT...
         PlayCenterSound("FILE:SHOPMAG.RAW", 256, 255)
         TestShopStock(wstatus_data)
 
