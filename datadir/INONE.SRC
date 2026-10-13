@@ -45,6 +45,10 @@ int AutoEquipItem(int self, int grip, int search_low, int search_high, int keep_
         min_dex = SystemGet(SYS_ITEMREGISTRYDEX, XITEM.SlotKey(self, i+224, item_type), 0)
         min_int = SystemGet(SYS_ITEMREGISTRYINT, XITEM.SlotKey(self, i+224, item_type), 0)
         min_mana = SystemGet(SYS_ITEMREGISTRYMANA, XITEM.SlotKey(self, i+224, item_type), 0)
+        if((offset == 242 || offset == 243) && XITEM.IsHeavy(self, i+224))
+          // Heavy two-handers need the other hand free...
+          if(FileReadByte(self, 485-offset) != ITEM_NONE)
+            min_str = 9999
         if(self.str >= min_str && self.dex >= min_dex && self.int >= min_int && self.manamax >= min_mana)
           // Safe to use this item...
           FileWriteByte(self, offset, item_type)

@@ -492,6 +492,7 @@
 #define KIND_FIELD_BASE     7   // Plain item number the kind is stored on
 #define KIND_FIELD_FLAGS    8
 #define KIND_FLAG_POLE_STANCE 1 // Held in both hands while the other hand is empty (stance and slash)
+#define KIND_FLAG_TWO_HANDED  2 // Heavy two-hander: equipping it moves the other hand's item to the pack (XITEM.TwoHandFix)
 #define KIND_NONE           0
 #define KIND_SPEAR          1   // Stored on ITEM_DAGGER...  Never renumber kinds once released
 #define KIND_STILETTO       2   // Dagger block (ISTILETO.SRC)
@@ -502,7 +503,12 @@
 #define KIND_TRIDENT        7   // Dagger block (ITRIDENT.SRC)
 #define KIND_HALBERD        8   // Dagger block (IHALBERD.SRC)
 #define KIND_GLAIVE         9   // Dagger block (IGLAIVE.SRC)
-#define KIND_LAST           9   // Highest kind in use (test shop pages run through 1 to this)
+#define KIND_CLAYMORE      10   // Great Sword block (ICLAYMOR.SRC), heavy two-hander
+#define KIND_ZWEIHANDER    11   // Great Sword block (IZWEIHAN.SRC), heavy two-hander
+#define KIND_FLAMBERGE     12   // Great Sword block (IFLAMBRG.SRC), heavy two-hander
+#define KIND_GREAT_AXE     13   // Broad Axe block (IGRTAXE.SRC), heavy two-hander
+#define KIND_MAUL          14   // War Hammer block (IMAUL.SRC), heavy two-hander
+#define KIND_LAST          14   // Highest kind in use (test shop pages run through 1 to this)
 #define SYS_MODELCHECKHACK          255
 
 

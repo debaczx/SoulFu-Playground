@@ -113,6 +113,37 @@ int IsPole(int who, int slot)
   return (SystemGet(SYS_KINDREGISTRY, Kind(who, slot), KIND_FIELD_FLAGS) & KIND_FLAG_POLE_STANCE)
 
 //-----------------------------------------------------------------------
+// TRUE if the item in the slot is a heavy two-hander (Claymore, Maul...)...
+int IsHeavy(int who, int slot)
+  return (SystemGet(SYS_KINDREGISTRY, Kind(who, slot), KIND_FIELD_FLAGS) & KIND_FLAG_TWO_HANDED)
+
+//-----------------------------------------------------------------------
+// Call after an item was put into a hand slot (242 or 243)...  If either hand now holds
+// a heavy two-hander and the other hand isn't empty, the other hand's item goes back to
+// the pack...  Returns 1 if it moved something, 2 if the pack had no room (caller undoes),
+// 0 if nothing needed doing...
+int TwoHandFix(int who, int slot)
+  int other, j, item
+  if(slot != 242 && slot != 243)
+    return 0
+  other = 242
+  if(slot == 242)
+    other = 243
+  if(FileReadByte(who, slot) == ITEM_NONE || FileReadByte(who, other) == ITEM_NONE)
+    return 0
+  if(IsHeavy(who, slot) == FALSE && IsHeavy(who, other) == FALSE)
+    return 0
+  j = 0
+  while(j < 16)
+    if(FileReadByte(who, 224+j) == ITEM_NONE)
+      item = FileReadByte(who, other)
+      FileWriteByte(who, 224+j, item)
+      FileWriteByte(who, other, ITEM_NONE)
+      return 1
+    j++
+  return 2
+
+//-----------------------------------------------------------------------
 // Returns the extension of the item whose callback is running right now
 // (GetName, ModelSetup, Event, FrameEvent, Refresh, DefenseRating)...
 int Current()

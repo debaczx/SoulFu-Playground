@@ -660,6 +660,7 @@ int IconSwap(int icon1, int icon2)
         if(TestShopExt(icon1))
           // Test shop (unique-testing branch)...  Give the core its element, or the item its kind...
           XITEM.SetRaw(binding, icon2, TestShopExt(icon1))
+        XITEM.TwoHandFix(binding, icon2)  // Bought straight into a hand...
       else
         // Selling an item to the shop...
         FileWriteByte(binding, icon1, ITEM_NONE)
@@ -675,6 +676,21 @@ int IconSwap(int icon1, int icon2)
       // Nope, this is a simple inventory exchange...
       FileWriteByte(from_binding, icon1, value2)
       FileWriteByte(binding, icon2, value1)
+      // Heavy two-handers need both hands...  Put the other hand's item in the pack...
+      if(from_binding == binding)
+        no_slot = XITEM.TwoHandFix(binding, icon2)
+        if(no_slot == 0)
+          no_slot = XITEM.TwoHandFix(binding, icon1)
+        if(no_slot == 2)
+          // No room in the pack...  Undo the swap...
+          value2 = FileReadByte(from_binding, icon1)
+          value1 = FileReadByte(binding, icon2)
+          FileWriteByte(from_binding, icon1, value1)
+          FileWriteByte(binding, icon2, value2)
+          BuzzerSound()
+          return FALSE
+      else
+        XITEM.TwoHandFix(binding, icon2)
       // Switched some icons...  Need to call the binding's
       // ModelSetup() and DefenseRating() functions...
       index = FindIndex(binding)
