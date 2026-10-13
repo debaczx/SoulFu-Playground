@@ -1318,7 +1318,7 @@
 #define ITEM_MODIFY         132 // Class skill (Modify, Fletch, Temper, Hone, Forge, Hallow, Inscribe, Invoke)...  Rebuilds the class's own gear into a variant
 #define ITEM_CORE           133 // Magic Core...  Element is in the item extension (XITEM_CORE_BASE + WEAPON_VARIANT_*)
 #define ITEM_RUNE           134 // Rune (Wizard and Mystic)...  Blank until Inscribed/Invoked, spell is in the item extension (RUNEFX.SRC)
-// 135 is Unused
+#define ITEM_SPEAR          135 // Spear...  Single item number (no built-in elemental variants), reaches further than any other weapon (ISPEAR.SRC)
 
 
 // Weapon items (136-231) (8 variants each)...
