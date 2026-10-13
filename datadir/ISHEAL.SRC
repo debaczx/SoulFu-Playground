@@ -34,6 +34,9 @@ int Event()
 
   self = FindSelf()
   grip = SystemGet(SYS_WEAPONGRIP, 0, 0)
+  if(UNIQUE.NoPotions(self))
+    ButtonHandled()  // Berserker's Edge...  Can't drink...
+    return FALSE
   STANDARD.AutoReload(self, grip)
   Effect(self)
   ButtonHandled()
@@ -45,6 +48,8 @@ int DirectUsage()
 
   self = FindBinding()
   if(self)
+    if(UNIQUE.NoPotions(self))
+      return FALSE  // Berserker's Edge...  Can't drink...
     Effect(self)
     SystemSet(SYS_KEEPITEM, 0, 0, FALSE)
 

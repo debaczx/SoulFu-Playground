@@ -710,14 +710,33 @@ int IconSwap(int icon1, int icon2)
 
 //-----------------------------------------------------------------------
 int MockText(float x, float y, int text)
-  int length, color
-  float lx, ty, rx, by
+  int length, color, i
 
   color = WHITE
   if(FileReadByte(text, 0) == 94)
     // Unique items' names start with ^ and draw in gold (UNIQUE.SRC)...
+    // What it does comes after " - " and goes on a second line, so long
+    // names fit the screen...
     text = text + 1
     color = UNIQUE_GOLD
+    length = StringLength(text)
+    i = 0
+    while(i < length - 2)
+      if(FileReadByte(text, i) == 32 && FileReadByte(text, i+1) == 45 && FileReadByte(text, i+2) == 32)
+        FileWriteByte(text, i, 0)
+        MockLine(x, y, text, color)
+        FileWriteByte(text, i, 32)
+        MockLine(x, y + 1.25, text + i + 3, WHITE)
+        return TRUE
+      i++
+  MockLine(x, y, text, color)
+  return TRUE
+
+//-----------------------------------------------------------------------
+int MockLine(float x, float y, int text, int color)
+  int length
+  float lx, ty, rx, by
+
   length = StringLength(text)
   lx = x - (length*0.5) - 0.5
   rx = x + (length*0.5) + 0.5

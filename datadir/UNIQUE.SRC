@@ -31,6 +31,9 @@
 #define UNIQUE_MANA_OFFSET     682   // Starwoven Sash: mana max it added
 #define UNIQUE_HITS_OFFSET     683   // Starwoven Sash: hits max it took
 #define UNIQUE_TICK_OFFSET     684   // Seconds counter for slower auras
+#define UNIQUE_STATS_OFFSET    685   // STR change from worn uniques in the low 4 bits, DEX in the high 4 (signed)
+#define UNIQUE_INTS_OFFSET     686   // INT change from worn uniques in the low 4 bits (signed)
+#define UNIQUE_COUNTER_OFFSET  687   // Sparrow's Wing: 1 after a block, until the next hit
 // Unique numbers (UNIQUE.SRC), one per base item and kind...  Never renumber (saves count drops by number)...
 #define UQ_NIGHTS_EDGE         1     // Obsidian Blade
 #define UQ_MEDUSAS_MIRROR      2     // Mirror Shield
@@ -45,7 +48,22 @@
 #define UQ_SHROUD_OF_THE_LICH  11    // Archon Vestments kind
 #define UQ_BLINKHIDE           12    // Shadow Vest kind
 #define UQ_TRICKSTERS_KRIS     13    // Kris kind
-#define UQ_LAST                13
+#define UQ_KINGSLAYER          14    // Great Sword
+#define UQ_EXECUTIONER         15    // Broad Axe
+#define UQ_TITANS_GAVEL        16    // Maul kind
+#define UQ_DAWNBREAKER         17    // Morning Star kind
+#define UQ_MERCY               18    // Mace
+#define UQ_CORSAIRS_FANG       19    // Sabre kind
+#define UQ_SQUIRES_PROMISE     20    // Short Sword
+#define UQ_BERSERKERS_EDGE     21    // Great Axe kind
+#define UQ_AEGIS_OF_THE_SQUIRE 22    // Shield
+#define UQ_SPARROWS_WING       23    // Buckler kind
+#define UQ_COAT_OF_RINGS       24    // Chain Shirt
+#define UQ_WRATH_OF_AGES       25    // Ancient Armor
+#define UQ_BULWARK_VISOR       26    // Iron Greathelm kind
+#define UQ_HARES_BREECHES      27    // Scout Breeches kind
+#define UQ_UNDYING_COLOSSUS    28    // Juggernaut Plate kind
+#define UQ_LAST                28
 #define TICK_FRAMES      60    // Frames per unique timer tick (one second)
 #define MINION_FOREVER   255   // UNIQUE_MLEFT_OFFSET value: stays while the item is worn
 #define RAT_SECONDS      20    // Rat King's Tooth: how long a rat stays
@@ -54,6 +72,16 @@
 #define BLINK_CHANCE     20    // Blinkhide: percent chance per hit taken to blink away
 #define AURA_RANGE       6.0   // Templar's Mantle: reach of the holy aura
 #define ZAP_RANGE        10.0  // Circlet of Storms: reach of the zaps
+#define GAVEL_CHANCE     10    // Titan's Gavel: percent chance per hit to petrify
+#define GAVEL_FRAMES     120   // Titan's Gavel: how long the petrify lasts
+#define DAWN_CHANCE      33    // Dawnbreaker: percent chance per hit to knock undead down
+#define MERCY_HEAL       2     // Mercy: hits healed per hit
+#define MERCY_RANGE      8.0   // Mercy: reach of the heal
+#define COIN_DROP        2     // Corsair's Fang: coins per hit
+#define COUNTER_BONUS    3     // Sparrow's Wing: extra damage on the hit after a block
+#define WRATH_CHANCE     20    // Wrath of Ages: percent chance per hit taken to zap back
+#define WRATH_DAMAGE     3     // Wrath of Ages: damage of the zap (on top of the bolt's own)
+#define REGEN_SECONDS    3     // Undying Colossus: seconds per hit regained
 
 
 //-----------------------------------------------------------------------
@@ -110,6 +138,20 @@ int IdFor(int item, int kind)
       return UQ_ROAD_BOOTS
     if(item == ITEM_DAGGER)
       return UQ_RAT_KINGS_TOOTH
+    if(item == ITEM_GREAT_SWORD)
+      return UQ_KINGSLAYER
+    if(item == ITEM_BROAD_AXE)
+      return UQ_EXECUTIONER
+    if(item == ITEM_MACE)
+      return UQ_MERCY
+    if(item == ITEM_SHORT_SWORD)
+      return UQ_SQUIRES_PROMISE
+    if(item == ITEM_SHIELD)
+      return UQ_AEGIS_OF_THE_SQUIRE
+    if(item == ITEM_BODY_2)
+      return UQ_COAT_OF_RINGS
+    if(item == ITEM_BODY_5)
+      return UQ_WRATH_OF_AGES
     return 0
   if(kind == KIND_SPIKED_SHIELD)
     return UQ_THORNBACK
@@ -125,6 +167,22 @@ int IdFor(int item, int kind)
     return UQ_BLINKHIDE
   if(kind == KIND_KRIS)
     return UQ_TRICKSTERS_KRIS
+  if(kind == KIND_MAUL)
+    return UQ_TITANS_GAVEL
+  if(kind == KIND_MORNING_STAR)
+    return UQ_DAWNBREAKER
+  if(kind == KIND_SABRE)
+    return UQ_CORSAIRS_FANG
+  if(kind == KIND_GREAT_AXE)
+    return UQ_BERSERKERS_EDGE
+  if(kind == KIND_BUCKLER)
+    return UQ_SPARROWS_WING
+  if(kind == KIND_IRON_GREATHELM)
+    return UQ_BULWARK_VISOR
+  if(kind == KIND_SCOUT_BREECHES)
+    return UQ_HARES_BREECHES
+  if(kind == KIND_JUGGERNAUT_PLATE)
+    return UQ_UNDYING_COLOSSUS
   return 0
 
 //-----------------------------------------------------------------------
@@ -162,6 +220,36 @@ int KeyOf(int uq)
     return MakeKey(ITEM_BODY_1, KIND_SHADOW_VEST)
   if(uq == UQ_TRICKSTERS_KRIS)
     return MakeKey(ITEM_DAGGER, KIND_KRIS)
+  if(uq == UQ_KINGSLAYER)
+    return MakeKey(ITEM_GREAT_SWORD, 0)
+  if(uq == UQ_EXECUTIONER)
+    return MakeKey(ITEM_BROAD_AXE, 0)
+  if(uq == UQ_TITANS_GAVEL)
+    return MakeKey(ITEM_WAR_HAMMER, KIND_MAUL)
+  if(uq == UQ_DAWNBREAKER)
+    return MakeKey(ITEM_MACE, KIND_MORNING_STAR)
+  if(uq == UQ_MERCY)
+    return MakeKey(ITEM_MACE, 0)
+  if(uq == UQ_CORSAIRS_FANG)
+    return MakeKey(ITEM_SWORD, KIND_SABRE)
+  if(uq == UQ_SQUIRES_PROMISE)
+    return MakeKey(ITEM_SHORT_SWORD, 0)
+  if(uq == UQ_BERSERKERS_EDGE)
+    return MakeKey(ITEM_BROAD_AXE, KIND_GREAT_AXE)
+  if(uq == UQ_AEGIS_OF_THE_SQUIRE)
+    return MakeKey(ITEM_SHIELD, 0)
+  if(uq == UQ_SPARROWS_WING)
+    return MakeKey(ITEM_SHIELD, KIND_BUCKLER)
+  if(uq == UQ_COAT_OF_RINGS)
+    return MakeKey(ITEM_BODY_2, 0)
+  if(uq == UQ_WRATH_OF_AGES)
+    return MakeKey(ITEM_BODY_5, 0)
+  if(uq == UQ_BULWARK_VISOR)
+    return MakeKey(ITEM_HELM_1, KIND_IRON_GREATHELM)
+  if(uq == UQ_HARES_BREECHES)
+    return MakeKey(ITEM_LEGS_1, KIND_SCOUT_BREECHES)
+  if(uq == UQ_UNDYING_COLOSSUS)
+    return MakeKey(ITEM_BODY_1, KIND_JUGGERNAUT_PLATE)
   return 0
 
 //-----------------------------------------------------------------------
@@ -227,6 +315,36 @@ int Name(int uq)
     return "BLINKHIDE"
   if(uq == UQ_TRICKSTERS_KRIS)
     return "TRICKSTER'S KRIS"
+  if(uq == UQ_KINGSLAYER)
+    return "KINGSLAYER"
+  if(uq == UQ_EXECUTIONER)
+    return "EXECUTIONER"
+  if(uq == UQ_TITANS_GAVEL)
+    return "TITAN'S GAVEL"
+  if(uq == UQ_DAWNBREAKER)
+    return "DAWNBREAKER"
+  if(uq == UQ_MERCY)
+    return "MERCY"
+  if(uq == UQ_CORSAIRS_FANG)
+    return "CORSAIR'S FANG"
+  if(uq == UQ_SQUIRES_PROMISE)
+    return "SQUIRE'S PROMISE"
+  if(uq == UQ_BERSERKERS_EDGE)
+    return "BERSERKER'S EDGE"
+  if(uq == UQ_AEGIS_OF_THE_SQUIRE)
+    return "AEGIS OF THE SQUIRE"
+  if(uq == UQ_SPARROWS_WING)
+    return "SPARROW'S WING"
+  if(uq == UQ_COAT_OF_RINGS)
+    return "COAT OF RINGS"
+  if(uq == UQ_WRATH_OF_AGES)
+    return "WRATH OF AGES"
+  if(uq == UQ_BULWARK_VISOR)
+    return "BULWARK VISOR"
+  if(uq == UQ_HARES_BREECHES)
+    return "HARE'S BREECHES"
+  if(uq == UQ_UNDYING_COLOSSUS)
+    return "UNDYING COLOSSUS"
   return NULL
 
 //-----------------------------------------------------------------------
@@ -258,6 +376,36 @@ int Info(int uq)
     return "MAY BLINK AWAY WHEN HIT"
   if(uq == UQ_TRICKSTERS_KRIS)
     return "RANDOM ELEMENT EACH SWING"
+  if(uq == UQ_KINGSLAYER)
+    return "BOSS ROOMS X2, ELSE -25% DAMAGE"
+  if(uq == UQ_EXECUTIONER)
+    return "FINISHES FOES BELOW 25%, -10% SPEED"
+  if(uq == UQ_TITANS_GAVEL)
+    return "MAY PETRIFY ON HIT, -2 DEX"
+  if(uq == UQ_DAWNBREAKER)
+    return "HOLY, KNOCKS DOWN UNDEAD"
+  if(uq == UQ_MERCY)
+    return "HITS HEAL ALLIES 2, -1 DAMAGE"
+  if(uq == UQ_CORSAIRS_FANG)
+    return "HITS SHAKE OUT 2 COINS"
+  if(uq == UQ_SQUIRES_PROMISE)
+    return "+2 ALL STATS BELOW HALF HITS"
+  if(uq == UQ_BERSERKERS_EDGE)
+    return "+DAMAGE WHEN HURT, NO POTIONS"
+  if(uq == UQ_AEGIS_OF_THE_SQUIRE)
+    return "BLOCKS HEAL 1"
+  if(uq == UQ_SPARROWS_WING)
+    return "+10% SPEED, +3 HIT AFTER A BLOCK"
+  if(uq == UQ_COAT_OF_RINGS)
+    return "+1 ACID, FIRE, ICE, VOLT DEF"
+  if(uq == UQ_WRATH_OF_AGES)
+    return "MAY ZAP ATTACKERS, -2 VOLT DEF"
+  if(uq == UQ_BULWARK_VISOR)
+    return "+2 ALL DEFENSE, -1 DEX"
+  if(uq == UQ_HARES_BREECHES)
+    return "+20% SPEED, NO CHILL, -1 STR"
+  if(uq == UQ_UNDYING_COLOSSUS)
+    return "REGEN 1 HIT EVERY 3S, -10% SPEED"
   return NULL
 
 //-----------------------------------------------------------------------
@@ -289,6 +437,36 @@ int Icon(int uq)
     return "FILE:=IUQ12.RGB"
   if(uq == UQ_TRICKSTERS_KRIS)
     return "FILE:=IUQ13.RGB"
+  if(uq == UQ_KINGSLAYER)
+    return "FILE:=IUQ14.RGB"
+  if(uq == UQ_EXECUTIONER)
+    return "FILE:=IUQ15.RGB"
+  if(uq == UQ_TITANS_GAVEL)
+    return "FILE:=IUQ16.RGB"
+  if(uq == UQ_DAWNBREAKER)
+    return "FILE:=IUQ17.RGB"
+  if(uq == UQ_MERCY)
+    return "FILE:=IUQ18.RGB"
+  if(uq == UQ_CORSAIRS_FANG)
+    return "FILE:=IUQ19.RGB"
+  if(uq == UQ_SQUIRES_PROMISE)
+    return "FILE:=IUQ20.RGB"
+  if(uq == UQ_BERSERKERS_EDGE)
+    return "FILE:=IUQ21.RGB"
+  if(uq == UQ_AEGIS_OF_THE_SQUIRE)
+    return "FILE:=IUQ22.RGB"
+  if(uq == UQ_SPARROWS_WING)
+    return "FILE:=IUQ23.RGB"
+  if(uq == UQ_COAT_OF_RINGS)
+    return "FILE:=IUQ24.RGB"
+  if(uq == UQ_WRATH_OF_AGES)
+    return "FILE:=IUQ25.RGB"
+  if(uq == UQ_BULWARK_VISOR)
+    return "FILE:=IUQ26.RGB"
+  if(uq == UQ_HARES_BREECHES)
+    return "FILE:=IUQ27.RGB"
+  if(uq == UQ_UNDYING_COLOSSUS)
+    return "FILE:=IUQ28.RGB"
   return NULL
 
 //-----------------------------------------------------------------------
@@ -355,21 +533,40 @@ int SwingElement(int e)
     return WEAPON_VARIANT_UNHOLY
   if(uq == UQ_TRICKSTERS_KRIS)
     return RollDice(1, 7)
+  if(uq == UQ_DAWNBREAKER)
+    return WEAPON_VARIANT_HOLY
   return e
 
 //-----------------------------------------------------------------------
 // Weapon element shown in the name (STANDARD.ItemName)...
 int ShownElement(int e)
-  if(CurrentId() == UQ_NIGHTS_EDGE)
+  int uq
+  uq = CurrentId()
+  if(uq == UQ_NIGHTS_EDGE)
     return WEAPON_VARIANT_UNHOLY
+  if(uq == UQ_DAWNBREAKER)
+    return WEAPON_VARIANT_HOLY
   return e
 
 //-----------------------------------------------------------------------
 // Extra damage per hit (XITEM.ArtifactDamage)...
 int Damage()
-  if(CurrentId() == UQ_RAT_KINGS_TOOTH)
+  int uq
+  uq = CurrentId()
+  if(uq == UQ_RAT_KINGS_TOOTH)
     return -2
+  if(uq == UQ_MERCY)
+    return -1
   return 0
+
+//-----------------------------------------------------------------------
+// Damage of a swing that depends on the holder (PATTACK.FrameEvent)...
+int SwingDamage(int self, int damage)
+  if(CurrentId() == UQ_BERSERKERS_EDGE)
+    // Berserker's Edge: +1 for every 10% of max hits lost...
+    if(self.hitsmax > 0 && self.hits < self.hitsmax)
+      damage = damage + (((self.hitsmax - self.hits) * 10) / self.hitsmax)
+  return damage
 
 //-----------------------------------------------------------------------
 // Defense changes, while STANDARD.DefenseRating adds up the worn items...
@@ -380,7 +577,44 @@ int Defense(int self)
     SystemSet(SYS_DEFENSERATING, 0, DAMAGE_WOUND, -2)
   if(Worn(self, UQ_MEDUSAS_MIRROR))
     SystemSet(SYS_DEFENSERATING, 0, DAMAGE_FIRE, -2)
+  if(Worn(self, UQ_WRATH_OF_AGES))
+    SystemSet(SYS_DEFENSERATING, 0, DAMAGE_VOLT, -2)
+  if(Worn(self, UQ_COAT_OF_RINGS))
+    SystemSet(SYS_DEFENSERATING, 0, DAMAGE_ACID, 1)
+    SystemSet(SYS_DEFENSERATING, 0, DAMAGE_FIRE, 1)
+    SystemSet(SYS_DEFENSERATING, 0, DAMAGE_ICE, 1)
+    SystemSet(SYS_DEFENSERATING, 0, DAMAGE_VOLT, 1)
+  if(Worn(self, UQ_BULWARK_VISOR))
+    SystemSet(SYS_DEFENSERATING, 0, DAMAGE_EDGE, 2)
+    SystemSet(SYS_DEFENSERATING, 0, DAMAGE_BASH, 2)
+    SystemSet(SYS_DEFENSERATING, 0, DAMAGE_ACID, 2)
+    SystemSet(SYS_DEFENSERATING, 0, DAMAGE_FIRE, 2)
+    SystemSet(SYS_DEFENSERATING, 0, DAMAGE_ICE, 2)
+    SystemSet(SYS_DEFENSERATING, 0, DAMAGE_VOLT, 2)
   return TRUE
+
+//-----------------------------------------------------------------------
+// Hare's Breeches: the wearer can't be chilled (XITEM.Chill)...
+int NoChill(int who)
+  return Worn(who, UQ_HARES_BREECHES)
+
+//-----------------------------------------------------------------------
+// Berserker's Edge: healing potions do nothing (IHEAL, ISHEAL)...
+int NoPotions(int who)
+  if(Worn(who, UQ_BERSERKERS_EDGE))
+    PlaySound("FILE:-SPELL00.RAW", 128, 160)
+    PFLASH.Effect(who, "FILE:LITESPRK.RGB", 16711680, TRUE, 0.8)
+    return TRUE
+  return FALSE
+
+//-----------------------------------------------------------------------
+// TRUE in a boss room (Kingslayer, Executioner)...
+int BossRoom()
+  int room
+  room = SystemGet(SYS_MAPROOM, 0, MAP_ROOM_CURRENT)
+  if(SystemGet(SYS_MAPROOM, room, MAP_ROOM_FLAGS) & MAP_ROOM_FLAG_BOSS)
+    return TRUE
+  return FALSE
 
 //-----------------------------------------------------------------------
 // Mana a spell costs (Hood of Whispers takes 1 off, never below 1)...
@@ -417,6 +651,44 @@ int Hurt(int who, int type, int amount, int attacker)
   return TRUE
 
 //-----------------------------------------------------------------------
+// A melee swing from hand xhand (1 left, 2 right) is about to hurt a foe...
+// Returns the damage it does (before defense)...
+int PreHit(int owner, int target, int xhand, int amount)
+  int uq
+  if(xhand != 1 && xhand != 2)
+    return amount
+  // Sparrow's Wing: the first hit after a block hits harder...
+  if(FileReadByte(owner, UNIQUE_COUNTER_OFFSET))
+    FileWriteByte(owner, UNIQUE_COUNTER_OFFSET, 0)
+    if(IdIn(owner, 242) == UQ_SPARROWS_WING)
+      amount = amount + COUNTER_BONUS
+      PSPARK.Effect(target.x, target.y, target.z + (target.height*0.6), 6, 1)
+  uq = IdIn(owner, 241 + xhand)
+  if(uq == UQ_KINGSLAYER)
+    if(BossRoom())
+      return (amount * 2)
+    if(amount > 1)
+      amount = (amount * 3) / 4
+    return amount
+  if(uq == UQ_EXECUTIONER)
+    // Finishes off foes below a quarter of their hits (not in boss rooms)...
+    if(target.hits > 0 && target.hits * 4 <= target.hitsmax)
+      if(!BossRoom())
+        amount = amount + target.hits + 20
+        if(amount > 250)
+          amount = 250
+        PFLASH.Effect(target, "FILE:LITESPRK.RGB", 16711680, TRUE, 1.0)
+    return amount
+  if(uq == UQ_DAWNBREAKER)
+    // Undead go down...
+    if(SWORDFX.Undead(target))
+      if(RollDice(1, 100) <= DAWN_CHANCE)
+        target.combo = 4
+        PFLASH.Effect(target, "FILE:LITESPRK.RGB", 16777088, TRUE, 1.0)
+    return amount
+  return amount
+
+//-----------------------------------------------------------------------
 // A melee swing from a weapon in hand xhand (1 left, 2 right) hit a foe...
 // dealt is the hits the foe lost, killed is TRUE if that knocked it out...
 int Hit(int owner, int target, int xhand, int dealt, int killed)
@@ -432,7 +704,45 @@ int Hit(int owner, int target, int xhand, int dealt, int killed)
     if(RollDice(1, 100) <= RAT_CHANCE)
       Summon(owner, "FILE:CRAT.RUN", 1, RAT_SECONDS)  // A big rat...
     return TRUE
+  if(uq == UQ_TITANS_GAVEL)
+    if(!killed && target.hits > 0)
+      if(RollDice(1, 100) <= GAVEL_CHANCE)
+        STANDARD.PetrifyCharacter(FindIndex(target), FindIndex(owner), GAVEL_FRAMES)
+    return TRUE
+  if(uq == UQ_MERCY)
+    MercyHeal(owner)
+    return TRUE
+  if(uq == UQ_CORSAIRS_FANG)
+    PCOIN.Effect(COIN_DROP, target.x, target.y, target.z + (target.height*0.5))
+    PlaySound("FILE:-CASH.RAW", 256, 160)
+    return TRUE
   return FALSE
+
+//-----------------------------------------------------------------------
+// Mercy: heals the most hurt ally nearby (the holder too)...
+int MercyHeal(int owner)
+  int i, who, best, pct, bestpct
+  float dx, dy
+  best = NULL
+  bestpct = 100
+  i = 0
+  while(i < MAX_CHARACTER)
+    who = FindByIndex(i)
+    if(who)
+      if(who.team == owner.team && who.hits > 0 && who.hitsmax > 0)
+        dx = who.x - owner.x
+        dy = who.y - owner.y
+        if(dx*dx + dy*dy < MERCY_RANGE*MERCY_RANGE)
+          pct = (who.hits * 100) / who.hitsmax
+          if(pct < bestpct)
+            bestpct = pct
+            best = who
+    i++
+  if(!best)
+    return FALSE
+  GENERIC.RestoreCharacterHits(best, MERCY_HEAL, 0)
+  PFLASH.Effect(best, "FILE:LITESPRK.RGB", 8454016, TRUE, 0.8)
+  return TRUE
 
 //-----------------------------------------------------------------------
 // The holder was just hurt (Damaged)...  Thornback bites back at foes
@@ -464,9 +774,18 @@ int Struck(int holder)
 // melee is TRUE for swings (not arrows and such)...
 int Blocked(int holder, int attacker, int amount, int melee)
   int uq
-  if(!melee || holder.team == attacker.team || attacker.hits == 0)
+  if(holder.team == attacker.team || attacker.hits == 0)
     return FALSE
   uq = IdIn(holder, 242)
+  if(uq == UQ_AEGIS_OF_THE_SQUIRE)
+    GENERIC.RestoreCharacterHits(holder, 1, 0)
+    PFLASH.Effect(holder, "FILE:LITESPRK.RGB", 8454016, TRUE, 0.8)
+    return TRUE
+  if(uq == UQ_SPARROWS_WING)
+    FileWriteByte(holder, UNIQUE_COUNTER_OFFSET, 1)
+    return TRUE
+  if(!melee)
+    return FALSE
   if(uq == UQ_MEDUSAS_MIRROR)
     STANDARD.PetrifyCharacter(FindIndex(attacker), FindIndex(holder), 120)
     return TRUE
@@ -480,6 +799,8 @@ int Blocked(int holder, int attacker, int amount, int melee)
 int Damaged(int self)
   int room
   Struck(self)
+  Wrath(self)
+  Sync(self)  // Squire's Promise...
   if(self.hits == 0)
     // Unbroken: a killing blow leaves 1 hit, once per room...
     if(Worn(self, UQ_UNBROKEN))
@@ -497,6 +818,23 @@ int Damaged(int self)
   if(Worn(self, UQ_BLINKHIDE))
     if(RollDice(1, 100) <= BLINK_CHANCE)
       Blink(self)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Wrath of Ages: sometimes lightning strikes back at whoever hurt the wearer...
+int Wrath(int self)
+  int attacker
+  if(!Worn(self, UQ_WRATH_OF_AGES))
+    return FALSE
+  if(RollDice(1, 100) > WRATH_CHANCE)
+    return FALSE
+  attacker = FindByIndex(SystemGet(SYS_GLOBALATTACKER, 0, 0))
+  if(!DWARFFX.Foe(self, attacker))
+    return FALSE
+  PlaySound("FILE:-SHOCK.RAW", 245 + RollDice(1, 20), 200)
+  DWARFFX.ZapAt(self, attacker)
+  Hurt(attacker, DAMAGE_VOLT, WRATH_DAMAGE, self)
+  PSPARK.Effect(attacker.x, attacker.y, attacker.z + (attacker.height*0.6), 8, 1)
   return TRUE
 
 //-----------------------------------------------------------------------
@@ -622,7 +960,16 @@ int Sync(int self)
     speed = speed + 15
   if(Worn(self, UQ_UNBROKEN))
     speed = speed - 10
+  if(Worn(self, UQ_EXECUTIONER))
+    speed = speed - 10
+  if(Worn(self, UQ_SPARROWS_WING))
+    speed = speed + 10
+  if(Worn(self, UQ_HARES_BREECHES))
+    speed = speed + 20
+  if(Worn(self, UQ_UNDYING_COLOSSUS))
+    speed = speed - 10
   FileWriteByte(self, UNIQUE_SPEED_OFFSET, speed & 255)
+  SyncStats(self)
   // Starwoven Sash: more max mana, fewer max hits...
   wear = Worn(self, UQ_STARWOVEN_SASH)
   if(wear && FileReadByte(self, UNIQUE_SASH_OFFSET) == 0)
@@ -660,6 +1007,61 @@ int Sync(int self)
   return TRUE
 
 //-----------------------------------------------------------------------
+// Stat changes from worn uniques...  What's applied is kept in the
+// character (UNIQUE_STATS_OFFSET, UNIQUE_INTS_OFFSET) so it comes off again...
+int SyncStats(int self)
+  int s, d, n, packed, olds, oldd, oldn
+  s = 0
+  d = 0
+  n = 0
+  if(Worn(self, UQ_TITANS_GAVEL))
+    d = d - 2
+  if(Worn(self, UQ_BULWARK_VISOR))
+    d = d - 1
+  if(Worn(self, UQ_HARES_BREECHES))
+    s = s - 1
+  if(Worn(self, UQ_SQUIRES_PROMISE))
+    if(self.hits * 2 < self.hitsmax)
+      s = s + 2
+      d = d + 2
+      n = n + 2
+  packed = FileReadByte(self, UNIQUE_STATS_OFFSET)
+  olds = Nibble(packed & 15)
+  oldd = Nibble(packed >> 4)
+  oldn = Nibble(FileReadByte(self, UNIQUE_INTS_OFFSET) & 15)
+  if(s == olds && d == oldd && n == oldn)
+    return FALSE
+  s = ShiftStat(self, 86, olds, s)
+  d = ShiftStat(self, 87, oldd, d)
+  n = ShiftStat(self, 88, oldn, n)
+  FileWriteByte(self, UNIQUE_STATS_OFFSET, (s & 15) | ((d & 15) << 4))
+  FileWriteByte(self, UNIQUE_INTS_OFFSET, n & 15)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Signed 4 bit value...
+int Nibble(int value)
+  if(value > 7)
+    return (value - 16)
+  return value
+
+//-----------------------------------------------------------------------
+// Moves a stat (character offset) from the applied change to the wanted
+// one, never below 1...  Returns the change now applied...
+int ShiftStat(int self, int offset, int applied, int want)
+  int old, value
+  old = FileReadByte(self, offset)
+  value = old - applied
+  value = value + want
+  if(value < 1)
+    value = 1
+  if(value > 255)
+    value = 255
+  FileWriteByte(self, offset, value)
+  value = value - old
+  return (applied + value)
+
+//-----------------------------------------------------------------------
 // TRUE if anything the character wears (or its minion) needs the timer...
 int NeedsTimer(int self)
   if(ReadShort(self, UNIQUE_MINION_OFFSET))
@@ -667,6 +1069,8 @@ int NeedsTimer(int self)
   if(ReadShort(self, UNIQUE_ROOM_OFFSET))
     return TRUE
   if(Worn(self, UQ_TEMPLARS_MANTLE) || Worn(self, UQ_CIRCLET_OF_STORMS) || Worn(self, UQ_SHROUD_OF_THE_LICH))
+    return TRUE
+  if(Worn(self, UQ_SQUIRES_PROMISE) || Worn(self, UQ_UNDYING_COLOSSUS))
     return TRUE
   return FALSE
 
@@ -689,6 +1093,10 @@ int Tick(int self)
   if(Worn(self, UQ_CIRCLET_OF_STORMS))
     if((secs & 1) == 0)
       StormZap(self)
+  if(Worn(self, UQ_UNDYING_COLOSSUS))
+    if(secs % REGEN_SECONDS == 0)
+      if(self.hits < self.hitsmax - self.hitstap)
+        GENERIC.RestoreCharacterHits(self, 1, 0)
   // Minions...
   if(Minion(self))
     left = FileReadByte(self, UNIQUE_MLEFT_OFFSET)

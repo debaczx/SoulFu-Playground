@@ -418,6 +418,8 @@ int Chill(int who, int frames)
   int now, resist
   if(!who)
     return FALSE
+  if(UNIQUE.NoChill(who))
+    return FALSE  // Hare's Breeches...
   resist = who.defice
   if(resist > 127)
     resist = resist - 256

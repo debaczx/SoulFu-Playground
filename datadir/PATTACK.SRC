@@ -170,6 +170,10 @@ int Event()
               temp_wound_amount = temp_wound_amount + DAGGERFX.PreHit(owner, target)
           // Hexed foes take 1 more and deal 1 less (HEALFX.SRC)...
           temp_damage_amount = temp_damage_amount + HEALFX.HexBonus(owner, target)
+          // Unique weapons and shields (Kingslayer, Executioner, Sparrow's Wing...)...
+          if(self.flags & PART_STUCK_ON)
+            if(target.team != self.team)
+              temp_damage_amount = UNIQUE.PreHit(owner, target, self.xhand, temp_damage_amount)
           if(temp_damage_amount < 0)
             temp_damage_amount = 0
           // Some weapons can hurt characters that have high wound defense...
@@ -414,6 +418,7 @@ int FrameEvent(int type, int damage, int wound, int grip, int weapon_range, floa
   if(index)
     damage = damage + XITEM.ArtifactDamage(index)
     flags = flags | XITEM.ArtifactFlags(index)
+    damage = UNIQUE.SwingDamage(self, damage)  // Berserker's Edge...
 
 
   // Tempered swords...  Holy wounds undead, Unholy hits softer to pay for its drain...
