@@ -146,7 +146,7 @@ int ModelSetup()
 //-----------------------------------------------------------------------
 int UnlockEffect(int self, int target, int cost_key)
   int item, level, metal_box_item
-  int subtype
+  int subtype, rich, given
 
 
 
@@ -154,13 +154,12 @@ int UnlockEffect(int self, int target, int cost_key)
   if((target.keys > 0 || cost_key == FALSE) && target.team == TEAM_GOOD && target.aitimer == 0)
     level = self.misc5
 
-    // Randomly get better treasure when lucky...
-    if(SystemGet(SYS_LUCK, 0, 0))
-      if(RollDice(1, 2) == 1)
-        level++
-
-
-    item = RANDOM.Treasure(level)
+    // Per-level loot tables (RANDOM.ChestLoot)...  Black chests (metal boxes) roll rarer,
+    // luck rolls twice...  item may carry a kind: item | (ext<<8)...
+    rich = FALSE
+    if(subtype == 3)
+      rich = TRUE
+    item = RANDOM.ChestLoot(level, rich, SystemGet(SYS_LUCK, 0, 0))
 //    StringClear(DEBUG_STRING)
 //    StringAppend(DEBUG_STRING, "Chest Level ", 255)
 //    StringAppendNumber(DEBUG_STRING, level, 255)
@@ -170,7 +169,11 @@ int UnlockEffect(int self, int target, int cost_key)
         item = metal_box_item
 
 
-    if(GiveItemToCharacter(target, item))
+    if(item > 255)
+      given = XITEM.GiveArtifact(target, item & 255, item >> 8)
+    else
+      given = GiveItemToCharacter(target, item)
+    if(given)
       if(cost_key)
         // Cost a key...
         target.keys--

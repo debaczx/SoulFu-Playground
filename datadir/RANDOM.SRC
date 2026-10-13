@@ -149,3 +149,68 @@ int Treasure(int level)
 
 //-----------------------------------------------------------------------
 
+// Chest loot by dungeon level (1 Cellar ... 7 Abyss)...  Tables are in LOOT.DAT, built by
+// tools/mkloot.py: per level, 16 common, 16 uncommon and 16 rare entries of (item, kind)...
+// rich is TRUE for black chests (metal boxes), which roll rarer and more enchanted...
+// Luck rolls the rarity twice and keeps the better...  Returns a key, item | (raw_ext<<8),
+// so item kinds come through (use XITEM.GiveArtifact when it's over 255)...
+int ChestLoot(int level, int rich, int lucky)
+  int roll, again, rarity, offset, item, kind
+  if(level < 1)
+    level = 1
+  if(level > 7)
+    level = 7
+  roll = RollDice(1, 100)
+  if(lucky)
+    again = RollDice(1, 100)
+    if(again > roll)
+      roll = again
+  rarity = 0
+  if(rich)
+    if(roll > 25)
+      rarity = 1
+    if(roll > 75)
+      rarity = 2
+  else
+    if(roll > 65)
+      rarity = 1
+    if(roll > 93)
+      rarity = 2
+  offset = ((((level-1)*3) + rarity) << 5) + ((RollDice(1, 16)-1) << 1)
+  item = FileReadByte("FILE:LOOT.DAT", offset)
+  kind = FileReadByte("FILE:LOOT.DAT", offset+1)
+  item = LootEnchant(item, level, rich)
+  if(kind > 0)
+    return (item | (XITEM.KindExt(kind, 0) << 8))
+  return item
+
+//-----------------------------------------------------------------------
+// Maybe enchants a chest item...  1 in 6 on the first level down to 1 in 3 in the Abyss,
+// 2 better in black chests...  Major enchantments from level 2 (half the time in black chests)...
+int LootEnchant(int type, int level, int rich)
+  int chance, major
+  chance = 7 - ((level+1) >> 1)
+  major = 3
+  if(rich)
+    chance = chance - 2
+    major = 2
+  if(chance < 2)
+    chance = 2
+  if(type >= ITEM_DAGGER && type <= (ITEM_WAR_HAMMER+7))
+    type = type & 248
+    if(RollDice(1, chance) == 1)
+      if(RollDice(1, major) == 1 && level > 1)
+        type = type | (RollDice(1, 6)+1)
+      else
+        type = type | WEAPON_VARIANT_MAGIC
+    return type
+  if(type >= ITEM_SHIELD && type <= (ITEM_LEGS_5+3))
+    type = type & 252
+    if(RollDice(1, chance) == 1)
+      if(RollDice(1, major) == 1 && level > 1)
+        type = type | (RollDice(1, 2)+1)
+      else
+        type = type | ARMOR_VARIANT_MAGIC
+  return type
+
+//-----------------------------------------------------------------------

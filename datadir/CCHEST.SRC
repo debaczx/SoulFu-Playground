@@ -146,7 +146,7 @@ int ModelSetup()
 //-----------------------------------------------------------------------
 int UnlockEffect(int self, int target, int cost_key)
   int item, level, metal_box_item
-  int subtype
+  int subtype, rich, given
 
 
 
@@ -154,13 +154,12 @@ int UnlockEffect(int self, int target, int cost_key)
   if((target.keys > 0 || cost_key == FALSE) && target.team == TEAM_GOOD && target.aitimer == 0)
     level = self.eqcol01 & 7
 
-    // Randomly get better treasure when lucky...
-    if(SystemGet(SYS_LUCK, 0, 0))
-      if(RollDice(1, 2) == 1)
-        level++
-
-
-    item = RANDOM.Treasure(level)
+    // Per-level loot tables (RANDOM.ChestLoot)...  Black chests (metal boxes) roll rarer,
+    // luck rolls twice...  item may carry a kind: item | (ext<<8)...
+    rich = FALSE
+    if(subtype == 3)
+      rich = TRUE
+    item = RANDOM.ChestLoot(level, rich, SystemGet(SYS_LUCK, 0, 0))
 //    StringClear(DEBUG_STRING)
 //    StringAppend(DEBUG_STRING, "Chest Level ", 255)
 //    StringAppendNumber(DEBUG_STRING, level, 255)
@@ -170,7 +169,11 @@ int UnlockEffect(int self, int target, int cost_key)
         item = metal_box_item
 
 
-    if(GiveItemToCharacter(target, item))
+    if(item > 255)
+      given = XITEM.GiveArtifact(target, item & 255, item >> 8)
+    else
+      given = GiveItemToCharacter(target, item)
+    if(given)
       if(cost_key)
         // Cost a key...
         target.keys--
@@ -414,7 +417,8 @@ int SubtypeModifyLevel(int mimic)
   self = FindSelf()
   subtype = self.eqcol01 >> 6
   map_level = MAPGEN.GetCurrentLevel()
-  level = (map_level+RollDice(1,2)) >> 1
+  // Chests roll from their dungeon level's loot table (RANDOM.ChestLoot, 1 Cellar ... 7 Abyss)...
+  level = map_level
   if(level < 1)
     level = 1
   // Use our spawn subtype to figger actual subtype...
@@ -435,12 +439,11 @@ int SubtypeModifyLevel(int mimic)
       self.eqcol01 = (self.eqcol01 & 15) | (2<<6)
       // Becomes subtype 2 (trapped)
   if(subtype == 3)
-    // Subtype 3 is used for extra good chests...
-    level = level + 2
+    // Subtype 3 is used for extra good chests (rich chests roll rarer loot)...
     self.eqcol01 = (self.eqcol01 & 15) | (3<<6)
     // Becomes subtype 3
-  if(level > 6)
-    level = 6
+  if(level > 7)
+    level = 7
   return level
 
 
