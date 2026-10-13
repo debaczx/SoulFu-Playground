@@ -67,6 +67,7 @@ int FrameEvent()
   if(child)
     child.misc7 = child.misc7 | (DAMAGE_BONUS << 3)
     child.xhand = 1  // Bows are always left hand...
+    UNIQUE.Shot(self, child, 1)  // Unique bows...
 
 //-----------------------------------------------------------------------
 // Called when item is first used, to start proper animation

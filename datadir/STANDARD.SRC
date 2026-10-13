@@ -1140,6 +1140,8 @@ int PoisonCharacter(int character_index, int owner_index, int amount)
 
   target = FindByIndex(character_index)
   owner = FindByIndex(owner_index)
+  if(UNIQUE.NoPoison(target))
+    return FALSE  // Mudwalker...
   if(target && owner)
     if(target.pstimer < 32768 && !(target.sflags & SCRIPT_NO_POISON) && (target.team != owner.team || character_index == owner_index))
       if(target.team == TEAM_GOOD)
@@ -1448,6 +1450,9 @@ DamageAction()
         self.combo = 0
         if(self.hits > 0)
           return 0
+      if(UNIQUE.Unshaken(self))
+        // Gatekeeper: no knock down, unless we're out of hits...
+        self.combo = 0
       if(self.hits < 1)
         // We're done for...  Knock out right away...
         self.combo = 3

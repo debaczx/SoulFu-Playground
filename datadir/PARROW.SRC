@@ -133,6 +133,8 @@ int Event()
           wound++
 
 
+      // Unique bows and crossbows (UNIQUE.SRC)...
+      damage = UNIQUE.ArrowHit(owner, target, damage)
       // Apply damage...
       DamageTarget(damage_type, damage, wound)
       target.defwoun = defwoun  // Undo funny vs. undead thing

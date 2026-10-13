@@ -95,6 +95,7 @@ int FrameEvent()
     if(child)
       child.misc7 = child.misc7 | (DAMAGE_BONUS << 3)
       child.xhand = 2  // Right hand
+      UNIQUE.Shot(self, child, 2)  // Unique crossbows...
     i++
   return TRUE
 

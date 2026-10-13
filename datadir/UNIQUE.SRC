@@ -36,7 +36,10 @@
 #define UNIQUE_COUNTER_OFFSET  687   // Sparrow's Wing: 1 after a block; Riposte: 1 after being hit; until the next hit
 #define UNIQUE_COUNT_OFFSET    688   // Hits in a row (Duelist's Grace, Chain of Penance, Earthshaker)
 #define UNIQUE_WELL_OFFSET     689   // unsigned short: Wellspring Sash: the room it refilled mana in + 1
-// 691 to 703 are free (UNIQUE_SIZE is 32, see object.c)...
+#define UNIQUE_STILL_OFFSET    691   // Seconds the character has stood still (Phalanx, Sniper's Patience)
+#define UNIQUE_SPOT_OFFSET     692   // Where it stood at the last tick (low bytes of x*2 and y*2)
+#define UNIQUE_SHOTS_OFFSET    694   // Shots counted (Stormstring)
+// 695 to 703 are free (UNIQUE_SIZE is 32, see object.c)...
 // Unique numbers (UNIQUE.SRC), one per base item and kind...  Never renumber (saves count drops by number)...
 #define UQ_NIGHTS_EDGE         1     // Obsidian Blade
 #define UQ_MEDUSAS_MIRROR      2     // Mirror Shield
@@ -82,7 +85,25 @@
 #define UQ_WELLSPRING_SASH     42    // Mystic Sash kind
 #define UQ_CREST_OF_VALOUR     43    // Light Helm
 #define UQ_FORTRESS            44    // Bastion Plate kind
-#define UQ_LAST                44
+#define UQ_WHISPERWIND         45    // Bow
+#define UQ_WINDFORCE           46    // Long Bow
+#define UQ_HUNTERS_MOON        47    // Recurve kind
+#define UQ_STORMSTRING         48    // Composite kind
+#define UQ_SNIPERS_PATIENCE    49    // Light Crossbow kind
+#define UQ_HORNET_NEST         50    // Repeater kind
+#define UQ_TIDE_CALLER         51    // Trident kind
+#define UQ_PHALANX             52    // Pike kind
+#define UQ_WARDENS_WATCH       53    // Halberd kind
+#define UQ_TINKERS_MALLET      54    // Hammer
+#define UQ_WOODSMANS_FRIEND    55    // Hatchet
+#define UQ_CROWN_OF_THE_OLD_KING 56  // Ancient Helm
+#define UQ_MUDWALKER           57    // Chain Lowers
+#define UQ_SILENT_STEP         58    // Shadow Breeches kind
+#define UQ_MANTLE_OF_KNIVES    59    // Nightblade Leathers kind
+#define UQ_WARLORDS_CREST      60    // Bastion Helm kind
+#define UQ_SIEGEWALKER         61    // Bastion Greaves kind
+#define UQ_GATEKEEPER          62    // Chain Helm
+#define UQ_LAST                62
 #define TICK_FRAMES      60    // Frames per unique timer tick (one second)
 #define MINION_FOREVER   255   // UNIQUE_MLEFT_OFFSET value: stays while the item is worn
 #define RAT_SECONDS      20    // Rat King's Tooth: how long a rat stays
@@ -110,6 +131,22 @@
 #define QUAKE_RANGE      5.0   // Earthshaker: reach of the shockwave
 #define QUAKE_DAMAGE     3     // Earthshaker: damage of the shockwave
 #define ANVIL_CHANCE     15    // Anvil Greaves: percent chance to knock down a melee attacker
+#define WIND_SPEED       1.5   // Whisperwind: arrow speed multiplier
+#define PUSH_SPEED       0.8   // Windforce: how hard arrows push foes back
+#define MOON_SPREAD      0.12  // Hunter's Moon: sideways spread of the extra arrows
+#define STORM_SHOTS      5     // Stormstring: every this many shots calls lightning
+#define SNIPE_SECONDS    2     // Sniper's Patience: seconds standing still for a triple bolt
+#define ARROW_SNIPE      1     // Arrow flag (particle number): triple damage
+#define ARROW_UNIQUE     2     // Arrow flag (particle number): shot from a unique (see ArrowHit)
+#define POISON_FRAMES    300   // Hornet Nest: poison length
+#define WARD_RANGE       5.0   // Warden's Watch: reach of the auto hits
+#define WARD_DAMAGE      2     // Warden's Watch: damage of an auto hit
+#define REFILL_CHANCE    25    // Tinker's Mallet: percent chance per hit to put an arrow back
+#define KNIFE_SECONDS    3     // Mantle of Knives: seconds between blades
+#define KNIFE_RANGE      12.0  // Mantle of Knives: reach
+#define KNIFE_DAMAGE     3     // Mantle of Knives: blade damage
+#define CREST_RANGE      8.0   // Warlord's Crest: reach of the damage bonus
+#define PHALANX_DEF      3     // Phalanx: edge and bash defense while still
 
 
 //-----------------------------------------------------------------------
@@ -192,6 +229,20 @@ int IdFor(int item, int kind)
       return UQ_STRIDE_OF_KINGS
     if(item == ITEM_HELM_3)
       return UQ_CREST_OF_VALOUR
+    if(item == ITEM_BOW)
+      return UQ_WHISPERWIND
+    if(item == ITEM_LONG_BOW)
+      return UQ_WINDFORCE
+    if(item == ITEM_HAMMER)
+      return UQ_TINKERS_MALLET
+    if(item == ITEM_HATCHET)
+      return UQ_WOODSMANS_FRIEND
+    if(item == ITEM_HELM_5)
+      return UQ_CROWN_OF_THE_OLD_KING
+    if(item == ITEM_LEGS_2)
+      return UQ_MUDWALKER
+    if(item == ITEM_HELM_2)
+      return UQ_GATEKEEPER
     return 0
   if(kind == KIND_SPIKED_SHIELD)
     return UQ_THORNBACK
@@ -243,6 +294,28 @@ int IdFor(int item, int kind)
     return UQ_WELLSPRING_SASH
   if(kind == KIND_BASTION_PLATE)
     return UQ_FORTRESS
+  if(kind == KIND_RECURVE)
+    return UQ_HUNTERS_MOON
+  if(kind == KIND_COMPOSITE)
+    return UQ_STORMSTRING
+  if(kind == KIND_LIGHT_CROSSBOW)
+    return UQ_SNIPERS_PATIENCE
+  if(kind == KIND_REPEATER)
+    return UQ_HORNET_NEST
+  if(kind == KIND_TRIDENT)
+    return UQ_TIDE_CALLER
+  if(kind == KIND_PIKE)
+    return UQ_PHALANX
+  if(kind == KIND_HALBERD)
+    return UQ_WARDENS_WATCH
+  if(kind == KIND_SHADOW_BREECHES)
+    return UQ_SILENT_STEP
+  if(kind == KIND_NIGHTBLADE_LEATHERS)
+    return UQ_MANTLE_OF_KNIVES
+  if(kind == KIND_BASTION_HELM)
+    return UQ_WARLORDS_CREST
+  if(kind == KIND_BASTION_GREAVES)
+    return UQ_SIEGEWALKER
   return 0
 
 //-----------------------------------------------------------------------
@@ -342,6 +415,42 @@ int KeyOf(int uq)
     return MakeKey(ITEM_HELM_3, 0)
   if(uq == UQ_FORTRESS)
     return MakeKey(ITEM_BODY_1, KIND_BASTION_PLATE)
+  if(uq == UQ_WHISPERWIND)
+    return MakeKey(ITEM_BOW, 0)
+  if(uq == UQ_WINDFORCE)
+    return MakeKey(ITEM_LONG_BOW, 0)
+  if(uq == UQ_HUNTERS_MOON)
+    return MakeKey(ITEM_BOW, KIND_RECURVE)
+  if(uq == UQ_STORMSTRING)
+    return MakeKey(ITEM_BOW, KIND_COMPOSITE)
+  if(uq == UQ_SNIPERS_PATIENCE)
+    return MakeKey(ITEM_BOW, KIND_LIGHT_CROSSBOW)
+  if(uq == UQ_HORNET_NEST)
+    return MakeKey(ITEM_BOW, KIND_REPEATER)
+  if(uq == UQ_TIDE_CALLER)
+    return MakeKey(ITEM_DAGGER, KIND_TRIDENT)
+  if(uq == UQ_PHALANX)
+    return MakeKey(ITEM_DAGGER, KIND_PIKE)
+  if(uq == UQ_WARDENS_WATCH)
+    return MakeKey(ITEM_DAGGER, KIND_HALBERD)
+  if(uq == UQ_TINKERS_MALLET)
+    return MakeKey(ITEM_HAMMER, 0)
+  if(uq == UQ_WOODSMANS_FRIEND)
+    return MakeKey(ITEM_HATCHET, 0)
+  if(uq == UQ_CROWN_OF_THE_OLD_KING)
+    return MakeKey(ITEM_HELM_5, 0)
+  if(uq == UQ_MUDWALKER)
+    return MakeKey(ITEM_LEGS_2, 0)
+  if(uq == UQ_SILENT_STEP)
+    return MakeKey(ITEM_LEGS_1, KIND_SHADOW_BREECHES)
+  if(uq == UQ_MANTLE_OF_KNIVES)
+    return MakeKey(ITEM_BODY_1, KIND_NIGHTBLADE_LEATHERS)
+  if(uq == UQ_WARLORDS_CREST)
+    return MakeKey(ITEM_HELM_1, KIND_BASTION_HELM)
+  if(uq == UQ_SIEGEWALKER)
+    return MakeKey(ITEM_LEGS_1, KIND_BASTION_GREAVES)
+  if(uq == UQ_GATEKEEPER)
+    return MakeKey(ITEM_HELM_2, 0)
   return 0
 
 //-----------------------------------------------------------------------
@@ -469,6 +578,42 @@ int Name(int uq)
     return "CREST OF VALOUR"
   if(uq == UQ_FORTRESS)
     return "FORTRESS"
+  if(uq == UQ_WHISPERWIND)
+    return "WHISPERWIND"
+  if(uq == UQ_WINDFORCE)
+    return "WINDFORCE"
+  if(uq == UQ_HUNTERS_MOON)
+    return "HUNTER'S MOON"
+  if(uq == UQ_STORMSTRING)
+    return "STORMSTRING"
+  if(uq == UQ_SNIPERS_PATIENCE)
+    return "SNIPER'S PATIENCE"
+  if(uq == UQ_HORNET_NEST)
+    return "HORNET NEST"
+  if(uq == UQ_TIDE_CALLER)
+    return "TIDE CALLER"
+  if(uq == UQ_PHALANX)
+    return "PHALANX"
+  if(uq == UQ_WARDENS_WATCH)
+    return "WARDEN'S WATCH"
+  if(uq == UQ_TINKERS_MALLET)
+    return "TINKER'S MALLET"
+  if(uq == UQ_WOODSMANS_FRIEND)
+    return "WOODSMAN'S FRIEND"
+  if(uq == UQ_CROWN_OF_THE_OLD_KING)
+    return "CROWN OF THE OLD KING"
+  if(uq == UQ_MUDWALKER)
+    return "MUDWALKER"
+  if(uq == UQ_SILENT_STEP)
+    return "SILENT STEP"
+  if(uq == UQ_MANTLE_OF_KNIVES)
+    return "MANTLE OF KNIVES"
+  if(uq == UQ_WARLORDS_CREST)
+    return "WARLORD'S CREST"
+  if(uq == UQ_SIEGEWALKER)
+    return "SIEGEWALKER"
+  if(uq == UQ_GATEKEEPER)
+    return "GATEKEEPER"
   return NULL
 
 //-----------------------------------------------------------------------
@@ -562,6 +707,42 @@ int Info(int uq)
     return "+2 STR, +2 DAMAGE IN BOSS ROOMS"
   if(uq == UQ_FORTRESS)
     return "25% LESS DAMAGE STANDING STILL, -1 DEX"
+  if(uq == UQ_WHISPERWIND)
+    return "ARROWS FLY 50% FASTER, -1 DAMAGE"
+  if(uq == UQ_WINDFORCE)
+    return "+2 DAMAGE, ARROWS PUSH FOES, -2 DEX"
+  if(uq == UQ_HUNTERS_MOON)
+    return "SHOOTS 3 ARROWS FOR 1"
+  if(uq == UQ_STORMSTRING)
+    return "EVERY 5TH SHOT CALLS LIGHTNING"
+  if(uq == UQ_SNIPERS_PATIENCE)
+    return "STAND STILL 2S: NEXT BOLT X3"
+  if(uq == UQ_HORNET_NEST)
+    return "BOLTS POISON, USES TWICE THE BOLTS"
+  if(uq == UQ_TIDE_CALLER)
+    return "ICE, HITS CHILL"
+  if(uq == UQ_PHALANX)
+    return "+3 EDGE/BASH DEF STANDING STILL, -10% SPEED"
+  if(uq == UQ_WARDENS_WATCH)
+    return "HITS A FOE IN REACH EVERY SECOND"
+  if(uq == UQ_TINKERS_MALLET)
+    return "HITS MAY PUT AN ARROW BACK IN A QUIVER"
+  if(uq == UQ_WOODSMANS_FRIEND)
+    return "A WUFF FIGHTS BESIDE YOU"
+  if(uq == UQ_CROWN_OF_THE_OLD_KING)
+    return "SKELETON ALLY, -1 ALL STATS"
+  if(uq == UQ_MUDWALKER)
+    return "POISON IMMUNE, +1 ACID DEF"
+  if(uq == UQ_SILENT_STEP)
+    return "BACKSTABS DO DOUBLE"
+  if(uq == UQ_MANTLE_OF_KNIVES)
+    return "THROWS A BLADE EVERY 3S, -2 EDGE DEF"
+  if(uq == UQ_WARLORDS_CREST)
+    return "ALLIES NEARBY DO +2 DAMAGE"
+  if(uq == UQ_SIEGEWALKER)
+    return "WALKING INTO FOES KNOCKS THEM DOWN"
+  if(uq == UQ_GATEKEEPER)
+    return "CAN'T BE KNOCKED DOWN"
   return NULL
 
 //-----------------------------------------------------------------------
@@ -655,6 +836,42 @@ int Icon(int uq)
     return "FILE:=IUQ43.RGB"
   if(uq == UQ_FORTRESS)
     return "FILE:=IUQ44.RGB"
+  if(uq == UQ_WHISPERWIND)
+    return "FILE:=IUQ45.RGB"
+  if(uq == UQ_WINDFORCE)
+    return "FILE:=IUQ46.RGB"
+  if(uq == UQ_HUNTERS_MOON)
+    return "FILE:=IUQ47.RGB"
+  if(uq == UQ_STORMSTRING)
+    return "FILE:=IUQ48.RGB"
+  if(uq == UQ_SNIPERS_PATIENCE)
+    return "FILE:=IUQ49.RGB"
+  if(uq == UQ_HORNET_NEST)
+    return "FILE:=IUQ50.RGB"
+  if(uq == UQ_TIDE_CALLER)
+    return "FILE:=IUQ51.RGB"
+  if(uq == UQ_PHALANX)
+    return "FILE:=IUQ52.RGB"
+  if(uq == UQ_WARDENS_WATCH)
+    return "FILE:=IUQ53.RGB"
+  if(uq == UQ_TINKERS_MALLET)
+    return "FILE:=IUQ54.RGB"
+  if(uq == UQ_WOODSMANS_FRIEND)
+    return "FILE:=IUQ55.RGB"
+  if(uq == UQ_CROWN_OF_THE_OLD_KING)
+    return "FILE:=IUQ56.RGB"
+  if(uq == UQ_MUDWALKER)
+    return "FILE:=IUQ57.RGB"
+  if(uq == UQ_SILENT_STEP)
+    return "FILE:=IUQ58.RGB"
+  if(uq == UQ_MANTLE_OF_KNIVES)
+    return "FILE:=IUQ59.RGB"
+  if(uq == UQ_WARLORDS_CREST)
+    return "FILE:=IUQ60.RGB"
+  if(uq == UQ_SIEGEWALKER)
+    return "FILE:=IUQ61.RGB"
+  if(uq == UQ_GATEKEEPER)
+    return "FILE:=IUQ62.RGB"
   return NULL
 
 //-----------------------------------------------------------------------
@@ -727,6 +944,8 @@ int SwingElement(int e)
     return WEAPON_VARIANT_FIRE
   if(uq == UQ_WYVERN_LANCE)
     return WEAPON_VARIANT_VOLT
+  if(uq == UQ_TIDE_CALLER)
+    return WEAPON_VARIANT_ICE
   return e
 
 //-----------------------------------------------------------------------
@@ -742,6 +961,8 @@ int ShownElement(int e)
     return WEAPON_VARIANT_FIRE
   if(uq == UQ_WYVERN_LANCE)
     return WEAPON_VARIANT_VOLT
+  if(uq == UQ_TIDE_CALLER)
+    return WEAPON_VARIANT_ICE
   return e
 
 //-----------------------------------------------------------------------
@@ -797,7 +1018,30 @@ int Defense(int self)
     // Any fire defense keeps burns off (PBURNING.Effect)...
     SystemSet(SYS_DEFENSERATING, 0, DAMAGE_FIRE, 4)
     SystemSet(SYS_DEFENSERATING, 0, DAMAGE_ICE, -2)
+  if(Worn(self, UQ_MUDWALKER))
+    SystemSet(SYS_DEFENSERATING, 0, DAMAGE_ACID, 1)
+  if(Worn(self, UQ_MANTLE_OF_KNIVES))
+    SystemSet(SYS_DEFENSERATING, 0, DAMAGE_EDGE, -2)
+  if(Worn(self, UQ_PHALANX))
+    if(FileReadByte(self, UNIQUE_STILL_OFFSET))
+      SystemSet(SYS_DEFENSERATING, 0, DAMAGE_EDGE, PHALANX_DEF)
+      SystemSet(SYS_DEFENSERATING, 0, DAMAGE_BASH, PHALANX_DEF)
   return TRUE
+
+//-----------------------------------------------------------------------
+// Gatekeeper: can't be knocked down (STANDARD.DamageAction)...
+int Unshaken(int who)
+  return Worn(who, UQ_GATEKEEPER)
+
+//-----------------------------------------------------------------------
+// Mudwalker: can't be poisoned (STANDARD.PoisonCharacter)...
+int NoPoison(int who)
+  return Worn(who, UQ_MUDWALKER)
+
+//-----------------------------------------------------------------------
+// Silent Step: big backstabs do double (PATTACK.SRC)...
+int Backstab(int who)
+  return Worn(who, UQ_SILENT_STEP)
 
 //-----------------------------------------------------------------------
 // Ironbrow: can't be stunned, knocked down or petrified (STANDARD.SRC)...
@@ -886,6 +1130,9 @@ int PreHit(int owner, int target, int xhand, int amount)
     if(Worn(owner, UQ_RIPOSTE))
       amount = amount * 2
       PFLASH.Effect(target, "FILE:LITESPRK.RGB", UNIQUE_GOLD, TRUE, 1.0)
+  // Warlord's Crest: harder hits near whoever wears it...
+  if(CrestNear(owner))
+    amount = amount + 2
   // Crest of Valour: harder hits in boss rooms...
   if(IdIn(owner, 246) == UQ_CREST_OF_VALOUR)
     if(BossRoom())
@@ -957,6 +1204,24 @@ int HandId(int owner, int xhand)
     if(!XITEM.IsPole(owner, slot))
       return 0
   return IdIn(owner, slot)
+
+//-----------------------------------------------------------------------
+// Warlord's Crest: TRUE if the owner or an ally close by wears it...
+int CrestNear(int owner)
+  int i, who
+  float dx, dy
+  i = 0
+  while(i < MAX_CHARACTER)
+    who = FindByIndex(i)
+    if(who)
+      if(who.team == owner.team && who.hits > 0)
+        if(Worn(who, UQ_WARLORDS_CREST))
+          dx = who.x - owner.x
+          dy = who.y - owner.y
+          if(dx*dx + dy*dy < CREST_RANGE*CREST_RANGE)
+            return TRUE
+    i++
+  return FALSE
 
 //-----------------------------------------------------------------------
 // Counts a hit (UNIQUE_COUNT_OFFSET) from 0 to every-1 and around...
@@ -1046,7 +1311,119 @@ int Hit(int owner, int target, int xhand, int dealt, int killed)
       if(RollDice(1, 100) <= WIND_CHANCE)
         DWARFFX.KnockDown(target, owner.x, owner.y)
     return TRUE
+  if(uq == UQ_TIDE_CALLER)
+    if(!killed)
+      XITEM.Chill(target, CHILL_TIME)
+    return TRUE
+  if(uq == UQ_TINKERS_MALLET)
+    if(RollDice(1, 100) <= REFILL_CHANCE)
+      Refill(owner)
+    return TRUE
   return FALSE
+
+//-----------------------------------------------------------------------
+// Tinker's Mallet: puts an arrow back in the first quiver that isn't full...
+int Refill(int owner)
+  int i, item
+  i = 224
+  while(i < 246)
+    if(i != 240 && i != 241)
+      item = FileReadByte(owner, i)
+      if(item > ITEM_QUIVER_10 && item <= ITEM_QUIVER_1)
+        FileWriteByte(owner, i, item - 1)
+        PlaySound("FILE:-BOW00.RAW", 300, 128)
+        return TRUE
+    i++
+  return FALSE
+
+//-----------------------------------------------------------------------
+// Unique bows and crossbows: an arrow (child) was just loosed from hand xhand...
+// Called by each launcher's FrameEvent...
+int Shot(int self, int child, int xhand)
+  int uq, extra, secs
+  float sx, sy
+  if(!child)
+    return FALSE
+  uq = IdIn(self, 241 + xhand)
+  if(uq == 0)
+    return FALSE
+  child.number = ARROW_UNIQUE
+  if(uq == UQ_WHISPERWIND)
+    child.vx = child.vx * WIND_SPEED
+    child.vy = child.vy * WIND_SPEED
+    child.vz = child.vz * WIND_SPEED
+  if(uq == UQ_HUNTERS_MOON)
+    // Two more arrows, one to each side (free)...
+    sx = -child.vy * MOON_SPREAD
+    sy = child.vx * MOON_SPREAD
+    SetSpawnTarget(FindIndex(self))
+    extra = PARROW.FullEffect(child.misc7 & 7, child.x, child.y, child.z, child.vx + sx, child.vy + sy, child.vz, self.team, FindIndex(self))
+    if(extra)
+      extra.misc7 = child.misc7
+      extra.xhand = child.xhand
+    extra = PARROW.FullEffect(child.misc7 & 7, child.x, child.y, child.z, child.vx - sx, child.vy - sy, child.vz, self.team, FindIndex(self))
+    if(extra)
+      extra.misc7 = child.misc7
+      extra.xhand = child.xhand
+  if(uq == UQ_STORMSTRING)
+    secs = (FileReadByte(self, UNIQUE_SHOTS_OFFSET) + 1) % STORM_SHOTS
+    FileWriteByte(self, UNIQUE_SHOTS_OFFSET, secs)
+    if(secs == 0)
+      DWARFFX.Chain(self, 3)
+  if(uq == UQ_SNIPERS_PATIENCE)
+    if(FileReadByte(self, UNIQUE_STILL_OFFSET) >= SNIPE_SECONDS)
+      child.number = ARROW_UNIQUE | ARROW_SNIPE
+      PFLASH.Effect(self, "FILE:LITESPRK.RGB", UNIQUE_GOLD, TRUE, 0.8)
+    FileWriteByte(self, UNIQUE_STILL_OFFSET, 0)
+  if(uq == UQ_HORNET_NEST)
+    // Each bolt costs one more...
+    UseArrow(self)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Takes one arrow out of the first quiver...
+int UseArrow(int self)
+  int i, item
+  i = 224
+  while(i < 246)
+    if(i != 240 && i != 241)
+      item = FileReadByte(self, i)
+      if(item >= ITEM_QUIVER_10 && item <= ITEM_QUIVER_1)
+        if(item == ITEM_QUIVER_1)
+          item = ITEM_NONE
+        else
+          item++
+        FileWriteByte(self, i, item)
+        return TRUE
+    i++
+  return FALSE
+
+//-----------------------------------------------------------------------
+// An arrow from a unique launcher is about to hurt a foe (PARROW.SRC)...
+// self is the arrow...  Returns the damage it does...
+int ArrowHit(int owner, int target, int damage)
+  int self, uq
+  self = FindSelf()
+  if(!(self.number & ARROW_UNIQUE) || !owner)
+    return damage
+  if(self.xhand != 1 && self.xhand != 2)
+    return damage
+  if(target.team == owner.team)
+    return damage
+  uq = IdIn(owner, 241 + self.xhand)
+  if(self.number & ARROW_SNIPE)
+    damage = damage * 3
+    PFLASH.Effect(target, "FILE:LITESPRK.RGB", UNIQUE_GOLD, TRUE, 1.2)
+  if(uq == UQ_WHISPERWIND && damage > 1)
+    damage--
+  if(uq == UQ_WINDFORCE)
+    damage = damage + 2
+    target.vx = target.vx + (self.vx * PUSH_SPEED)
+    target.vy = target.vy + (self.vy * PUSH_SPEED)
+  if(uq == UQ_HORNET_NEST)
+    STANDARD.PoisonCharacter(FindIndex(target), FindIndex(owner), POISON_FRAMES)
+  self.number = 0  // Once per arrow...
+  return damage
 
 //-----------------------------------------------------------------------
 // Mercy: heals the most hurt ally nearby (the holder too)...
@@ -1272,7 +1649,7 @@ int Minion(int self)
   if(pet)
     if(pet.owner == FindIndex(self) && pet.hits > 0)
       script = SystemGet(SYS_CHARACTERSCRIPTFILE, 0, index)
-      if(script == "FILE:CRAT.RUN" || script == "FILE:CWRAITHE.RUN")
+      if(script == "FILE:CRAT.RUN" || script == "FILE:CWRAITHE.RUN" || script == "FILE:CWUFF.RUN" || script == "FILE:CSKULTON.RUN")
         return pet
   WriteShort(self, UNIQUE_MINION_OFFSET, 0)
   return NULL
@@ -1357,6 +1734,8 @@ int Sync(int self)
     speed = speed + 15
   if(Worn(self, UQ_EARTHSHAKER))
     speed = speed - 10
+  if(Worn(self, UQ_PHALANX))
+    speed = speed - 10
   FileWriteByte(self, UNIQUE_SPEED_OFFSET, speed & 255)
   SyncStats(self)
   // Starwoven Sash: more max mana, fewer max hits...
@@ -1389,7 +1768,7 @@ int Sync(int self)
   // A wraith only stays while the Shroud is worn...
   pet = Minion(self)
   if(pet && FileReadByte(self, UNIQUE_MLEFT_OFFSET) == MINION_FOREVER)
-    if(!Worn(self, UQ_SHROUD_OF_THE_LICH))
+    if(!KeepsMinion(self))
       Dismiss(self)
   if(NeedsTimer(self))
     StartTimer(self)
@@ -1421,6 +1800,12 @@ int SyncStats(int self)
     s = s + 1
     d = d + 1
     n = n + 1
+  if(Worn(self, UQ_CROWN_OF_THE_OLD_KING))
+    s = s - 1
+    d = d - 1
+    n = n - 1
+  if(Worn(self, UQ_WINDFORCE))
+    d = d - 2
   if(Worn(self, UQ_SQUIRES_PROMISE))
     if(self.hits * 2 < self.hitsmax)
       s = s + 2
@@ -1463,6 +1848,13 @@ int ShiftStat(int self, int offset, int applied, int want)
   return (applied + value)
 
 //-----------------------------------------------------------------------
+// TRUE if the character wears something whose minion stays while worn...
+int KeepsMinion(int self)
+  if(Worn(self, UQ_SHROUD_OF_THE_LICH) || Worn(self, UQ_CROWN_OF_THE_OLD_KING) || Worn(self, UQ_WOODSMANS_FRIEND))
+    return TRUE
+  return FALSE
+
+//-----------------------------------------------------------------------
 // TRUE if anything the character wears (or its minion) needs the timer...
 int NeedsTimer(int self)
   if(ReadShort(self, UNIQUE_MINION_OFFSET))
@@ -1473,12 +1865,16 @@ int NeedsTimer(int self)
     return TRUE
   if(Worn(self, UQ_SQUIRES_PROMISE) || Worn(self, UQ_UNDYING_COLOSSUS) || Worn(self, UQ_WELLSPRING_SASH))
     return TRUE
+  if(KeepsMinion(self) || Worn(self, UQ_PHALANX) || Worn(self, UQ_SNIPERS_PATIENCE))
+    return TRUE
+  if(Worn(self, UQ_WARDENS_WATCH) || Worn(self, UQ_MANTLE_OF_KNIVES) || Worn(self, UQ_SIEGEWALKER))
+    return TRUE
   return FALSE
 
 //-----------------------------------------------------------------------
 // Once a second (EVENT_UNIQUE_TIMER)...
 int Tick(int self)
-  int left, wait, secs, room
+  int left, wait, secs, room, pet
   if(self.hits == 0)
     WriteShort(self, UNIQUE_TIMER_OFFSET, TICK_FRAMES)
     return FALSE
@@ -1496,6 +1892,14 @@ int Tick(int self)
       StormZap(self)
   if(Worn(self, UQ_WELLSPRING_SASH))
     Wellspring(self)
+  Stillness(self)
+  if(Worn(self, UQ_WARDENS_WATCH))
+    Ward(self)
+  if(Worn(self, UQ_MANTLE_OF_KNIVES))
+    if(secs % KNIFE_SECONDS == 0)
+      Knife(self)
+  if(Worn(self, UQ_SIEGEWALKER))
+    Trample(self)
   if(Worn(self, UQ_UNDYING_COLOSSUS))
     if(secs % REGEN_SECONDS == 0)
       if(self.hits < self.hitsmax - self.hitstap)
@@ -1509,16 +1913,124 @@ int Tick(int self)
       if(left <= 0)
         Dismiss(self)
   else
-    if(Worn(self, UQ_SHROUD_OF_THE_LICH))
+    if(KeepsMinion(self))
       wait = FileReadByte(self, UNIQUE_MWAIT_OFFSET)
       if(wait > 0)
         FileWriteByte(self, UNIQUE_MWAIT_OFFSET, wait - 1)
       else
-        if(Summon(self, "FILE:CWRAITHE.RUN", 2, MINION_FOREVER))  // A sword wraith...
+        pet = NULL
+        if(Worn(self, UQ_SHROUD_OF_THE_LICH))
+          pet = Summon(self, "FILE:CWRAITHE.RUN", 2, MINION_FOREVER)  // A sword wraith...
+        else
+          if(Worn(self, UQ_CROWN_OF_THE_OLD_KING))
+            pet = Summon(self, "FILE:CSKULTON.RUN", 0, MINION_FOREVER)  // A skeleton...
+          else
+            pet = Summon(self, "FILE:CWUFF.RUN", 0, MINION_FOREVER)  // A wuff...
+        if(pet)
           FileWriteByte(self, UNIQUE_MWAIT_OFFSET, WRAITH_WAIT)
   Sync(self)
   if(NeedsTimer(self))
     WriteShort(self, UNIQUE_TIMER_OFFSET, TICK_FRAMES)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Counts seconds standing still (Phalanx, Sniper's Patience)...  Phalanx's
+// defense changes when that starts or stops...
+int Stillness(int self)
+  int x, y, still, old
+  float fx, fy
+  fx = self.x * 2.0
+  fy = self.y * 2.0
+  x = fx
+  y = fy
+  x = x & 255
+  y = y & 255
+  old = FileReadByte(self, UNIQUE_STILL_OFFSET)
+  still = 0
+  if(x == FileReadByte(self, UNIQUE_SPOT_OFFSET) && y == FileReadByte(self, UNIQUE_SPOT_OFFSET+1))
+    still = old + 1
+    if(still > 250)
+      still = 250
+  FileWriteByte(self, UNIQUE_SPOT_OFFSET, x)
+  FileWriteByte(self, UNIQUE_SPOT_OFFSET+1, y)
+  FileWriteByte(self, UNIQUE_STILL_OFFSET, still)
+  if(Worn(self, UQ_PHALANX))
+    if(old == 0 && still > 0)
+      SystemSet(SYS_CHARFASTFUNCTION, FindIndex(self), 0, FAST_FUNCTION_DEFENSERATING)
+    if(old > 0 && still == 0)
+      SystemSet(SYS_CHARFASTFUNCTION, FindIndex(self), 0, FAST_FUNCTION_DEFENSERATING)
+  return still
+
+//-----------------------------------------------------------------------
+// The nearest foe within range of a character (NULL if none)...
+int NearestFoe(int self, float range)
+  int i, who, best
+  float dx, dy, sl, bestsl
+  best = NULL
+  bestsl = range*range
+  i = 0
+  while(i < MAX_CHARACTER)
+    who = FindByIndex(i)
+    if(DWARFFX.Foe(self, who))
+      dx = who.x - self.x
+      dy = who.y - self.y
+      sl = dx*dx + dy*dy
+      if(sl < bestsl)
+        bestsl = sl
+        best = who
+    i++
+  return best
+
+//-----------------------------------------------------------------------
+// Warden's Watch: strikes the nearest foe in reach...
+int Ward(int self)
+  int who
+  who = NearestFoe(self, WARD_RANGE + self.boxsize)
+  if(!who)
+    return FALSE
+  Hurt(who, DAMAGE_EDGE, WARD_DAMAGE, self)
+  PSPARK.Effect(who.x, who.y, who.z + (who.height*0.6), 8, 1)
+  PlaySound("FILE:SWIPE.RAW", 200 + RollDice(1, 50), 200)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Mantle of Knives: throws a blade at the nearest foe...
+int Knife(int self)
+  int who, dex, aimed
+  float vx, vy, vz
+  who = NearestFoe(self, KNIFE_RANGE)
+  if(!who)
+    return FALSE
+  // Aim at a foe in front, or else behind...
+  dex = 50
+  AutoAim(1.2, 70.0, self.spin, self.team, dex, 32000, AUTOAIM_CRUNCH_BALLISTIC)
+  aimed = AutoAim(0.0, 0.0, 0, 0, 0, 0, AUTOAIM_TARGET)
+  if(aimed >= MAX_CHARACTER)
+    AutoAim(1.2, 70.0, (self.spin + 32768) & 65535, self.team, dex, 32000, AUTOAIM_CRUNCH_BALLISTIC)
+    aimed = AutoAim(0.0, 0.0, 0, 0, 0, 0, AUTOAIM_TARGET)
+    if(aimed >= MAX_CHARACTER)
+      return FALSE
+  vx = AutoAim(0.0, 0.0, 0, 0, 0, 0, AUTOAIM_X)
+  vy = AutoAim(0.0, 0.0, 0, 0, 0, 0, AUTOAIM_Y)
+  vz = AutoAim(0.0, 0.0, 0, 0, 0, 0, AUTOAIM_Z)
+  SetSpawnOwner(FindIndex(self))
+  SetSpawnTeam(self.team)
+  PTHRAXE.Effect(self.x, self.y, self.z + (self.height*0.6), vx, vy, vz, DAMAGE_EDGE, KNIFE_DAMAGE, 0)
+  PlaySound("FILE:SWIPE.RAW", 220 + RollDice(1, 50), 200)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Siegewalker: walking into a foe knocks it down...
+int Trample(int self)
+  int who
+  if(self.action != ACTION_WALK)
+    return FALSE
+  who = NearestFoe(self, self.boxsize + 2.0)
+  if(!who)
+    return FALSE
+  Hurt(who, DAMAGE_BASH, 1, self)
+  DWARFFX.KnockDown(who, self.x, self.y)
+  PlaySound("FILE:BLOCK.RAW", 150, 255)
   return TRUE
 
 //-----------------------------------------------------------------------

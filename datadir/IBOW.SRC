@@ -146,6 +146,7 @@ int FrameEvent()
     if(VariantElement())
       // Modded bow...  The arrow remembers its element, so it works even if the bow is swapped mid-flight...
       child.xhand = XHAND_BOW_BASE + VariantElement()
+    UNIQUE.Shot(self, child, 1)  // Unique bows...
 
 //-----------------------------------------------------------------------
 // Called when item is first used, to start proper animation
