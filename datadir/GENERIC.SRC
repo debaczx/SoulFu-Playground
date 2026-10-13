@@ -482,7 +482,7 @@ int GiveItemToCharacterExt(int target, int item, int ext)
     old_item = FileReadByte(target, slot+224)
     if(old_item == ITEM_NONE)
       FileWriteByte(target, slot+224, item)
-      XITEM.Set(target, slot+224, ext)
+      XITEM.SetRaw(target, slot+224, ext)  // ext is the whole raw value (kind bits too)
       return TRUE
     slot++
   // No empty slots...

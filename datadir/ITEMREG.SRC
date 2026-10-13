@@ -17,6 +17,18 @@ int RegisterItem(int index, int script, int icon, int overlay, int price, int fl
   SystemSet(SYS_ITEMREGISTRYAMMO,   index, 0, ammo)
 
 //-----------------------------------------------------------------------
+int RegisterKind(int kind, int base_item, int script, int icon, int price, int min_str, int min_dex, int min_int, int min_manamax, int flags)
+  SystemSet(SYS_KINDREGISTRY, kind, KIND_FIELD_BASE,   base_item)
+  SystemSet(SYS_KINDREGISTRY, kind, KIND_FIELD_SCRIPT, script)
+  SystemSet(SYS_KINDREGISTRY, kind, KIND_FIELD_ICON,   icon)
+  SystemSet(SYS_KINDREGISTRY, kind, KIND_FIELD_PRICE,  price)
+  SystemSet(SYS_KINDREGISTRY, kind, KIND_FIELD_STR,    min_str)
+  SystemSet(SYS_KINDREGISTRY, kind, KIND_FIELD_DEX,    min_dex)
+  SystemSet(SYS_KINDREGISTRY, kind, KIND_FIELD_INT,    min_int)
+  SystemSet(SYS_KINDREGISTRY, kind, KIND_FIELD_MANA,   min_manamax)
+  SystemSet(SYS_KINDREGISTRY, kind, KIND_FIELD_FLAGS,  flags)
+
+//-----------------------------------------------------------------------
 int RegisterAmmo(int index, int script, int icon, int overlay, int price, int flags, int min_str, int min_dex, int min_int, int min_manamax, int ammo, int show_ammo)
   while(ammo > 0)
     if(show_ammo)
@@ -118,7 +130,7 @@ int Setup()
   RegisterItem(ITEM_MODIFY,          "FILE:IMODIFY.RUN", "FILE:=IMODIFY.RGB",  NULL,     -1, ITEM_FLAG_ITEM, 0, 0, 0, 0, 0)
   RegisterItem(ITEM_CORE,            "FILE:ICORE.RUN",   "FILE:=ICORE1.RGB",   NULL,    150, 0, 0, 0, 0, 0, 0)
   RegisterItem(ITEM_RUNE,            "FILE:IRUNE.RUN",   "FILE:=IRUNE.RGB",    NULL,     60, ITEM_FLAG_ITEM, 0, 0, 0, 0, 0)
-  RegisterItem(ITEM_SPEAR,           "FILE:ISPEAR.RUN",  "FILE:=ISPEAR.RGB",   NULL,     40, ITEM_FLAG_WEAPON, 0, 0, 0, 0, 0)
+  // 135 is unused (the Spear is now a kind, see below)
 
 
 
@@ -136,6 +148,12 @@ int Setup()
   RegisterWeapon(ITEM_MACE,          "FILE:IMACE.RUN",   "FILE:=IMACE.RGB",    NULL,    400, ITEM_FLAG_WEAPON, 20, 0, 0, 0, 0)
   RegisterWeapon(ITEM_BROAD_AXE,     "FILE:IBAXE.RUN",   "FILE:=IBAXE.RGB",    NULL,    800, ITEM_FLAG_WEAPON, 25, 0, 0, 0, 0)
   RegisterWeapon(ITEM_WAR_HAMMER,    "FILE:IWARHAM.RUN", "FILE:=IWARHAM.RGB",  NULL,   1000, ITEM_FLAG_WEAPON, 30, 0, 0, 0, 0)
+
+
+  // Add all of the item kinds...  A kind rides on an item number's block (which supplies
+  // the slot flags and the enchant variants) and brings its own script, icon, price and
+  // stat requirements...  Price is the plain kind's, enchants add the block's markup...
+  RegisterKind(KIND_SPEAR, ITEM_DAGGER, "FILE:ISPEAR.RUN",  "FILE:=ISPEAR.RGB",   40, 0, 0, 0, 0, KIND_FLAG_POLE_STANCE)
 
 
   // Add all of the spell orbs...

@@ -41,10 +41,10 @@ int AutoEquipItem(int self, int grip, int search_low, int search_high, int keep_
       item_type = FileReadByte(self, i+224)
       if(item_type >= search_low && item_type <= search_high)
         // Found a suitable item in our inventory...  Check if our stats are high enough to use it...
-        min_str = SystemGet(SYS_ITEMREGISTRYSTR, item_type, 0)
-        min_dex = SystemGet(SYS_ITEMREGISTRYDEX, item_type, 0)
-        min_int = SystemGet(SYS_ITEMREGISTRYINT, item_type, 0)
-        min_mana = SystemGet(SYS_ITEMREGISTRYMANA, item_type, 0)
+        min_str = SystemGet(SYS_ITEMREGISTRYSTR, XITEM.SlotKey(self, i+224, item_type), 0)
+        min_dex = SystemGet(SYS_ITEMREGISTRYDEX, XITEM.SlotKey(self, i+224, item_type), 0)
+        min_int = SystemGet(SYS_ITEMREGISTRYINT, XITEM.SlotKey(self, i+224, item_type), 0)
+        min_mana = SystemGet(SYS_ITEMREGISTRYMANA, XITEM.SlotKey(self, i+224, item_type), 0)
         if(self.str >= min_str && self.dex >= min_dex && self.int >= min_int && self.manamax >= min_mana)
           // Safe to use this item...
           FileWriteByte(self, offset, item_type)
@@ -65,12 +65,12 @@ int Event()
     return AutoEquipItem(self, grip, ITEM_JUMP, ITEM_JUMP, TRUE)
   if(grip == MODEL_RIGHT2_FILE)
     return AutoEquipItem(self, grip, ITEM_TALK, ITEM_TALK, TRUE)
-  // The empty hand is helping to hold a two-handed Spear...  Swing the Spear
-  // instead of pulling a weapon out of the pack...
-  if(grip == MODEL_LEFT_FILE && self.eqright == ITEM_SPEAR)
+  // The empty hand is helping to hold a two-handed Spear (or other polearm)...
+  // Swing that instead of pulling a weapon out of the pack...
+  if(grip == MODEL_LEFT_FILE && XITEM.IsPole(self, 243))
     STANDARD.ItemEvent(MODEL_RIGHT_FILE)
     return 0
-  if(grip == MODEL_RIGHT_FILE && self.eqleft == ITEM_SPEAR)
+  if(grip == MODEL_RIGHT_FILE && XITEM.IsPole(self, 242))
     STANDARD.ItemEvent(MODEL_LEFT_FILE)
     return 0
   return AutoEquipItem(self, grip, 136, 231, TRUE)

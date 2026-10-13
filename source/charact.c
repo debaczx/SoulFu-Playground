@@ -973,15 +973,21 @@ void char_floor_point(float* position_xyz)
 // animations for ACTION_SPECIAL_5/6 (spear in right hand) or ACTION_SPECIAL_7/8 (left hand),
 // if the model has them (PLAYER.DDD and PLAYERSM.DDD do).  .action itself stays STAND/WALK,
 // so scripts never see the swap...
-#define TWOHAND_ITEM_SPEAR 135
 #define TWOHAND_RIGHT_ADD  36   // ACTION_STAND (1) -> 37, ACTION_WALK (2) -> 38
 #define TWOHAND_LEFT_ADD   38   // ACTION_STAND (1) -> 39, ACTION_WALK (2) -> 40
+unsigned char twohand_pole(unsigned char* character_data, int slot)
+{
+    // <ZZ> TRUE if the hand slot (242 left, 243 right) holds a kind that's held in both hands
+    //      when the other hand is empty (Spear and other polearms)...
+    if(character_data[slot] == 0) return FALSE;
+    return (item_kind_flags[item_ext_kind(xitem_get(character_data, slot))] & KIND_FLAG_POLE_STANCE) ? TRUE : FALSE;
+}
 unsigned char twohand_action(unsigned char* character_data, unsigned short* action_first_frame, unsigned char action)
 {
     unsigned char alt;
     if(action != ACTION_STAND && action != ACTION_WALK) return action;
-    if(character_data[243] == TWOHAND_ITEM_SPEAR && character_data[242] == 0) alt = action + TWOHAND_RIGHT_ADD;
-    else if(character_data[242] == TWOHAND_ITEM_SPEAR && character_data[243] == 0) alt = action + TWOHAND_LEFT_ADD;
+    if(character_data[242] == 0 && twohand_pole(character_data, 243)) alt = action + TWOHAND_RIGHT_ADD;
+    else if(character_data[243] == 0 && twohand_pole(character_data, 242)) alt = action + TWOHAND_LEFT_ADD;
     else return action;
     if(action_first_frame[alt] == 65535) return action;
     return alt;
@@ -2750,7 +2756,7 @@ void character_refresh_items_all()
                 repeat(slot, 4)
                 {
                     item_type = *(character_data + slot + 242);
-                    item_script = item_type_script[item_type];
+                    item_script = item_script_for(item_type, xitem_get(character_data, slot+242));
                     if(item_script)
                     {
                         // Call the refresh function...  Used to make flame effects & stuff on weapons...

@@ -472,6 +472,28 @@
 #define SYS_SCREENPARAMS            229
 #define SYS_PAUSE                   230
 #define SYS_ITEMEXT                 231 // Item extension (artifact) value of the item whose script is running...
+#define SYS_KINDREGISTRY            232 // Item kind registry...  SystemSet(SYS_KINDREGISTRY, kind, KIND_FIELD_*, value), SystemGet(SYS_KINDREGISTRY, kind, KIND_FIELD_*)
+
+
+// Item kinds...  The top 7 bits of a slot's item extension pick a kind (0 is the normal
+// item).  The item number only stores the kind's enchant variant, and the kind supplies
+// its own script, icon, price and stat requirements (registered in ITEMREG.SRC)...
+// SystemGet(SYS_ITEMEXT, 0, 0) hides the kind bits, SystemGet(SYS_ITEMEXT, 0, 1) is the raw value...
+// SYS_ITEMREGISTRY* lookups take (item | (raw_ext<<8)) to answer for the kind (XITEM.Key)...
+#define ITEM_KIND_SHIFT     9
+#define ITEM_EXT_MOD_MASK   511
+#define KIND_FIELD_SCRIPT   0
+#define KIND_FIELD_ICON     1
+#define KIND_FIELD_PRICE    2
+#define KIND_FIELD_STR      3
+#define KIND_FIELD_DEX      4
+#define KIND_FIELD_INT      5
+#define KIND_FIELD_MANA     6
+#define KIND_FIELD_BASE     7   // Plain item number the kind is stored on
+#define KIND_FIELD_FLAGS    8
+#define KIND_FLAG_POLE_STANCE 1 // Held in both hands while the other hand is empty (stance and slash)
+#define KIND_NONE           0
+#define KIND_SPEAR          1   // Stored on ITEM_DAGGER...  Never renumber kinds once released
 #define SYS_MODELCHECKHACK          255
 
 
@@ -1318,7 +1340,7 @@
 #define ITEM_MODIFY         132 // Class skill (Modify, Fletch, Temper, Hone, Forge, Hallow, Inscribe, Invoke)...  Rebuilds the class's own gear into a variant
 #define ITEM_CORE           133 // Magic Core...  Element is in the item extension (XITEM_CORE_BASE + WEAPON_VARIANT_*)
 #define ITEM_RUNE           134 // Rune (Wizard and Mystic)...  Blank until Inscribed/Invoked, spell is in the item extension (RUNEFX.SRC)
-#define ITEM_SPEAR          135 // Spear...  Single item number (no built-in elemental variants), reaches further than any other weapon (ISPEAR.SRC)
+// 135 is Unused (the Spear moved to the Dagger block as KIND_SPEAR)
 
 
 // Weapon items (136-231) (8 variants each)...

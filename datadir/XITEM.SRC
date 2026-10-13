@@ -24,8 +24,16 @@
 
 
 //-----------------------------------------------------------------------
-// Returns the extension value of a character's slot (224-248)...
+// Returns the extension value of a character's slot (224-248)...  The kind
+// bits are left out (see GetRaw and Kind), so this is the mod/artifact part...
 int Get(int who, int slot)
+  return (GetRaw(who, slot) & ITEM_EXT_MOD_MASK)
+
+//-----------------------------------------------------------------------
+// Returns the whole 16 bit extension of a character's slot (224-248), kind
+// bits and all...  Doesn't read the item byte, so the engine's extension
+// carrying isn't disturbed...
+int GetRaw(int who, int slot)
   int offset, low, high
   if(!who)
     return 0
@@ -37,8 +45,15 @@ int Get(int who, int slot)
   return (low + (high<<8))  // Parentheses matter!  See NOTE at the end of this file...
 
 //-----------------------------------------------------------------------
-// Sets the extension value of a character's slot (224-248)...
+// Sets the mod/artifact part of a slot's extension (224-248)...  The item's
+// kind is kept, so modding or salvaging a Spear leaves it a Spear...
 int Set(int who, int slot, int ext)
+  return SetRaw(who, slot, (ext & ITEM_EXT_MOD_MASK) | (GetRaw(who, slot) & (65535-ITEM_EXT_MOD_MASK)))
+
+//-----------------------------------------------------------------------
+// Sets the whole 16 bit extension of a slot (224-248), kind bits and all...
+// Use for items that were just put in the slot...
+int SetRaw(int who, int slot, int ext)
   int offset
   if(!who)
     return FALSE
@@ -48,6 +63,54 @@ int Set(int who, int slot, int ext)
   FileWriteByte(who, offset, ext&255)
   FileWriteByte(who, offset+1, (ext>>8)&255)
   return TRUE
+
+//-----------------------------------------------------------------------
+// Kind of the item in a character's slot (KIND_NONE for a normal item)...
+int Kind(int who, int slot)
+  return KindOf(GetRaw(who, slot))
+
+//-----------------------------------------------------------------------
+// Kind part of a raw extension...
+int KindOf(int raw_ext)
+  return ((raw_ext >> ITEM_KIND_SHIFT) & 127)
+
+//-----------------------------------------------------------------------
+// Kind of the item whose callback is running right now...
+int CurrentKind()
+  return KindOf(SystemGet(SYS_ITEMEXT, 0, 1))
+
+//-----------------------------------------------------------------------
+// Registry key for SystemGet(SYS_ITEMREGISTRY*, key, 0)...  Lets kinds
+// answer with their own icon, price and stat requirements...
+int Key(int item, int raw_ext)
+  return (item | (raw_ext<<8))
+
+//-----------------------------------------------------------------------
+// Registry key of the item in a character's slot...  Pass the item byte
+// you've already read, so the slot isn't read again...
+int SlotKey(int who, int slot, int item)
+  return (item | (GetRaw(who, slot)<<8))
+
+//-----------------------------------------------------------------------
+// Registry key of the item whose callback is running right now...
+int CurrentKey()
+  return (SystemGet(SYS_ITEMINDEX, 0, 0) | (SystemGet(SYS_ITEMEXT, 0, 1)<<8))
+
+//-----------------------------------------------------------------------
+// Raw extension for a kind with the given mod/artifact part...
+int KindExt(int kind, int ext)
+  return ((kind << ITEM_KIND_SHIFT) | (ext & ITEM_EXT_MOD_MASK))
+
+//-----------------------------------------------------------------------
+// Plain item number a kind is stored on (ITEM_DAGGER for the Spear)...
+int KindBase(int kind)
+  return SystemGet(SYS_KINDREGISTRY, kind, KIND_FIELD_BASE)
+
+//-----------------------------------------------------------------------
+// TRUE if the item in the slot is a polearm-style kind, held in both hands
+// while the other hand is empty...  (An empty slot's extension is always 0)
+int IsPole(int who, int slot)
+  return (SystemGet(SYS_KINDREGISTRY, Kind(who, slot), KIND_FIELD_FLAGS) & KIND_FLAG_POLE_STANCE)
 
 //-----------------------------------------------------------------------
 // Returns the extension of the item whose callback is running right now
@@ -273,10 +336,17 @@ int GiveArtifact(int who, int item, int ext)
   while(i < 240)
     if(FileReadByte(who, i) == ITEM_NONE)
       FileWriteByte(who, i, item)
-      Set(who, i, ext)
+      SetRaw(who, i, ext)  // Whole value, the slot scan may have carried another item's...
       return TRUE
     i++
   return FALSE
+
+//-----------------------------------------------------------------------
+// Puts an item of the given kind in the first free backpack slot...  item is
+// the enchant variant to store it on (KindBase(kind) | WEAPON_VARIANT_*)...
+// Returns TRUE if there was room...
+int GiveKind(int who, int item, int kind)
+  return GiveArtifact(who, item, KindExt(kind, 0))
 
 //-----------------------------------------------------------------------
 // Puts a core of the given element in the first free backpack slot...
@@ -287,7 +357,7 @@ int GiveCore(int who, int element)
   while(i < 240)
     if(FileReadByte(who, i) == ITEM_NONE)
       FileWriteByte(who, i, ITEM_CORE)
-      Set(who, i, XITEM_CORE_BASE + element)
+      SetRaw(who, i, XITEM_CORE_BASE + element)
       return TRUE
     i++
   return FALSE

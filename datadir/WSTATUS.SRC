@@ -240,10 +240,10 @@ int LoseLevels(int self, int levels_to_lose, int items_to_destroy)
     i = 0
     while(i < 7)
       k = FileReadByte(self, 242+i)
-      min_str = SystemGet(SYS_ITEMREGISTRYSTR, k, 0)
-      min_dex = SystemGet(SYS_ITEMREGISTRYDEX, k, 0)
-      min_int = SystemGet(SYS_ITEMREGISTRYINT, k, 0)
-      min_mana = SystemGet(SYS_ITEMREGISTRYMANA, k, 0)
+      min_str = SystemGet(SYS_ITEMREGISTRYSTR, XITEM.SlotKey(self, 242+i, k), 0)
+      min_dex = SystemGet(SYS_ITEMREGISTRYDEX, XITEM.SlotKey(self, 242+i, k), 0)
+      min_int = SystemGet(SYS_ITEMREGISTRYINT, XITEM.SlotKey(self, 242+i, k), 0)
+      min_mana = SystemGet(SYS_ITEMREGISTRYMANA, XITEM.SlotKey(self, 242+i, k), 0)
       if(self.str < min_str || self.dex < min_dex || self.int < min_int || self.manamax < min_mana)
         // Equipped item doesn't meet stat requirements...
         // First let's try moving it to an open slot in the character's
@@ -444,7 +444,7 @@ int IconSwap(int icon1, int icon2)
   int binding, value1, value2, index, self
   int flags1, flags2
   int price1, price2, amount_owed
-  int from_binding
+  int from_binding, key1, key2
   int min_str, min_dex, min_int, min_mana
   int no_slot
   binding = FindBinding()
@@ -540,6 +540,13 @@ int IconSwap(int icon1, int icon2)
     value2 = FileReadByte(self, icon2)
   else
     value2 = FileReadByte(binding, icon2)
+  // Registry keys, so item kinds use their own prices and stat requirements...
+  key1 = value1
+  if(icon1 >= 224)
+    key1 = XITEM.SlotKey(from_binding, icon1, value1)
+  key2 = value2
+  if(icon2 >= 224)
+    key2 = XITEM.SlotKey(binding, icon2, value2)
 
 
 
@@ -562,10 +569,10 @@ int IconSwap(int icon1, int icon2)
 
   // Check minimum stat requirements...
   if(icon2 > 239 && icon2 < 249)
-    min_str = SystemGet(SYS_ITEMREGISTRYSTR, value1, 0)
-    min_dex = SystemGet(SYS_ITEMREGISTRYDEX, value1, 0)
-    min_int = SystemGet(SYS_ITEMREGISTRYINT, value1, 0)
-    min_mana = SystemGet(SYS_ITEMREGISTRYMANA, value1, 0)
+    min_str = SystemGet(SYS_ITEMREGISTRYSTR, key1, 0)
+    min_dex = SystemGet(SYS_ITEMREGISTRYDEX, key1, 0)
+    min_int = SystemGet(SYS_ITEMREGISTRYINT, key1, 0)
+    min_mana = SystemGet(SYS_ITEMREGISTRYMANA, key1, 0)
     if(binding.str < min_str || binding.dex < min_dex || binding.int < min_int || binding.manamax < min_mana)
       // Minimum stat requirement not met...
       BuzzerSound()
@@ -574,10 +581,10 @@ int IconSwap(int icon1, int icon2)
 
   // Check minimum stat requirements...
   if(icon1 > 239 && icon1 < 249)
-    min_str = SystemGet(SYS_ITEMREGISTRYSTR, value2, 0)
-    min_dex = SystemGet(SYS_ITEMREGISTRYDEX, value2, 0)
-    min_int = SystemGet(SYS_ITEMREGISTRYINT, value2, 0)
-    min_mana = SystemGet(SYS_ITEMREGISTRYMANA, value2, 0)
+    min_str = SystemGet(SYS_ITEMREGISTRYSTR, key2, 0)
+    min_dex = SystemGet(SYS_ITEMREGISTRYDEX, key2, 0)
+    min_int = SystemGet(SYS_ITEMREGISTRYINT, key2, 0)
+    min_mana = SystemGet(SYS_ITEMREGISTRYMANA, key2, 0)
     if(from_binding.str < min_str || from_binding.dex < min_dex || from_binding.int < min_int || from_binding.manamax < min_mana)
       // Minimum stat requirement not met...  But don't bother if we're selling...
       if(icon2 < 140 || icon2 > 155)
@@ -603,8 +610,8 @@ int IconSwap(int icon1, int icon2)
 
 
       // Determine how much it's gonna cost us...
-      price1 = SystemGet(SYS_ITEMREGISTRYPRICE,  value1, 0)
-      price2 = SystemGet(SYS_ITEMREGISTRYPRICE,  value2, 0)
+      price1 = SystemGet(SYS_ITEMREGISTRYPRICE,  key1, 0)
+      price2 = SystemGet(SYS_ITEMREGISTRYPRICE,  key2, 0)
       if(price1 < 0 || price2 < 0)
         // Some items can't be sold...
         BuzzerSound()
@@ -746,18 +753,18 @@ int RowIcon(int icon_index, float x, float y)
     else
       // Character's inventory or equipment...
       item_type = FileReadByte(binding, icon_index)
-      item_ext = XITEM.Get(binding, icon_index)
+      item_ext = XITEM.GetRaw(binding, icon_index)  // Kind bits and all...
 
 
   // Get the image...  Some slots have special images...
-  image_file = SystemGet(SYS_ITEMREGISTRYICON, item_type, 0)
-  if(item_ext)
-    if(XITEM.ItemIcon(item_ext, item_type))
-      image_file = XITEM.ItemIcon(item_ext, item_type)
-  min_str = SystemGet(SYS_ITEMREGISTRYSTR, item_type, 0)
-  min_dex = SystemGet(SYS_ITEMREGISTRYDEX, item_type, 0)
-  min_int = SystemGet(SYS_ITEMREGISTRYINT, item_type, 0)
-  min_mana = SystemGet(SYS_ITEMREGISTRYMANA, item_type, 0)
+  image_file = SystemGet(SYS_ITEMREGISTRYICON, XITEM.Key(item_type, item_ext), 0)
+  if(item_ext & ITEM_EXT_MOD_MASK)
+    if(XITEM.ItemIcon(item_ext & ITEM_EXT_MOD_MASK, item_type))
+      image_file = XITEM.ItemIcon(item_ext & ITEM_EXT_MOD_MASK, item_type)
+  min_str = SystemGet(SYS_ITEMREGISTRYSTR, XITEM.Key(item_type, item_ext), 0)
+  min_dex = SystemGet(SYS_ITEMREGISTRYDEX, XITEM.Key(item_type, item_ext), 0)
+  min_int = SystemGet(SYS_ITEMREGISTRYINT, XITEM.Key(item_type, item_ext), 0)
+  min_mana = SystemGet(SYS_ITEMREGISTRYMANA, XITEM.Key(item_type, item_ext), 0)
   item_flags = SystemGet(SYS_ITEMREGISTRYFLAGS, item_type, 0)
   color = WHITE
   if(item_flags != 65535)
@@ -804,7 +811,7 @@ int RowIcon(int icon_index, float x, float y)
   if(icon_drag == icon_index || icon_index == joy_index)
     if(SystemGet(SYS_ITEMREGISTRYNAME, item_type, item_ext))
       if(shop_on && gem3)
-        price = SystemGet(SYS_ITEMREGISTRYPRICE, item_type, 0)
+        price = SystemGet(SYS_ITEMREGISTRYPRICE, XITEM.Key(item_type, item_ext), 0)
         if(icon_index < 224 && item_ext)
           // Test shop (unique-testing branch)...  Free cores...
           price = 0
@@ -956,9 +963,9 @@ int RowIcon(int icon_index, float x, float y)
             else
               // Try to do the direct usage for this item...
               SystemSet(SYS_ITEMINDEX, 0, 0, item_type)
-              item_script = SystemGet(SYS_ITEMREGISTRYSCRIPT, item_type, 0)
+              item_script = SystemGet(SYS_ITEMREGISTRYSCRIPT, XITEM.Key(item_type, item_ext), 0)
               SystemSet(SYS_KEEPITEM, 0, 0, TRUE)
-              SystemSet(SYS_ITEMEXT, 0, 0, XITEM.Get(binding, icon_index))
+              SystemSet(SYS_ITEMEXT, 0, 0, item_ext)
               SystemSet(SYS_FASTFUNCTION, self, item_script, FAST_FUNCTION_DIRECTUSAGE)
               SystemSet(SYS_ITEMEXT, 0, 0, 0)
               if(SystemGet(SYS_FASTFUNCTIONFOUND, 0, 0))
@@ -987,9 +994,9 @@ int RowIcon(int icon_index, float x, float y)
             if(icon_drag != icon_index)
               // Try to do the direct usage for this item...
               SystemSet(SYS_ITEMINDEX, 0, 0, item_type)
-              item_script = SystemGet(SYS_ITEMREGISTRYSCRIPT, item_type, 0)
+              item_script = SystemGet(SYS_ITEMREGISTRYSCRIPT, XITEM.Key(item_type, item_ext), 0)
               SystemSet(SYS_KEEPITEM, 0, 0, TRUE)
-              SystemSet(SYS_ITEMEXT, 0, 0, XITEM.Get(binding, icon_index))
+              SystemSet(SYS_ITEMEXT, 0, 0, item_ext)
               SystemSet(SYS_FASTFUNCTION, self, item_script, FAST_FUNCTION_DIRECTUSAGE)
               SystemSet(SYS_ITEMEXT, 0, 0, 0)
               if(SystemGet(SYS_FASTFUNCTIONFOUND, 0, 0))
@@ -1276,7 +1283,7 @@ int SpecialDragDropStuff()
               target = FindByIndex(last_item)
               if(target && target != binding)
                 if(SystemGet(SYS_ITEMREGISTRYPRICE, item_type, 0) >= 0)
-                  if(GiveItemToCharacterExt(target, item_type, XITEM.Get(binding, icon_pick)))
+                  if(GiveItemToCharacterExt(target, item_type, XITEM.GetRaw(binding, icon_pick)))
                     FileWriteByte(binding, icon_pick, ITEM_NONE)
 
                     // Switched some icons...  Need to call the binding's

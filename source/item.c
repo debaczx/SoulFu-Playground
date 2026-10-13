@@ -32,6 +32,36 @@ unsigned char  item_type_mana[MAX_ITEM_TYPE];
 unsigned char  item_type_ammo[MAX_ITEM_TYPE];
 unsigned short weapon_setup_grip = 0;  // For scripted ModelAssign() call to weapons...
 
+
+// Item kinds...  The top 7 bits of a slot's item extension pick a kind (1-127, 0 is the
+// normal item).  The item number then only stores the kind's enchant variant (low bits),
+// and the kind supplies its own script, icon, price and stat requirements.  Scripts
+// register kinds with SystemSet(SYS_KINDREGISTRY, kind, KIND_FIELD_*, value)...
+#define MAX_ITEM_KIND       128
+#define ITEM_KIND_SHIFT     9           // ext bits 0-7 mod/artifact, bit 8 cored, 9-15 kind
+#define ITEM_EXT_MOD_MASK   511         // What scripts see as SYS_ITEMEXT
+#define item_ext_kind(ext)  ((((unsigned short) (ext)) >> ITEM_KIND_SHIFT) & (MAX_ITEM_KIND-1))
+#define KIND_FIELD_SCRIPT   0
+#define KIND_FIELD_ICON     1
+#define KIND_FIELD_PRICE    2
+#define KIND_FIELD_STR      3
+#define KIND_FIELD_DEX      4
+#define KIND_FIELD_INT      5
+#define KIND_FIELD_MANA     6
+#define KIND_FIELD_BASE     7           // Plain item number the kind is stored on (price markup of enchants is relative to it)
+#define KIND_FIELD_FLAGS    8
+#define KIND_FLAG_POLE_STANCE 1         // Two-handed stand/walk poses while the other hand is empty
+unsigned char* item_kind_script[MAX_ITEM_KIND];
+unsigned char* item_kind_icon[MAX_ITEM_KIND];
+signed short   item_kind_price[MAX_ITEM_KIND];
+unsigned char  item_kind_str[MAX_ITEM_KIND];
+unsigned char  item_kind_dex[MAX_ITEM_KIND];
+unsigned char  item_kind_int[MAX_ITEM_KIND];
+unsigned char  item_kind_mana[MAX_ITEM_KIND];
+unsigned char  item_kind_base[MAX_ITEM_KIND];
+unsigned short item_kind_flags[MAX_ITEM_KIND];
+unsigned char* item_kind_start;          // Scratch: script picked for the item callback about to run
+
 // Item flags...
 #define ITEM_FLAG_WEAPON     1
 #define ITEM_FLAG_SHIELD     2
@@ -65,6 +95,63 @@ void item_type_setup()
         item_type_mana[i] = 0;
         item_type_ammo[i] = 0;
     }
+    repeat(i, MAX_ITEM_KIND)
+    {
+        item_kind_script[i] = NULL;
+        item_kind_icon[i] = NULL;
+        item_kind_price[i] = 0;
+        item_kind_str[i] = 0;
+        item_kind_dex[i] = 0;
+        item_kind_int[i] = 0;
+        item_kind_mana[i] = 0;
+        item_kind_base[i] = 0;
+        item_kind_flags[i] = 0;
+    }
+}
+
+//-----------------------------------------------------------------------------------------------
+unsigned char* item_script_for(unsigned short item_type, unsigned short ext)
+{
+    // <ZZ> Returns the script that runs an item...  The kind's own script if the extension
+    //      names a registered kind, otherwise the item type's...
+    unsigned short kind;
+    kind = item_ext_kind(ext);
+    if(kind && item_kind_script[kind]) return item_kind_script[kind];
+    return item_type_script[item_type%MAX_ITEM_TYPE];
+}
+
+//-----------------------------------------------------------------------------------------------
+intptr_t item_registry_get(unsigned short field, intptr_t key)
+{
+    // <ZZ> Registry lookup for SystemGet(SYS_ITEMREGISTRY*)...  key is the item type, with the
+    //      item's extension optionally riding in bits 8-23 so kinds can answer for themselves...
+    unsigned short item_type, kind;
+    item_type = (unsigned short) (key & 255);
+    kind = item_ext_kind(((uintptr_t) key) >> 8);
+    if(kind && item_kind_script[kind])
+    {
+        switch(field)
+        {
+            case KIND_FIELD_SCRIPT: return (intptr_t) item_kind_script[kind];
+            case KIND_FIELD_ICON:   if(item_kind_icon[kind]) return (intptr_t) item_kind_icon[kind]; break;
+            case KIND_FIELD_PRICE:  return item_kind_price[kind] + item_type_price[item_type] - item_type_price[item_kind_base[kind]];
+            case KIND_FIELD_STR:    return item_kind_str[kind];
+            case KIND_FIELD_DEX:    return item_kind_dex[kind];
+            case KIND_FIELD_INT:    return item_kind_int[kind];
+            case KIND_FIELD_MANA:   return item_kind_mana[kind];
+        }
+    }
+    switch(field)
+    {
+        case KIND_FIELD_SCRIPT: return (intptr_t) item_type_script[item_type];
+        case KIND_FIELD_ICON:   return (intptr_t) item_type_icon[item_type];
+        case KIND_FIELD_PRICE:  return item_type_price[item_type];
+        case KIND_FIELD_STR:    return item_type_str[item_type];
+        case KIND_FIELD_DEX:    return item_type_dex[item_type];
+        case KIND_FIELD_INT:    return item_type_int[item_type];
+        case KIND_FIELD_MANA:   return item_type_mana[item_type];
+    }
+    return 0;
 }
 
 //-----------------------------------------------------------------------------------------------
@@ -78,11 +165,11 @@ unsigned char item_get_type_name(unsigned short item_type)
 
     NAME_STRING[0] = 0;
     item_type = item_type%MAX_ITEM_TYPE;
-    if(item_type_script[item_type])
+    if(item_script_for(item_type, global_item_ext))
     {
         backup_address = current_object_data;
         backup_item = current_object_item;
-        fast_run_script(item_type_script[item_type], FAST_FUNCTION_GETNAME, current_object_data);
+        fast_run_script(item_script_for(item_type, global_item_ext), FAST_FUNCTION_GETNAME, current_object_data);
         global_item_ext = 0;
         current_object_data = backup_address;
         current_object_item = backup_item;

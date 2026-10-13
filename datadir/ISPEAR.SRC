@@ -1,8 +1,7 @@
-// Spear (item 135)...  Hits like a Dagger (quick thrust, low damage) but reaches
-// further than any other weapon.  Held in both hands (other hand empty) it slashes
-// instead of thrusting.  Item 135 is a single item number, not a block of 8 like
-// the other weapons, so it has no built-in elemental variants and can't be
-// enchanted (PATTACK.FrameEvent treats it as plain).
+// Spear (KIND_SPEAR, stored on the Dagger block)...  Hits like a Dagger (quick
+// thrust, low damage) but reaches further than any other weapon.  Held in both
+// hands (other hand empty) it slashes instead of thrusting.  The Dagger block's
+// low bits give it the usual enchant variants (Fire Spear and so on)...
 #define DAMAGE_TYPE DAMAGE_EDGE
 #define DAMAGE_LOW  0
 #define DAMAGE_HIGH 2
@@ -25,9 +24,9 @@ int FrameEvent()
   wound = RollDice(1, WOUND_HIGH-WOUND_LOW+1)+WOUND_LOW-1
   self = FindSelf()
   if(self.action == ACTION_SLASH_LEFT || self.action == ACTION_SLASH_RIGHT)
-    PATTACK.FrameEvent(DAMAGE_TYPE, damage, wound, grip, SWEEP_RANGE, WEAPON_RADIUS_LARGE, 0, 0)
+    PATTACK.FrameEvent(DAMAGE_TYPE, damage, wound, grip, SWEEP_RANGE, WEAPON_RADIUS_LARGE, 0, SystemGet(SYS_ITEMINDEX, 0, 0)&7)
   else
-    PATTACK.FrameEvent(DAMAGE_TYPE, damage, wound, grip, SPEAR_RANGE, WEAPON_RADIUS_MEDIUM, 0, 0)
+    PATTACK.FrameEvent(DAMAGE_TYPE, damage, wound, grip, SPEAR_RANGE, WEAPON_RADIUS_MEDIUM, 0, SystemGet(SYS_ITEMINDEX, 0, 0)&7)
   PlaySound("FILE:SWIPE.RAW", 200 + RollDice(1, 50), 255)
 
 
@@ -61,5 +60,12 @@ int ModelSetup()
     ModelAssign(self+grip+12, "FILE:LITESWIP.RGB")
     ModelAssign(self+grip+16, "FILE:STEEL.RGB")
     ModelAssign(self+grip+20, WHITE)
+
+//-----------------------------------------------------------------------
+// Called when we're allowed to spawn a particle for the
+// item's enchantment effect.  Must manually check if item
+// is enchanted or not...
+int Refresh()
+  STANDARD.WeaponRefresh(50, 1.0)
 
 //-----------------------------------------------------------------------

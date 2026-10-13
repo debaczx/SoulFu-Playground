@@ -157,9 +157,9 @@ int PlainOf(int item)
 // gear, right hand first...  With nothing to work on, the usual hand
 // (left for the Elf's bow, right for everyone else)...
 int ModSlot(int self)
-  if(ClassTool(self.class, PlainOf(self.eqright)))
+  if(ClassTool(self.class, PlainOf(self.eqright)) && !XITEM.Kind(self, 243))
     return 243
-  if(ClassTool(self.class, PlainOf(self.eqleft)))
+  if(ClassTool(self.class, PlainOf(self.eqleft)) && !XITEM.Kind(self, 242))
     return 242
   if(self.class == CLASS_ELF)
     return 242
@@ -179,6 +179,8 @@ int VariantFor(int self, int element)
     return NO_VARIANT  // Artifact...  Has its own powers...
   if(!ClassTool(self.class, item))
     return NO_VARIANT
+  if(XITEM.Kind(self, slot))
+    return NO_VARIANT  // Item kinds (Spear...) have no Modify wheels yet...
   if(element < WEAPON_VARIANT_MAGIC || element > WEAPON_VARIANT_UNHOLY)
     return NO_VARIANT
   if(item == ITEM_FLAMER)

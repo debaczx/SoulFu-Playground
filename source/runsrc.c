@@ -285,6 +285,7 @@ const char ff_map[MAX_FAST_FUNCTION][32] = {
 #define SYS_SCREENPARAMS            229
 #define SYS_PAUSE                   230
 #define SYS_ITEMEXT                 231
+#define SYS_KINDREGISTRY            232
 #define SYS_MODELCHECKHACK          255
 
 
@@ -2306,7 +2307,9 @@ log_message("ERROR:  SYS_PLAYERCONTROLHANDLED Called...");
                         // Calls the ModelSetup callback for the given weapon...
                         global_item_index = current_object_data[(((weapon_setup_grip-MODEL_LEFT_FILE)/24)&3)+242];
                         i = global_item_index;
-                        global_item_ext = item_type_script[i] ? xitem_get(current_object_data, (((weapon_setup_grip-MODEL_LEFT_FILE)/24)&3)+242) : 0;
+                        global_item_ext = xitem_get(current_object_data, (((weapon_setup_grip-MODEL_LEFT_FILE)/24)&3)+242);
+                        item_kind_start = item_script_for((unsigned short) i, global_item_ext);
+                        if(!item_kind_start) global_item_ext = 0;
 
 
                         // Clear out the current ModelAssign() thing...
@@ -2314,11 +2317,11 @@ log_message("ERROR:  SYS_PLAYERCONTROLHANDLED Called...");
 
 
                         // Now call that item type's ModelSetup() function...
-                        if(item_type_script[i])
+                        if(item_kind_start)
                         {
                             call_address = current_object_data;
                             script_temp_i = current_object_item;
-                            fast_run_script(item_type_script[i], FAST_FUNCTION_MODELSETUP, current_object_data);
+                            fast_run_script(item_kind_start, FAST_FUNCTION_MODELSETUP, current_object_data);
                             global_item_ext = 0;  // Extension only applies during the item's own callback
                             current_object_data = call_address;
                             current_object_item = script_temp_i;
@@ -2327,16 +2330,18 @@ log_message("ERROR:  SYS_PLAYERCONTROLHANDLED Called...");
                     case SYS_WEAPONEVENT:
                         // Calls the Event() callback for the given weapon...
                         i = current_object_data[(((weapon_setup_grip-MODEL_LEFT_FILE)/24)&3)+242];
-                        global_item_ext = item_type_script[i] ? xitem_get(current_object_data, (((weapon_setup_grip-MODEL_LEFT_FILE)/24)&3)+242) : 0;
+                        global_item_ext = xitem_get(current_object_data, (((weapon_setup_grip-MODEL_LEFT_FILE)/24)&3)+242);
+                        item_kind_start = item_script_for((unsigned short) i, global_item_ext);
+                        if(!item_kind_start) global_item_ext = 0;
 
 
                         // Now call that item type's Event() function...
-                        if(item_type_script[i])
+                        if(item_kind_start)
                         {
                             global_item_index = (unsigned short) i;
                             call_address = current_object_data;
                             script_temp_i = current_object_item;
-                            fast_run_script(item_type_script[i], FAST_FUNCTION_EVENT, current_object_data);
+                            fast_run_script(item_kind_start, FAST_FUNCTION_EVENT, current_object_data);
                             global_item_ext = 0;  // Extension only applies during the item's own callback
                             current_object_data = call_address;
                             current_object_item = script_temp_i;
@@ -2345,16 +2350,18 @@ log_message("ERROR:  SYS_PLAYERCONTROLHANDLED Called...");
                     case SYS_WEAPONFRAMEEVENT:
                         // Calls the FrameEvent() callback for the given weapon...
                         i = current_object_data[(((weapon_setup_grip-MODEL_LEFT_FILE)/24)&3)+242];
-                        global_item_ext = item_type_script[i] ? xitem_get(current_object_data, (((weapon_setup_grip-MODEL_LEFT_FILE)/24)&3)+242) : 0;
+                        global_item_ext = xitem_get(current_object_data, (((weapon_setup_grip-MODEL_LEFT_FILE)/24)&3)+242);
+                        item_kind_start = item_script_for((unsigned short) i, global_item_ext);
+                        if(!item_kind_start) global_item_ext = 0;
 
 
                         // Now call that item type's FrameEvent() function...
-                        if(item_type_script[i])
+                        if(item_kind_start)
                         {
                             global_item_index = (unsigned short) i;
                             call_address = current_object_data;
                             script_temp_i = current_object_item;
-                            fast_run_script(item_type_script[i], FAST_FUNCTION_FRAMEEVENT, current_object_data);
+                            fast_run_script(item_kind_start, FAST_FUNCTION_FRAMEEVENT, current_object_data);
                             global_item_ext = 0;  // Extension only applies during the item's own callback
                             current_object_data = call_address;
                             current_object_item = script_temp_i;
@@ -2363,16 +2370,18 @@ log_message("ERROR:  SYS_PLAYERCONTROLHANDLED Called...");
                     case SYS_WEAPONUNPRESSED:
                         // Calls the Unpressed() callback for the given weapon...
                         i = current_object_data[(((weapon_setup_grip-MODEL_LEFT_FILE)/24)&3)+242];
-                        global_item_ext = item_type_script[i] ? xitem_get(current_object_data, (((weapon_setup_grip-MODEL_LEFT_FILE)/24)&3)+242) : 0;
+                        global_item_ext = xitem_get(current_object_data, (((weapon_setup_grip-MODEL_LEFT_FILE)/24)&3)+242);
+                        item_kind_start = item_script_for((unsigned short) i, global_item_ext);
+                        if(!item_kind_start) global_item_ext = 0;
 
 
                         // Now call that item type's Unpressed() function...
-                        if(item_type_script[i])
+                        if(item_kind_start)
                         {
                             global_item_index = (unsigned short) i;
                             call_address = current_object_data;
                             script_temp_i = current_object_item;
-                            fast_run_script(item_type_script[i], FAST_FUNCTION_UNPRESSED, current_object_data);
+                            fast_run_script(item_kind_start, FAST_FUNCTION_UNPRESSED, current_object_data);
                             global_item_ext = 0;  // Extension only applies during the item's own callback
                             current_object_data = call_address;
                             current_object_item = script_temp_i;
@@ -2417,13 +2426,14 @@ log_message("ERROR:  SYS_PLAYERCONTROLHANDLED Called...");
                     case SYS_ITEMDEFENSERATING:
                         // Calls the DefenseRating() function for a given item type...
                         // m is the item type
-                        if(item_type_script[m&255])
+                        item_kind_start = item_script_for((unsigned short) (m&255), (unsigned short) (((unsigned int) m)>>8));
+                        if(item_kind_start)
                         {
                             global_item_ext = (unsigned short) (((unsigned int) m)>>8);  // Extension may ride in the upper bits
                             global_item_index = (unsigned short) (m&255);
                             call_address = current_object_data;
                             script_temp_i = current_object_item;
-                            fast_run_script(item_type_script[m&255], FAST_FUNCTION_DEFENSERATING, current_object_data);
+                            fast_run_script(item_kind_start, FAST_FUNCTION_DEFENSERATING, current_object_data);
                             global_item_ext = 0;  // Extension only applies during the item's own callback
                             current_object_data = call_address;
                             current_object_item = script_temp_i;
@@ -2726,6 +2736,23 @@ sprintf(DEBUG_STRING, "Autotrim length == %f", autotrim_length);
                     case SYS_ITEMEXT:
                         // Sets the extension (artifact) value for the item script about to be run...
                         global_item_ext = (unsigned short) m;
+                        break;
+                    case SYS_KINDREGISTRY:
+                        // Registers one field of an item kind...
+                        // j is the kind (1-127), k is the KIND_FIELD_ number, m is the value...
+                        j = j & (MAX_ITEM_KIND-1);
+                        switch(k)
+                        {
+                            case KIND_FIELD_SCRIPT: item_kind_script[j] = (unsigned char*) m; break;
+                            case KIND_FIELD_ICON: item_kind_icon[j] = (unsigned char*) m; break;
+                            case KIND_FIELD_PRICE: item_kind_price[j] = (signed short) m; break;
+                            case KIND_FIELD_STR: item_kind_str[j] = (unsigned char) m; break;
+                            case KIND_FIELD_DEX: item_kind_dex[j] = (unsigned char) m; break;
+                            case KIND_FIELD_INT: item_kind_int[j] = (unsigned char) m; break;
+                            case KIND_FIELD_MANA: item_kind_mana[j] = (unsigned char) m; break;
+                            case KIND_FIELD_BASE: item_kind_base[j] = (unsigned char) m; break;
+                            case KIND_FIELD_FLAGS: item_kind_flags[j] = (unsigned short) m; break;
+                        }
                         break;
                     case SYS_ITEMINDEX:
                         // Sets the index of the item that the current script is for...
@@ -4234,14 +4261,14 @@ sprintf(DEBUG_STRING, "Autotrim length == %f", autotrim_length);
                     case SYS_ITEMREGISTRYSCRIPT:
                         // Returns an item's script...
                         // j is the item type index number...
-                        j = (j%MAX_ITEM_TYPE);
-                        i = (intptr_t) item_type_script[j];
+                        // The item's extension may ride in bits 8-23, so kinds answer for themselves...
+                        i = item_registry_get(KIND_FIELD_SCRIPT, j);
                         break;
                     case SYS_ITEMREGISTRYICON:
                         // Returns an item's icon image...
                         // j is the item type index number...
-                        j = (j%MAX_ITEM_TYPE);
-                        i = (intptr_t) item_type_icon[j];
+                        // The item's extension may ride in bits 8-23, so kinds answer for themselves...
+                        i = item_registry_get(KIND_FIELD_ICON, j);
                         break;
                     case SYS_ITEMREGISTRYOVERLAY:
                         // Returns an item's overlay image...
@@ -4252,8 +4279,8 @@ sprintf(DEBUG_STRING, "Autotrim length == %f", autotrim_length);
                     case SYS_ITEMREGISTRYPRICE:
                         // Returns an item's shop price...
                         // j is the item type index number...
-                        j = (j%MAX_ITEM_TYPE);
-                        i = item_type_price[j];
+                        // The item's extension may ride in bits 8-23, so kinds answer for themselves...
+                        i = item_registry_get(KIND_FIELD_PRICE, j);
                         break;
                     case SYS_ITEMREGISTRYFLAGS:
                         // Returns an item's flags...
@@ -4264,26 +4291,26 @@ sprintf(DEBUG_STRING, "Autotrim length == %f", autotrim_length);
                     case SYS_ITEMREGISTRYSTR:
                         // Returns an item's minimum strength requirement...
                         // j is the item type index number...
-                        j = (j%MAX_ITEM_TYPE);
-                        i = item_type_str[j];
+                        // The item's extension may ride in bits 8-23, so kinds answer for themselves...
+                        i = item_registry_get(KIND_FIELD_STR, j);
                         break;
                     case SYS_ITEMREGISTRYDEX:
                         // Returns an item's minimum dexterity requirement...
                         // j is the item type index number...
-                        j = (j%MAX_ITEM_TYPE);
-                        i = item_type_dex[j];
+                        // The item's extension may ride in bits 8-23, so kinds answer for themselves...
+                        i = item_registry_get(KIND_FIELD_DEX, j);
                         break;
                     case SYS_ITEMREGISTRYINT:
                         // Returns an item's minimum intelligence requirement...
                         // j is the item type index number...
-                        j = (j%MAX_ITEM_TYPE);
-                        i = item_type_int[j];
+                        // The item's extension may ride in bits 8-23, so kinds answer for themselves...
+                        i = item_registry_get(KIND_FIELD_INT, j);
                         break;
                     case SYS_ITEMREGISTRYMANA:
                         // Returns an item's minimum manamax requirement...
                         // j is the item type index number...
-                        j = (j%MAX_ITEM_TYPE);
-                        i = item_type_mana[j];
+                        // The item's extension may ride in bits 8-23, so kinds answer for themselves...
+                        i = item_registry_get(KIND_FIELD_MANA, j);
                         break;
                     case SYS_ITEMREGISTRYAMMO:
                         // Returns an item's ammo number (to be displayed over the item's icon)...
@@ -4294,9 +4321,9 @@ sprintf(DEBUG_STRING, "Autotrim length == %f", autotrim_length);
                     case SYS_ITEMREGISTRYNAME:
                         // Runs the GetName() function for the given item type...
                         // j is the item type index number...
-                        global_item_index = (unsigned short) j;
+                        global_item_index = (unsigned short) (j&255);
                         global_item_ext = (unsigned short) k;  // Extension of the item being named (0 for normal items)
-                        i = item_get_type_name((unsigned short) j);
+                        i = item_get_type_name((unsigned short) (j&255));
                         global_item_ext = 0;
                         break;
                     case SYS_WEAPONGRIP:
@@ -4393,8 +4420,26 @@ log_message("ERROR:  Membuffer MAPBUFFER requested...");
                         break;
                     case SYS_ITEMEXT:
                         // Returns the extension (artifact) value of the item that the current script is for...
-                        // 0 means a normal item...
-                        i = global_item_ext;
+                        // 0 means a normal item...  The kind bits are hidden unless k is 1 (raw value)...
+                        i = (k == 1) ? global_item_ext : (global_item_ext & ITEM_EXT_MOD_MASK);
+                        break;
+                    case SYS_KINDREGISTRY:
+                        // Returns one field of an item kind's registry entry...
+                        // j is the kind (1-127), k is the KIND_FIELD_ number...
+                        j = j & (MAX_ITEM_KIND-1);
+                        i = 0;
+                        switch(k)
+                        {
+                            case KIND_FIELD_SCRIPT: i = (intptr_t) item_kind_script[j]; break;
+                            case KIND_FIELD_ICON: i = (intptr_t) item_kind_icon[j]; break;
+                            case KIND_FIELD_PRICE: i = item_kind_price[j]; break;
+                            case KIND_FIELD_STR: i = item_kind_str[j]; break;
+                            case KIND_FIELD_DEX: i = item_kind_dex[j]; break;
+                            case KIND_FIELD_INT: i = item_kind_int[j]; break;
+                            case KIND_FIELD_MANA: i = item_kind_mana[j]; break;
+                            case KIND_FIELD_BASE: i = item_kind_base[j]; break;
+                            case KIND_FIELD_FLAGS: i = item_kind_flags[j]; break;
+                        }
                         break;
                     case SYS_ITEMINDEX:
                         // Returns the index of the item that the current script is for...

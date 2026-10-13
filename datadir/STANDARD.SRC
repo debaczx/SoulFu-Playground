@@ -378,10 +378,10 @@ ItemName(int base_text, int paren_text, int damage_type, int damage_low, int dam
   reqmana = 0
   if(binding)
     strength = binding.str
-    reqstr = SystemGet(SYS_ITEMREGISTRYSTR, item_index, 0)
-    reqdex = SystemGet(SYS_ITEMREGISTRYDEX, item_index, 0)
-    reqint = SystemGet(SYS_ITEMREGISTRYINT, item_index, 0)
-    reqmana = SystemGet(SYS_ITEMREGISTRYMANA, item_index, 0)
+    reqstr = SystemGet(SYS_ITEMREGISTRYSTR, XITEM.CurrentKey(), 0)  // Kinds have their own requirements...
+    reqdex = SystemGet(SYS_ITEMREGISTRYDEX, XITEM.CurrentKey(), 0)
+    reqint = SystemGet(SYS_ITEMREGISTRYINT, XITEM.CurrentKey(), 0)
+    reqmana = SystemGet(SYS_ITEMREGISTRYMANA, XITEM.CurrentKey(), 0)
     if(reqstr <= binding.str)
       reqstr = 0
     if(reqdex <= binding.dex)
@@ -538,14 +538,15 @@ DefenseRating()
 
   self = FindSelf()
   SystemSet(SYS_CLEARDEFENSERATING, 0, 0, 0)
+  // The slot's extension rides along, so item kinds rate themselves...
   if(self.sflags & SCRIPT_ALLOW_HELM)
-    SystemSet(SYS_ITEMDEFENSERATING, 0, 0, self.eqhelm)
+    SystemSet(SYS_ITEMDEFENSERATING, 0, 0, XITEM.SlotKey(self, 246, self.eqhelm))
   if(self.sflags & SCRIPT_ALLOW_BODY)
-    SystemSet(SYS_ITEMDEFENSERATING, 0, 0, self.eqbody)
+    SystemSet(SYS_ITEMDEFENSERATING, 0, 0, XITEM.SlotKey(self, 247, self.eqbody))
   if(self.sflags & SCRIPT_ALLOW_LEGS)
-    SystemSet(SYS_ITEMDEFENSERATING, 0, 0, self.eqlegs)
-  SystemSet(SYS_ITEMDEFENSERATING, 0, 0, self.eqleft)
-  SystemSet(SYS_ITEMDEFENSERATING, 0, 0, self.eqright)
+    SystemSet(SYS_ITEMDEFENSERATING, 0, 0, XITEM.SlotKey(self, 248, self.eqlegs))
+  SystemSet(SYS_ITEMDEFENSERATING, 0, 0, XITEM.SlotKey(self, 242, self.eqleft))
+  SystemSet(SYS_ITEMDEFENSERATING, 0, 0, XITEM.SlotKey(self, 243, self.eqright))
   self.defedge = SystemGet(SYS_DEFENSERATING, 0, DAMAGE_EDGE)
   self.defbash = SystemGet(SYS_DEFENSERATING, 0, DAMAGE_BASH)
   self.defacid = SystemGet(SYS_DEFENSERATING, 0, DAMAGE_ACID)
