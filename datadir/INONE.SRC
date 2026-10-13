@@ -65,6 +65,14 @@ int Event()
     return AutoEquipItem(self, grip, ITEM_JUMP, ITEM_JUMP, TRUE)
   if(grip == MODEL_RIGHT2_FILE)
     return AutoEquipItem(self, grip, ITEM_TALK, ITEM_TALK, TRUE)
+  // The empty hand is helping to hold a two-handed Spear...  Swing the Spear
+  // instead of pulling a weapon out of the pack...
+  if(grip == MODEL_LEFT_FILE && self.eqright == ITEM_SPEAR)
+    STANDARD.ItemEvent(MODEL_RIGHT_FILE)
+    return 0
+  if(grip == MODEL_RIGHT_FILE && self.eqleft == ITEM_SPEAR)
+    STANDARD.ItemEvent(MODEL_LEFT_FILE)
+    return 0
   return AutoEquipItem(self, grip, 136, 231, TRUE)
 
 //-----------------------------------------------------------------------
