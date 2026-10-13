@@ -1,0 +1,51 @@
+// Kukri (KIND_KUKRI, Dagger block)...  Heavy forward-curved blade that chops instead of stabbing: more damage, a wider arc, no backstab.
+#define DAMAGE_TYPE DAMAGE_EDGE
+#define DAMAGE_LOW  1
+#define DAMAGE_HIGH 3
+#define WOUND_LOW   1
+#define WOUND_HIGH  1
+
+//-----------------------------------------------------------------------
+int GetName()
+  STANDARD.ItemName("KUKRI", NULL, DAMAGE_TYPE, DAMAGE_LOW, DAMAGE_HIGH, WOUND_LOW, WOUND_HIGH)
+
+//-----------------------------------------------------------------------
+// Called when attack particle is supposed to be spawned
+int FrameEvent()
+  int grip, damage, wound
+  grip = SystemGet(SYS_WEAPONGRIP, 0, 0)
+  damage = RollDice(1, DAMAGE_HIGH-DAMAGE_LOW+1)+DAMAGE_LOW-1
+  wound = RollDice(1, WOUND_HIGH-WOUND_LOW+1)+WOUND_LOW-1
+  PATTACK.FrameEvent(DAMAGE_TYPE, damage, wound, grip, WEAPON_RANGE_EXTRA_SHORT, WEAPON_RADIUS_LARGE, 0, SystemGet(SYS_ITEMINDEX, 0, 0)&7)
+  PlaySound("FILE:SWIPE.RAW", 200 + RollDice(1, 50), 255)
+
+//-----------------------------------------------------------------------
+// Called when item is first used, to start proper animation
+int Event()
+  STANDARD.WeaponAttackStart(WEAPON_RELOAD_SHORT, WEAPON_ATTACK_SLASH)
+
+//-----------------------------------------------------------------------
+// Called to put item in character's hand
+int ModelSetup()
+  int self, grip
+
+  grip = SystemGet(SYS_WEAPONGRIP, 0, 0)
+  if(grip == MODEL_LEFT_FILE || grip == MODEL_RIGHT_FILE)
+    self = FindSelf()
+
+    ModelAssign(self+grip, "FILE:KUKRI.RDY")
+    ModelAssign(self+grip+4, "FILE:STEEL.RGB")
+    ModelAssign(self+grip+8, "FILE:=SPEAR.RGB")
+    XITEM.WeaponModelSetup(self, grip)  // Artifact texture, if any...
+    ModelAssign(self+grip+12, "FILE:LITESWIP.RGB")
+    ModelAssign(self+grip+16, "FILE:GOLD.RGB")
+    ModelAssign(self+grip+20, WHITE)
+
+//-----------------------------------------------------------------------
+// Called when we're allowed to spawn a particle for the
+// item's enchantment effect.  Must manually check if item
+// is enchanted or not...
+int Refresh()
+  STANDARD.WeaponRefresh(50, 1.0)
+
+//-----------------------------------------------------------------------

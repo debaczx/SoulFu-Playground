@@ -494,6 +494,15 @@
 #define KIND_FLAG_POLE_STANCE 1 // Held in both hands while the other hand is empty (stance and slash)
 #define KIND_NONE           0
 #define KIND_SPEAR          1   // Stored on ITEM_DAGGER...  Never renumber kinds once released
+#define KIND_STILETTO       2   // Dagger block (ISTILETO.SRC)
+#define KIND_KRIS           3   // Dagger block (IKRIS.SRC)
+#define KIND_KUKRI          4   // Dagger block (IKUKRI.SRC)
+#define KIND_PARRY          5   // Dagger block, Parrying Dagger (IPARRY.SRC)
+#define KIND_PIKE           6   // Dagger block (IPIKE.SRC)
+#define KIND_TRIDENT        7   // Dagger block (ITRIDENT.SRC)
+#define KIND_HALBERD        8   // Dagger block (IHALBERD.SRC)
+#define KIND_GLAIVE         9   // Dagger block (IGLAIVE.SRC)
+#define KIND_LAST           9   // Highest kind in use (test shop pages run through 1 to this)
 #define SYS_MODELCHECKHACK          255
 
 

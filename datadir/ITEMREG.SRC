@@ -154,6 +154,14 @@ int Setup()
   // the slot flags and the enchant variants) and brings its own script, icon, price and
   // stat requirements...  Price is the plain kind's, enchants add the block's markup...
   RegisterKind(KIND_SPEAR, ITEM_DAGGER, "FILE:ISPEAR.RUN",  "FILE:=ISPEAR.RGB",   40, 0, 0, 0, 0, KIND_FLAG_POLE_STANCE)
+  RegisterKind(KIND_STILETTO, ITEM_DAGGER, "FILE:ISTILETO.RUN", "FILE:=ISTILET.RGB",  30, 0, 0, 0, 0, 0)
+  RegisterKind(KIND_KRIS,     ITEM_DAGGER, "FILE:IKRIS.RUN",    "FILE:=IKRIS.RGB",    40, 0, 0, 0, 0, 0)
+  RegisterKind(KIND_KUKRI,    ITEM_DAGGER, "FILE:IKUKRI.RUN",   "FILE:=IKUKRI.RGB",   30, 0, 0, 0, 0, 0)
+  RegisterKind(KIND_PARRY,    ITEM_DAGGER, "FILE:IPARRY.RUN",   "FILE:=IPARRY.RGB",   50, 0, 0, 0, 0, 0)
+  RegisterKind(KIND_PIKE,     ITEM_DAGGER, "FILE:IPIKE.RUN",    "FILE:=IPIKE.RGB",    60, 10, 0, 0, 0, KIND_FLAG_POLE_STANCE)
+  RegisterKind(KIND_TRIDENT,  ITEM_DAGGER, "FILE:ITRIDENT.RUN", "FILE:=ITRIDNT.RGB",  80, 0, 0, 0, 0, KIND_FLAG_POLE_STANCE)
+  RegisterKind(KIND_HALBERD,  ITEM_DAGGER, "FILE:IHALBERD.RUN", "FILE:=IHALBRD.RGB", 150, 15, 0, 0, 0, KIND_FLAG_POLE_STANCE)
+  RegisterKind(KIND_GLAIVE,   ITEM_DAGGER, "FILE:IGLAIVE.RUN",  "FILE:=IGLAIVE.RGB", 120, 0, 12, 0, 0, KIND_FLAG_POLE_STANCE)
 
 
   // Add all of the spell orbs...

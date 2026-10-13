@@ -17,6 +17,8 @@
 #define SHOP_TYPE_PET          15
 #define SHOP_TYPE_TEST         16  // Test shop (unique-testing branch)...  Spawned by PTSHOP, since room subtypes stop at 15
 #define SHOP_TEST_MARKER       77  // misc6 value PTSHOP uses to mark its shop
+#define TEST_SHOP_EXT          204 // Test shop...  6 extension words for slots 140-145 (window string7, unused by WSTATUS)
+#define TEST_SHOP_PAGE         216 // Test shop...  Page shown on the next visit
 
 // Stuff for interacting with WSTATUS...
 #define shop_x    wstatus_data.stat06w
@@ -36,6 +38,36 @@
 #define shop_pet_two_file  wstatus_data.int2425
 
 //-----------------------------------------------------------------------
+// Test shop (unique-testing branch)...  Puts an item with an extension in a shop slot (140-145)...
+TestShopSlot(int wstatus_data, int slot, int item, int ext)
+  FileWriteByte(wstatus_data, 140+slot, item)
+  FileWriteByte(wstatus_data, TEST_SHOP_EXT+(slot<<1), ext & 255)
+  FileWriteByte(wstatus_data, TEST_SHOP_EXT+(slot<<1)+1, (ext>>8) & 255)
+
+//-----------------------------------------------------------------------
+// Test shop (unique-testing branch)...  Stocks the current page and moves on to the next...
+TestShopStock(int wstatus_data)
+  int page, i, kind
+  page = FileReadByte(wstatus_data, TEST_SHOP_PAGE)
+  if(page == 0)
+    i = 0
+    while(i < 6)
+      TestShopSlot(wstatus_data, i, ITEM_CORE, XITEM_CORE_BASE + WEAPON_VARIANT_FIRE + i)
+      i++
+  else
+    i = 0
+    while(i < 6)
+      kind = ((page-1)*6) + i + 1
+      if(kind <= KIND_LAST)
+        TestShopSlot(wstatus_data, i, SystemGet(SYS_KINDREGISTRY, kind, KIND_FIELD_BASE), XITEM.KindExt(kind, 0))
+      i++
+  page++
+  kind = ((page-1)*6) + 1  // First kind the next page would show...
+  if(kind > KIND_LAST)
+    page = 0
+  FileWriteByte(wstatus_data, TEST_SHOP_PAGE, page)
+
+//-----------------------------------------------------------------------
 SetupShopInventory(int wstatus_data, int shop_type)
   int i, binding
 
@@ -49,6 +81,10 @@ SetupShopInventory(int wstatus_data, int shop_type)
       i = 0
       while(i < 16)
         FileWriteByte(wstatus_data, 140+i, ITEM_NONE)
+        i++
+      i = 0
+      while(i < 12)
+        FileWriteByte(wstatus_data, TEST_SHOP_EXT+i, 0)  // Test shop (unique-testing branch)...  No extensions in other shops
         i++
       shop_pet = FALSE
 
@@ -166,15 +202,11 @@ SetupShopInventory(int wstatus_data, int shop_type)
 
 
       if(shop_type == SHOP_TYPE_TEST)
-        // Test shop (unique-testing branch)...  Free element cores (Fire to Unholy, no Magic)...
-        // WSTATUS.TestShopCoreExt() gives each slot its element and makes them free...
+        // Test shop (unique-testing branch)...  Everything is free.  Each visit shows the
+        // next page: the 6 element cores (Fire to Unholy), then every item kind, 6 at a
+        // time...  WSTATUS.TestShopExt() reads each slot's extension from TEST_SHOP_EXT...
         PlayCenterSound("FILE:SHOPMAG.RAW", 256, 255)
-        FileWriteByte(wstatus_data, 140, ITEM_CORE)
-        FileWriteByte(wstatus_data, 141, ITEM_CORE)
-        FileWriteByte(wstatus_data, 142, ITEM_CORE)
-        FileWriteByte(wstatus_data, 143, ITEM_CORE)
-        FileWriteByte(wstatus_data, 144, ITEM_CORE)
-        FileWriteByte(wstatus_data, 145, ITEM_CORE)
+        TestShopStock(wstatus_data)
 
 
       if(shop_type == SHOP_TYPE_BLACK_ONE)

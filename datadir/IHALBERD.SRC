@@ -1,0 +1,69 @@
+// Halberd (KIND_HALBERD, Dagger block)...  Axe on a pole.  One hand jabs with the top spike; both hands (other hand empty) bring the axe down in a chop that knocks foes over.
+#define DAMAGE_TYPE DAMAGE_EDGE
+#define DAMAGE_LOW  2
+#define DAMAGE_HIGH 4
+#define WOUND_LOW   1
+#define WOUND_HIGH  2
+#define TWO_HAND_BONUS 1  // Extra damage with both hands on the pole
+
+//-----------------------------------------------------------------------
+int GetName()
+  STANDARD.ItemName("HALBERD", NULL, DAMAGE_TYPE, DAMAGE_LOW, DAMAGE_HIGH, WOUND_LOW, WOUND_HIGH)
+
+//-----------------------------------------------------------------------
+// TRUE while the other hand is empty, so both hands are on the pole...
+int TwoHanded()
+  int self, other
+  self = FindSelf()
+  other = self.eqleft
+  if(SystemGet(SYS_WEAPONGRIP, 0, 0) == MODEL_LEFT_FILE)
+    other = self.eqright
+  return (other == ITEM_NONE)
+
+//-----------------------------------------------------------------------
+// Called when attack particle is supposed to be spawned
+int FrameEvent()
+  int grip, damage, wound, self
+  grip = SystemGet(SYS_WEAPONGRIP, 0, 0)
+  damage = RollDice(1, DAMAGE_HIGH-DAMAGE_LOW+1)+DAMAGE_LOW-1
+  wound = RollDice(1, WOUND_HIGH-WOUND_LOW+1)+WOUND_LOW-1
+  self = FindSelf()
+  if(TwoHanded())
+    PATTACK.FrameEvent(DAMAGE_TYPE, damage+TWO_HAND_BONUS, wound, grip, 112, WEAPON_RADIUS_LARGE, SPECIAL_FLAG_KNOCK_DOWN, SystemGet(SYS_ITEMINDEX, 0, 0)&7)
+  else
+    PATTACK.FrameEvent(DAMAGE_TYPE, damage, wound, grip, 118, WEAPON_RADIUS_MEDIUM, 0, SystemGet(SYS_ITEMINDEX, 0, 0)&7)
+  PlaySound("FILE:SWIPE.RAW", 150 + RollDice(1, 50), 255)
+
+//-----------------------------------------------------------------------
+// Called when item is first used, to start proper animation...  One hand jabs, two hands chop.
+int Event()
+  if(TwoHanded())
+    STANDARD.WeaponAttackStart(WEAPON_RELOAD_LONG, WEAPON_ATTACK_BASH)
+  else
+    STANDARD.WeaponAttackStart(WEAPON_RELOAD_LONG, WEAPON_ATTACK_THRUST)
+
+//-----------------------------------------------------------------------
+// Called to put item in character's hand
+int ModelSetup()
+  int self, grip
+
+  grip = SystemGet(SYS_WEAPONGRIP, 0, 0)
+  if(grip == MODEL_LEFT_FILE || grip == MODEL_RIGHT_FILE)
+    self = FindSelf()
+
+    ModelAssign(self+grip, "FILE:HALBERD.RDY")
+    ModelAssign(self+grip+4, "FILE:STEEL.RGB")
+    ModelAssign(self+grip+8, "FILE:=SPEAR.RGB")
+    XITEM.WeaponModelSetup(self, grip)  // Artifact texture, if any...
+    ModelAssign(self+grip+12, "FILE:LITESWIP.RGB")
+    ModelAssign(self+grip+16, "FILE:GOLD.RGB")
+    ModelAssign(self+grip+20, WHITE)
+
+//-----------------------------------------------------------------------
+// Called when we're allowed to spawn a particle for the
+// item's enchantment effect.  Must manually check if item
+// is enchanted or not...
+int Refresh()
+  STANDARD.WeaponRefresh(50, 1.0)
+
+//-----------------------------------------------------------------------
