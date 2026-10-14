@@ -42,7 +42,12 @@
 #define UNIQUE_PICKED_OFFSET   695   // On a chest: Thief's Cowl already tried to pick it
 #define UNIQUE_VEIL_OFFSET     696   // 1 while Veil of Dusk is worn (runsrc.c AcquireTarget reads it)
 #define UNIQUE_VANISH_OFFSET   697   // Whisper: seconds of invisibility left after a kill
-// 698 to 703 are free (UNIQUE_SIZE is 32, see object.c)...
+#define UNIQUE_EYE_OFFSET      698   // 1 while Third Eye is worn (charact.c draws hidden foes half seen)
+#define UNIQUE_MAPPED_OFFSET   699   // Lookout's Rag: the map level it last showed + 1
+#define UNIQUE_DASH_OFFSET     700   // 1 while Phantom Steps are worn (charact.c dashes on a double tap)
+// 701 to 703 are free...  704 to 715 hold the Robe of Many Pockets' slots (UNIQUE_SIZE is 48, see object.c)...
+#define POCKET_FIRST           704   // Robe of Many Pockets: item bytes of the 4 pockets (704-707, extensions at 708-715)
+#define POCKET_COUNT           4
 // Unique numbers (UNIQUE.SRC), one per base item and kind...  Never renumber (saves count drops by number)...
 #define UQ_NIGHTS_EDGE         1     // Obsidian Blade
 #define UQ_MEDUSAS_MIRROR      2     // Mirror Shield
@@ -124,7 +129,14 @@
 #define UQ_VEIL_OF_DUSK        78    // Shadow Hood kind
 #define UQ_PATHFINDER          79    // Scout Jerkin kind
 #define UQ_HORNED_DREAD        80    // Juggernaut Helm kind
-#define UQ_LAST                80
+#define UQ_WALL_OF_THE_WATCH   81    // Tower Shield kind
+#define UQ_THIRD_EYE           82    // Mystic Hood kind
+#define UQ_WILD_WEAVE          83    // Mystic Robe kind
+#define UQ_LOOKOUTS_RAG        84    // Scout Bandana kind
+#define UQ_FACE_OF_NO_ONE      85    // Nightblade Mask kind
+#define UQ_PHANTOM_STEPS       86    // Nightblade Boots kind
+#define UQ_MANY_POCKETS        87    // Apprentice Robe kind
+#define UQ_LAST                87
 #define TICK_FRAMES      60    // Frames per unique timer tick (one second)
 #define MINION_FOREVER   255   // UNIQUE_MLEFT_OFFSET value: stays while the item is worn
 #define RAT_SECONDS      20    // Rat King's Tooth: how long a rat stays
@@ -188,6 +200,12 @@
 #define FALL_RANGE       5.0   // Earthfall: reach of the landing shockwave
 #define FALL_DAMAGE      3     // Earthfall: damage of the landing shockwave
 #define LUCK_FRAMES      600   // Delver's Luck: Luck from each smashed crate (10 seconds)
+#define WALL_RANGE       8.0   // Wall of the Watch: how far behind the wearer allies are covered
+#define WALL_SPEED       25    // Wall of the Watch: walk percent that makes up for the Tower Shield (x0.8)
+#define FACE_SECONDS     4     // Face of No One: seconds a kill keeps the wearer hidden
+#define WEAVE_WILD       5     // Wild Weave: percent chance a spell turns into a random one
+#define WEAVE_AGAIN      15    // Wild Weave: percent chance a spell goes off again for free
+#define WEAVE_RUNE_CAST  1     // RUNEFX.SRC particle kind RUNE_CAST
 
 
 //-----------------------------------------------------------------------
@@ -390,6 +408,20 @@ int IdFor(int item, int kind)
     return UQ_PATHFINDER
   if(kind == KIND_JUGGERNAUT_HELM)
     return UQ_HORNED_DREAD
+  if(kind == KIND_TOWER_SHIELD)
+    return UQ_WALL_OF_THE_WATCH
+  if(kind == KIND_MYSTIC_HOOD)
+    return UQ_THIRD_EYE
+  if(kind == KIND_MYSTIC_ROBE)
+    return UQ_WILD_WEAVE
+  if(kind == KIND_SCOUT_BANDANA)
+    return UQ_LOOKOUTS_RAG
+  if(kind == KIND_NIGHTBLADE_MASK)
+    return UQ_FACE_OF_NO_ONE
+  if(kind == KIND_NIGHTBLADE_BOOTS)
+    return UQ_PHANTOM_STEPS
+  if(kind == KIND_APPRENTICE_ROBE)
+    return UQ_MANY_POCKETS
   return 0
 
 //-----------------------------------------------------------------------
@@ -571,6 +603,20 @@ int KeyOf(int uq)
     return MakeKey(ITEM_BODY_1, KIND_SCOUT_JERKIN)
   if(uq == UQ_HORNED_DREAD)
     return MakeKey(ITEM_HELM_1, KIND_JUGGERNAUT_HELM)
+  if(uq == UQ_WALL_OF_THE_WATCH)
+    return MakeKey(ITEM_SHIELD, KIND_TOWER_SHIELD)
+  if(uq == UQ_THIRD_EYE)
+    return MakeKey(ITEM_HELM_1, KIND_MYSTIC_HOOD)
+  if(uq == UQ_WILD_WEAVE)
+    return MakeKey(ITEM_BODY_1, KIND_MYSTIC_ROBE)
+  if(uq == UQ_LOOKOUTS_RAG)
+    return MakeKey(ITEM_HELM_1, KIND_SCOUT_BANDANA)
+  if(uq == UQ_FACE_OF_NO_ONE)
+    return MakeKey(ITEM_HELM_1, KIND_NIGHTBLADE_MASK)
+  if(uq == UQ_PHANTOM_STEPS)
+    return MakeKey(ITEM_LEGS_1, KIND_NIGHTBLADE_BOOTS)
+  if(uq == UQ_MANY_POCKETS)
+    return MakeKey(ITEM_BODY_1, KIND_APPRENTICE_ROBE)
   return 0
 
 //-----------------------------------------------------------------------
@@ -770,6 +816,20 @@ int Name(int uq)
     return "PATHFINDER"
   if(uq == UQ_HORNED_DREAD)
     return "HORNED DREAD"
+  if(uq == UQ_WALL_OF_THE_WATCH)
+    return "WALL OF THE WATCH"
+  if(uq == UQ_THIRD_EYE)
+    return "THIRD EYE"
+  if(uq == UQ_WILD_WEAVE)
+    return "WILD WEAVE"
+  if(uq == UQ_LOOKOUTS_RAG)
+    return "LOOKOUT'S RAG"
+  if(uq == UQ_FACE_OF_NO_ONE)
+    return "FACE OF NO ONE"
+  if(uq == UQ_PHANTOM_STEPS)
+    return "PHANTOM STEPS"
+  if(uq == UQ_MANY_POCKETS)
+    return "ROBE OF MANY POCKETS"
   return NULL
 
 //-----------------------------------------------------------------------
@@ -935,6 +995,20 @@ int Info(int uq)
     return "TRAPS DON'T GO OFF FOR YOU"
   if(uq == UQ_HORNED_DREAD)
     return "WEAK FOES NEARBY MAY FLEE, -2 DEX"
+  if(uq == UQ_WALL_OF_THE_WATCH)
+    return "NO SLOWDOWN, COVERS ALLIES BEHIND, -2 DEX"
+  if(uq == UQ_THIRD_EYE)
+    return "SEE HIDDEN FOES, MIMICS AND TRAPS"
+  if(uq == UQ_WILD_WEAVE)
+    return "SPELLS MAY CAST TWICE OR GO WILD"
+  if(uq == UQ_LOOKOUTS_RAG)
+    return "SHOWS THE WHOLE MAP OF EACH LEVEL"
+  if(uq == UQ_FACE_OF_NO_ONE)
+    return "KILLS WHILE HIDDEN KEEP YOU HIDDEN"
+  if(uq == UQ_PHANTOM_STEPS)
+    return "DOUBLE TAP A DIRECTION TO DASH"
+  if(uq == UQ_MANY_POCKETS)
+    return "4 EXTRA PACK SLOTS, NO DEFENSE"
   return NULL
 
 //-----------------------------------------------------------------------
@@ -1100,6 +1174,20 @@ int Icon(int uq)
     return "FILE:=IUQ79.RGB"
   if(uq == UQ_HORNED_DREAD)
     return "FILE:=IUQ80.RGB"
+  if(uq == UQ_WALL_OF_THE_WATCH)
+    return "FILE:=IUQ81.RGB"
+  if(uq == UQ_THIRD_EYE)
+    return "FILE:=IUQ82.RGB"
+  if(uq == UQ_WILD_WEAVE)
+    return "FILE:=IUQ83.RGB"
+  if(uq == UQ_LOOKOUTS_RAG)
+    return "FILE:=IUQ84.RGB"
+  if(uq == UQ_FACE_OF_NO_ONE)
+    return "FILE:=IUQ85.RGB"
+  if(uq == UQ_PHANTOM_STEPS)
+    return "FILE:=IUQ86.RGB"
+  if(uq == UQ_MANY_POCKETS)
+    return "FILE:=IUQ87.RGB"
   return NULL
 
 //-----------------------------------------------------------------------
@@ -1256,6 +1344,12 @@ int Defense(int self)
     SystemSet(SYS_DEFENSERATING, 0, DAMAGE_VOLT, -2)
   if(Worn(self, UQ_ROOTSTRIDER))
     SystemSet(SYS_DEFENSERATING, 0, DAMAGE_BASH, 2)
+  if(Worn(self, UQ_MANY_POCKETS))
+    // Takes away the robe's own defense...
+    SystemSet(SYS_DEFENSERATING, 0, DAMAGE_ACID, -1)
+    SystemSet(SYS_DEFENSERATING, 0, DAMAGE_FIRE, -1)
+    SystemSet(SYS_DEFENSERATING, 0, DAMAGE_ICE, -1)
+    SystemSet(SYS_DEFENSERATING, 0, DAMAGE_VOLT, -1)
   if(Worn(self, UQ_RUSTGUARD))
     SystemSet(SYS_DEFENSERATING, 0, DAMAGE_ACID, 30)  // Enough that acid never gets through...
   if(Worn(self, UQ_PHALANX))
@@ -1595,6 +1689,8 @@ int Hit(int owner, int target, int xhand, int dealt, int killed)
   int uq
   if(xhand != 1 && xhand != 2)
     return FALSE
+  if(killed)
+    Unseen(owner)  // Face of No One...
   uq = HandId(owner, xhand)
   if(uq == UQ_NIGHTS_EDGE && killed)
     GENERIC.RestoreCharacterHits(owner, 3, 0)
@@ -1709,7 +1805,8 @@ int Vanish(int self)
       return FALSE  // Hidden some other way...
     self.eflags = self.eflags | ENCHANT_FLAG_INVISIBLE
     PINVIS.Effect(self, FALSE)
-  FileWriteByte(self, UNIQUE_VANISH_OFFSET, VANISH_SECONDS + 1)
+  if(FileReadByte(self, UNIQUE_VANISH_OFFSET) < VANISH_SECONDS + 1)
+    FileWriteByte(self, UNIQUE_VANISH_OFFSET, VANISH_SECONDS + 1)
   StartTimer(self)
   return TRUE
 
@@ -1728,6 +1825,211 @@ int Unvanish(int self)
     self.eflags = self.eflags & (255 - ENCHANT_FLAG_INVISIBLE)
     PINVIS.FadeInEffect(self)
   return TRUE
+
+//-----------------------------------------------------------------------
+// Face of No One: a kill while hidden keeps the wearer hidden a while (Hit)...
+// Uses Whisper's countdown: hiding (IHIDE) stays while it runs (StayHidden),
+// and a Whisper vanish runs at least that long...  Spell invisibility already lasts...
+int Unseen(int owner)
+  if(!Worn(owner, UQ_FACE_OF_NO_ONE))
+    return FALSE
+  if(FileReadByte(owner, UNIQUE_VANISH_OFFSET) == 0)
+    if(owner.alpha > 128 || (owner.eflags & ENCHANT_FLAG_INVISIBLE))
+      return FALSE
+  if(FileReadByte(owner, UNIQUE_VANISH_OFFSET) < FACE_SECONDS + 1)
+    FileWriteByte(owner, UNIQUE_VANISH_OFFSET, FACE_SECONDS + 1)
+  StartTimer(owner)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// TRUE while a Face of No One kill keeps a hiding character hidden (PINVIS.Refresh)...
+int StayHidden(int who)
+  if(FileReadByte(who, UNIQUE_VANISH_OFFSET))
+    return TRUE
+  return FALSE
+
+//-----------------------------------------------------------------------
+// Third Eye: TRUE if a local player wears it (mimics and traps show, like
+// they do for a Hubbin: CCHEST, CCHESTA, CCRATE, CBARREL, PTRAP)...
+int ThirdEye()
+  int i, who
+  i = 0
+  while(i < 4)
+    who = FindByIndex(SystemGet(SYS_LOCALPLAYER, i, 0))
+    if(who)
+      if(FileReadByte(who, UNIQUE_EYE_OFFSET))
+        return TRUE
+    i++
+  return FALSE
+
+//-----------------------------------------------------------------------
+// Wall of the Watch: an ally behind a wearer gets half of a hit back
+// (Damaged, CPLAYER)...  The leftover half point is a chance...
+int Sheltered(int self)
+  int i, who, dealt
+  float dx, dy
+  if(self.hits == 0)
+    return FALSE
+  i = 0
+  while(i < MAX_CHARACTER)
+    who = FindByIndex(i)
+    if(who)
+      if(who != self && who.team == self.team && who.hits > 0)
+        dx = self.x - who.x
+        dy = self.y - who.y
+        if(dx*dx + dy*dy < WALL_RANGE*WALL_RANGE)
+          if(dx*who.frontx + dy*who.fronty < 0.0)
+            if(Worn(who, UQ_WALL_OF_THE_WATCH))
+              dealt = SystemGet(SYS_DAMAGEAMOUNT, 0, 0)
+              if(dealt & 1)
+                if(RollDice(1, 2) == 1)
+                  dealt = dealt + 1
+              dealt = dealt >> 1
+              if(dealt > 0)
+                GENERIC.RestoreCharacterHits(self, dealt, 0)
+              return TRUE
+    i++
+  return FALSE
+
+//-----------------------------------------------------------------------
+// Lookout's Rag: shows every room of a level the first time the wearer is on it (Tick)...
+int Lookout(int self)
+  int room, level, flags, found, subwin, num_room, here
+  level = MAPGEN.GetRoomLevel(MAPGEN.GetCurrentRoom())
+  if(FileReadByte(self, UNIQUE_MAPPED_OFFSET) == ((level + 1) & 255))
+    return FALSE
+  FileWriteByte(self, UNIQUE_MAPPED_OFFSET, (level + 1) & 255)
+  num_room = MAPGEN.GetNumberOfRooms()
+  found = 0
+  room = 0
+  while(room < num_room)
+    flags = MAPGEN.GetRoomFlags(room)
+    if(!(flags & MAP_ROOM_FLAG_FOUND))
+      here = MAPGEN.GetRoomLevel(room)
+      if(here != level && (flags & MAP_ROOM_FLAG_DUAL_LEVEL))
+        here++
+      if(here == level)
+        SystemSet(SYS_MAPROOM, room, MAP_ROOM_UPDATE_FLAGS, flags | MAP_ROOM_FLAG_FOUND)
+        found++
+    room++
+  if(found)
+    // Force the automap window to update...
+    subwin = FindWindow(65535, "FILE:WAUTOMAP.RUN")
+    if(subwin)
+      subwin.stat09h = TRUE
+    PlaySound("FILE:-BELL1.RAW", 256, 160)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Wild Weave: a spell orb's spell may go off twice, or turn into another
+// attack spell (STANDARD.SpellEffect, child is its PDELAY particle)...
+int Weave(int self, int child)
+  int roll, again
+  if(!child || !Worn(self, UQ_WILD_WEAVE))
+    return FALSE
+  roll = RollDice(1, 100)
+  if(roll <= WEAVE_WILD)
+    child.misc7 = WildSpell()
+    PFLASH.Effect(self, "FILE:LITESPRK.RGB", UNIQUE_GOLD, TRUE, 1.0)
+    return TRUE
+  if(roll <= WEAVE_WILD + WEAVE_AGAIN)
+    again = PDELAY.Effect(child.misc7, child.x, child.y, child.z)
+    if(again)
+      again.evtimer = 40
+    return TRUE
+  return FALSE
+
+//-----------------------------------------------------------------------
+// Wild Weave: a random attack spell (PDELAY types)...
+int WildSpell()
+  int roll
+  roll = RollDice(1, 8)
+  if(roll == 1)
+    return ITEM_SPELL_MISSILE
+  if(roll == 2)
+    return ITEM_SPELL_POISON_CLOUD
+  if(roll == 3)
+    return ITEM_SPELL_KNOCK
+  if(roll == 4)
+    return ITEM_SPELL_LIGHTNING_BOLT
+  if(roll == 5)
+    return ITEM_SPELL_FIREBALL
+  if(roll == 6)
+    return ITEM_SPELL_ICEBALL
+  if(roll == 7)
+    return ITEM_SPELL_FLAME_WALL
+  return ITEM_SPELL_ENTANGLE
+
+//-----------------------------------------------------------------------
+// Wild Weave on a Wizard rune (RUNEFX.Cast, child is its cast particle):
+// the spell may go off twice, or become another spell of the same rank...
+// Mystic runes (turrets and forms) aren't touched...
+int WeaveRune(int self, int child, int ext)
+  int roll, again, rank
+  if(!child || !Worn(self, UQ_WILD_WEAVE))
+    return FALSE
+  if(RUNEFX.IsMysticRune(ext))
+    return FALSE
+  rank = RUNEFX.RuneRank(ext)
+  roll = RollDice(1, 100)
+  if(roll <= WEAVE_WILD)
+    child.misc4 = XITEM_RUNE_WIZARD_BASE + (rank<<3) + RollDice(1, 7)
+    PFLASH.Effect(self, "FILE:LITESPRK.RGB", UNIQUE_GOLD, TRUE, 1.0)
+    return TRUE
+  if(roll <= WEAVE_WILD + WEAVE_AGAIN)
+    again = RUNEFX.NewPart(self, WEAVE_RUNE_CAST, rank, self.x, self.y, self.z, NULL, 0.0)
+    if(again)
+      again.flags = 0
+      again.misc4 = child.misc4
+      again.timer = 0
+      again.evtimer = 40
+    return TRUE
+  return FALSE
+
+//-----------------------------------------------------------------------
+// Robe of Many Pockets...  Pockets are 4 more pack slots (POCKET_FIRST on)
+// that WSTATUS shows while the robe is worn...
+int Pockets(int who)
+  return Worn(who, UQ_MANY_POCKETS)
+
+//-----------------------------------------------------------------------
+int IsPocket(int slot)
+  if(slot >= POCKET_FIRST && slot < POCKET_FIRST + POCKET_COUNT)
+    return TRUE
+  return FALSE
+
+//-----------------------------------------------------------------------
+// TRUE if moving item1 (key1) from icon1 to icon2 breaks the pockets' rules
+// (WSTATUS.IconSwap): pockets trade only with the pack and the trash, and
+// the robe can't go in its own pockets...
+int PocketBlock(int icon1, int icon2, int key1)
+  if(!IsPocket(icon1) && !IsPocket(icon2))
+    return FALSE
+  if(icon1 < 224 || icon2 < 224)
+    return TRUE
+  if(icon2 == 254)
+    return FALSE
+  if((icon1 >= 240 && !IsPocket(icon1)) || (icon2 >= 240 && !IsPocket(icon2)))
+    return TRUE
+  if(IsPocket(icon2))
+    if(Id(key1 & 255, key1 >> 8) == UQ_MANY_POCKETS)
+      return TRUE
+  return FALSE
+
+//-----------------------------------------------------------------------
+// Puts an item in an empty pocket (GENERIC.GiveItemToCharacterExt)...
+int PocketItem(int who, int item, int ext)
+  int slot
+  if(!Pockets(who))
+    return FALSE
+  slot = POCKET_FIRST
+  while(slot < POCKET_FIRST + POCKET_COUNT)
+    if(FileReadByte(who, slot) == ITEM_NONE)
+      FileWriteByte(who, slot, item)
+      XITEM.SetRaw(who, slot, ext)
+      return TRUE
+    slot++
+  return FALSE
 
 //-----------------------------------------------------------------------
 // Makes a foe run away from where for a moment...
@@ -2152,6 +2454,7 @@ int Damaged(int self)
   Wrath(self)
   Anvil(self)
   Fortress(self)
+  Sheltered(self)
   if(Worn(self, UQ_CHAIN_OF_PENANCE))
     FileWriteByte(self, UNIQUE_COUNT_OFFSET, 0)  // The chain starts over...
   if(Worn(self, UQ_RIPOSTE))
@@ -2381,8 +2684,12 @@ int Sync(int self)
     speed = speed - 10
   if(Worn(self, UQ_RUSTGUARD))
     speed = speed + Unslowed(self)
+  if(Worn(self, UQ_WALL_OF_THE_WATCH))
+    speed = speed + WALL_SPEED
   FileWriteByte(self, UNIQUE_SPEED_OFFSET, speed & 255)
   FileWriteByte(self, UNIQUE_VEIL_OFFSET, Worn(self, UQ_VEIL_OF_DUSK))
+  FileWriteByte(self, UNIQUE_EYE_OFFSET, Worn(self, UQ_THIRD_EYE))
+  FileWriteByte(self, UNIQUE_DASH_OFFSET, Worn(self, UQ_PHANTOM_STEPS))
   SyncStats(self)
   // Starwoven Sash: more max mana, fewer max hits...
   wear = Worn(self, UQ_STARWOVEN_SASH)
@@ -2467,6 +2774,8 @@ int SyncStats(int self)
     d = d - 2
   if(Worn(self, UQ_HORNED_DREAD))
     d = d - 2
+  if(Worn(self, UQ_WALL_OF_THE_WATCH))
+    d = d - 2
   if(Worn(self, UQ_SQUIRES_PROMISE))
     if(self.hits * 2 < self.hitsmax)
       s = s + 2
@@ -2530,7 +2839,7 @@ int NeedsTimer(int self)
     return TRUE
   if(Worn(self, UQ_WARDENS_WATCH) || Worn(self, UQ_MANTLE_OF_KNIVES) || Worn(self, UQ_SIEGEWALKER))
     return TRUE
-  if(FileReadByte(self, UNIQUE_VANISH_OFFSET) || Worn(self, UQ_HORNED_DREAD))
+  if(FileReadByte(self, UNIQUE_VANISH_OFFSET) || Worn(self, UQ_HORNED_DREAD) || Worn(self, UQ_LOOKOUTS_RAG))
     return TRUE
   return FALSE
 
@@ -2565,6 +2874,8 @@ int Tick(int self)
     Trample(self)
   if(Worn(self, UQ_HORNED_DREAD))
     Dread(self)
+  if(Worn(self, UQ_LOOKOUTS_RAG))
+    Lookout(self)
   Unvanish(self)
   if(Worn(self, UQ_UNDYING_COLOSSUS))
     if(secs % REGEN_SECONDS == 0)

@@ -558,6 +558,7 @@ void character_draw_all(unsigned char after_water, unsigned char draw_only_doors
     unsigned char petrify;
     unsigned char eye_frame;
     unsigned char brightness;
+    unsigned char eye_team;
     unsigned short num_door_list;
     unsigned short door_list[MAX_CHARACTER];
     unsigned short door_list_order[MAX_CHARACTER];
@@ -648,6 +649,17 @@ void character_draw_all(unsigned char after_water, unsigned char draw_only_doors
     if(!key_down[SDL_SCANCODE_F12])
     {
     #endif
+        // Third Eye (UNIQUE.SRC): a local player wearing it sees hidden foes half seen...
+        eye_team = 255;
+        repeat(i, MAX_LOCAL_PLAYER)
+        {
+            if(local_player_character[i] < MAX_CHARACTER && main_character_on[local_player_character[i]] && main_character_data[local_player_character[i]][UNIQUE_EYE_OFFSET])
+            {
+                eye_team = main_character_data[local_player_character[i]][78];
+            }
+        }
+
+
         // Solid, Fuzzy, Transparent
         num_character = MAX_CHARACTER;
         pass = 0;
@@ -677,6 +689,10 @@ void character_draw_all(unsigned char after_water, unsigned char draw_only_doors
                 {
                     character_data = main_character_data[i];
                     alpha = character_data[79];
+                    if(eye_team != 255 && alpha < 128 && character_data[78] != eye_team)
+                    {
+                        alpha = 128;  // Third Eye...
+                    }
                     model_data = character_data+256;
                     eye_frame = (unsigned char) (*((unsigned short*) (character_data + 182)));
                     frame = *((unsigned short*) (character_data + 178));
@@ -2698,6 +2714,59 @@ void character_button_function(unsigned short character, unsigned char code, uns
 }
 
 //-----------------------------------------------------------------------------------------------
+// Phantom Steps (UNIQUE.SRC): tapping a direction twice quickly dashes that way...
+#define DASH_TAP_FRAMES  15     // Most frames a tap can be held, and the most between the two taps
+#define DASH_SPEED       1.1f   // Velocity added by a dash
+#define DASH_COOLDOWN    45     // Frames before the next dash
+unsigned char dash_held[MAX_LOCAL_PLAYER];
+unsigned int dash_press_frame[MAX_LOCAL_PLAYER];
+unsigned int dash_release_frame[MAX_LOCAL_PLAYER];
+unsigned int dash_ready_frame[MAX_LOCAL_PLAYER];
+float dash_last_xy[MAX_LOCAL_PLAYER][2];
+
+void character_phantom_dash(unsigned short player, unsigned char* character_data)
+{
+    // <ZZ> Watches a local player's stick for a double tap, and dashes the character...
+    float push, wx, wy, length;
+    unsigned char action;
+    push = player_device_xy[player][X]*player_device_xy[player][X] + player_device_xy[player][Y]*player_device_xy[player][Y];
+    if(push > 0.36f)
+    {
+        if(!dash_held[player])
+        {
+            // A new push...  Which way is it in the world?
+            dash_held[player] = TRUE;
+            dash_press_frame[player] = main_game_frame;
+            wx = player_device_xy[player][X]*map_side_xy[X] - player_device_xy[player][Y]*map_side_xy[Y];
+            wy = player_device_xy[player][X]*map_side_xy[Y] + player_device_xy[player][Y]*map_side_xy[X];
+            length = (float) sqrt(wx*wx + wy*wy);
+            if(length < 0.01f) return;
+            wx /= length;
+            wy /= length;
+            action = character_data[65];
+            if(dash_release_frame[player] && (main_game_frame - dash_release_frame[player]) <= DASH_TAP_FRAMES && main_game_frame >= dash_ready_frame[player] && (wx*dash_last_xy[player][X] + wy*dash_last_xy[player][Y]) > 0.8f)
+            {
+                if(action == ACTION_STAND || action == ACTION_WALK || (action >= ACTION_STAND+TWOHAND_RIGHT_ADD && action <= ACTION_WALK+TWOHAND_LEFT_ADD))
+                {
+                    *((float*) (character_data+24)) += wx*DASH_SPEED;
+                    *((float*) (character_data+28)) += wy*DASH_SPEED;
+                    dash_ready_frame[player] = main_game_frame + DASH_COOLDOWN;
+                    dash_release_frame[player] = 0;
+                }
+            }
+            dash_last_xy[player][X] = wx;
+            dash_last_xy[player][Y] = wy;
+        }
+    }
+    else if(push < 0.04f && dash_held[player])
+    {
+        // Let go...  A short push counts as a tap...
+        dash_held[player] = FALSE;
+        dash_release_frame[player] = ((main_game_frame - dash_press_frame[player]) <= DASH_TAP_FRAMES) ? main_game_frame : 0;
+    }
+}
+
+//-----------------------------------------------------------------------------------------------
 void character_local_player_control(void)
 {
     // <ZZ> This function updates the characters controlled by the local players, so that
@@ -2732,6 +2801,13 @@ void character_local_player_control(void)
 
                     // Turn off the AI timer...
                     (*((unsigned short*) (character_data+176))) = 0;
+
+
+                    // Phantom Steps...
+                    if(character_data[UNIQUE_DASH_OFFSET])
+                    {
+                        character_phantom_dash(i, character_data);
+                    }
 
 
                     // Transfer player button presses into character data...

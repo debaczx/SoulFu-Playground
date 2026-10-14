@@ -41,7 +41,7 @@ int Event()
 
 
   if(self.event == EVENT_TIMER)
-    if(self.misc5 == FALSE && LocalPlayerIsClass(CLASS_HUBBIN))
+    if(self.misc5 == FALSE && (LocalPlayerIsClass(CLASS_HUBBIN) || UNIQUE.ThirdEye()))
       // Trap has not yet been triggered and there is a
       // Hubbin in the local party...  Make barely visible...
       if(self.alpha < 50)

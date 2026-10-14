@@ -37,12 +37,22 @@ int GetRaw(int who, int slot)
   int offset, low, high
   if(!who)
     return 0
-  if(slot < 224 || slot > 248)
+  offset = ExtOffset(slot)
+  if(offset == 0)
     return 0
-  offset = XITEM_OFFSET + ((slot-224)<<1)
   low = FileReadByte(who, offset)
   high = FileReadByte(who, offset+1)
   return (low + (high<<8))  // Parentheses matter!  See NOTE at the end of this file...
+
+//-----------------------------------------------------------------------
+// Character offset of a slot's extension (224-248, or a Robe of Many Pockets
+// pocket 704-707 whose extensions sit at 708-715, see object.c), 0 if none...
+int ExtOffset(int slot)
+  if(slot >= 224 && slot <= 248)
+    return (XITEM_OFFSET + ((slot-224)<<1))
+  if(slot >= 704 && slot <= 707)
+    return (708 + ((slot-704)<<1))
+  return 0
 
 //-----------------------------------------------------------------------
 // Sets the mod/artifact part of a slot's extension (224-248)...  The item's
@@ -57,9 +67,9 @@ int SetRaw(int who, int slot, int ext)
   int offset
   if(!who)
     return FALSE
-  if(slot < 224 || slot > 248)
+  offset = ExtOffset(slot)
+  if(offset == 0)
     return FALSE
-  offset = XITEM_OFFSET + ((slot-224)<<1)
   FileWriteByte(who, offset, ext&255)
   FileWriteByte(who, offset+1, (ext>>8)&255)
   return TRUE

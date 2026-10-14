@@ -485,6 +485,10 @@ int GiveItemToCharacterExt(int target, int item, int ext)
       XITEM.SetRaw(target, slot+224, ext)  // ext is the whole raw value (kind bits too)
       return TRUE
     slot++
+  // Robe of Many Pockets...
+  if(num_slot == 16)
+    if(UNIQUE.PocketItem(target, item, ext))
+      return TRUE
   // No empty slots...
   return FALSE
 

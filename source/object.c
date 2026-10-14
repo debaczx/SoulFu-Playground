@@ -32,7 +32,7 @@
 #define PARTICLE 1          //
 #define WINDOW 2            //
 
-#define CHARACTER_SIZE 704  // The number of bytes for a character's data (616 original + item extension block + unique item state)
+#define CHARACTER_SIZE 720  // The number of bytes for a character's data (616 original + item extension block + unique item state)
 #define PARTICLE_SIZE 88    // The number of bytes for a particle's data
 #define MAX_WINDOW 16       // The maximum number of windows a machine can have open
 #define WINDOW_SIZE 616     // The number of bytes for a window's data
@@ -50,7 +50,12 @@
 #define CHILL_SPEED      0.55f // Movement multiplier while chilled
 // Unique items (UNIQUE.SRC)...  Characters carry 32 bytes of unique item state, saved with the game...
 #define UNIQUE_OFFSET       672   // Start of the unique item state block
-#define UNIQUE_SIZE         32
+#define UNIQUE_SIZE         48
+#define UNIQUE_EYE_OFFSET   698   // 1 while Third Eye is worn: hidden foes are drawn half seen (charact.c)
+#define UNIQUE_DASH_OFFSET  700   // 1 while Phantom Steps are worn: a double tapped direction dashes (charact.c)
+#define POCKET_FIRST_SLOT   704   // Robe of Many Pockets: 4 more item slots (704-707), saved in the unique block...
+#define POCKET_LAST_SLOT    707
+#define POCKET_EXT_OFFSET   708   // ...with their extensions at 708-715
 #define UNIQUE_TIMER_OFFSET 672   // unsigned short...  Counts down, calls EVENT_UNIQUE_TIMER at 0
 #define UNIQUE_SPEED_OFFSET 674   // signed char...  Walk speed percent from worn uniques
 #define MAX_UNIQUE          128   // Unique item numbers (each can drop a limited number of times per game)
@@ -76,12 +81,21 @@ unsigned char main_character_data[MAX_CHARACTER][CHARACTER_SIZE];
 unsigned char main_particle_data[MAX_PARTICLE][PARTICLE_SIZE];
 unsigned char main_window_data[MAX_WINDOW][WINDOW_SIZE];
 
+unsigned char* xitem_ext_address(unsigned char* character_data, int slot_offset)
+{
+    // <ZZ> Where a slot's extension is kept (slot_offset is 224-248, or a pocket 704-707), or NULL...
+    if(character_data < main_character_data[0] || character_data > main_character_data[MAX_CHARACTER-1]) return NULL;
+    if(slot_offset >= XITEM_FIRST_SLOT && slot_offset <= XITEM_LAST_SLOT) return character_data + XITEM_OFFSET + ((slot_offset-XITEM_FIRST_SLOT)<<1);
+    if(slot_offset >= POCKET_FIRST_SLOT && slot_offset <= POCKET_LAST_SLOT) return character_data + POCKET_EXT_OFFSET + ((slot_offset-POCKET_FIRST_SLOT)<<1);
+    return NULL;
+}
+
 unsigned short xitem_get(unsigned char* character_data, int slot_offset)
 {
-    // <ZZ> Returns the extension value of a character's item slot (slot_offset is 224-248)
+    // <ZZ> Returns the extension value of a character's item slot (slot_offset is 224-248, or a pocket)
     unsigned char* ext;
-    if(character_data < main_character_data[0] || character_data > main_character_data[MAX_CHARACTER-1] || slot_offset < XITEM_FIRST_SLOT || slot_offset > XITEM_LAST_SLOT) return 0;
-    ext = character_data + XITEM_OFFSET + ((slot_offset-XITEM_FIRST_SLOT)<<1);
+    ext = xitem_ext_address(character_data, slot_offset);
+    if(ext == NULL) return 0;
     return (unsigned short) (ext[0] | (ext[1]<<8));
 }
 
@@ -106,6 +120,12 @@ int xitem_locate(unsigned char* addr, unsigned char** character_data)
     if(addr < main_character_data[0] || addr >= main_character_data[0] + (MAX_CHARACTER*CHARACTER_SIZE)) return -1;
     delta = addr - main_character_data[0];
     offset = delta % CHARACTER_SIZE;
+    if(offset >= POCKET_FIRST_SLOT && offset <= POCKET_LAST_SLOT)
+    {
+        // Robe of Many Pockets...
+        *character_data = addr - offset;
+        return (int) offset;
+    }
     if(offset < XITEM_FIRST_SLOT || offset > XITEM_LAST_SLOT || offset == 240 || offset == 241) return -1;  // 240-241 are color sliders
     *character_data = addr - offset;
     return (int) offset;
@@ -115,8 +135,8 @@ void xitem_set(unsigned char* character_data, int slot_offset, unsigned short va
 {
     // <ZZ> Sets the extension value of a character's item slot (slot_offset is 224-248)
     unsigned char* ext;
-    if(character_data < main_character_data[0] || character_data > main_character_data[MAX_CHARACTER-1] || slot_offset < XITEM_FIRST_SLOT || slot_offset > XITEM_LAST_SLOT) return;
-    ext = character_data + XITEM_OFFSET + ((slot_offset-XITEM_FIRST_SLOT)<<1);
+    ext = xitem_ext_address(character_data, slot_offset);
+    if(ext == NULL) return;
 #ifdef XITEM_DEBUG
     if((ext[0] | (ext[1]<<8)) != value) log_message("XITEM: char %d slot %d ext %d -> %d (item %d)", (int)((character_data-main_character_data[0])/CHARACTER_SIZE), slot_offset, ext[0] | (ext[1]<<8), value, character_data[slot_offset]);
 #endif

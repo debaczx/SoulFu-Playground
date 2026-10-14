@@ -594,7 +594,7 @@ int SpellEffect(int self, int mana_cost, int mana_tap)
           index = FindIndex(self)
           SetSpawnOwner(index)
           SetSpawnTeam(self.team)
-          PDELAY.Effect(item_type, self.x, self.y, self.z+self.height)
+          UNIQUE.Weave(self, PDELAY.Effect(item_type, self.x, self.y, self.z+self.height))  // Wild Weave...
           return TRUE
       else
         if(IndexIsLocalPlayer(FindIndex(self)))

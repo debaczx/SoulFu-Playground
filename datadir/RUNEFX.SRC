@@ -507,6 +507,7 @@ int Cast(int self, int ext)
     child.misc4 = ext & 255
     child.timer = 0
     child.evtimer = 15
+    UNIQUE.WeaveRune(self, child, ext)  // Wild Weave...
   return TRUE
 
 //-----------------------------------------------------------------------

@@ -35,7 +35,7 @@ int GetName()
 
 
   StringClear(NAME_STRING)
-  if(LocalPlayerIsClass(CLASS_HUBBIN)==FALSE)
+  if(LocalPlayerIsClass(CLASS_HUBBIN)==FALSE && UNIQUE.ThirdEye()==FALSE)
     subtype = 0
   if(subtype == 0 || subtype == 1 || subtype == 3)
     StringAppend(NAME_STRING, StringLanguage(350), 256)
@@ -159,7 +159,7 @@ int Refresh()
   self = FindSelf()
   subtype = self.eqcol01 >> 6
   if(subtype == 2)
-    if(LocalPlayerIsClass(CLASS_HUBBIN))
+    if(LocalPlayerIsClass(CLASS_HUBBIN) || UNIQUE.ThirdEye())
       self.dmtimer = 60
   self.timer = 10
 

@@ -34,17 +34,16 @@
 #define gem1      self.stat00h
 #define gem2      self.stat01l
 #define gem3      self.stat01h
-#define icon_pick self.stat02l
+#define icon_pick self.stat08w  // Words, so Robe of Many Pockets slots (704-707) fit...
 #define player    self.stat02h
-#define icon_drag self.stat03l
+#define icon_drag self.stat09w
 #define icon_drop self.stat03h
 #define timer     self.stat04w
 #define shop_on   self.stat05l
 #define button1   self.stat05h
 #define shop_x    self.stat06w
 #define shop_y    self.stat07w
-// stat08w unused
-// stat09w unused
+// stat02l and stat03l unused (icon_pick and icon_drag were bytes)
 // stat10w unused
 #define icon_from self.stat11w
 #define button2   self.stat12l
@@ -451,7 +450,7 @@ int IconSwap(int icon1, int icon2)
 
 
   // Error check...
-  if(icon1 > 253)
+  if(icon1 > 253 && icon1 < 256)
     // Shouldn't happen...
     BuzzerSound()
     return FALSE
@@ -548,6 +547,10 @@ int IconSwap(int icon1, int icon2)
   key2 = value2
   if(icon2 >= 224)
     key2 = XITEM.SlotKey(binding, icon2, value2)
+  // Robe of Many Pockets: pockets only trade with the pack...
+  if(UNIQUE.PocketBlock(icon1, icon2, key1) || UNIQUE.PocketBlock(icon2, icon1, key2))
+    BuzzerSound()
+    return FALSE
 
 
 
@@ -780,11 +783,14 @@ int RowIcon(int icon_index, float x, float y)
         if(joy_y == 8)
           // Shop access...
           joy_index = 140 + joy_x
+    if(joy_y == 10 && joy_x >= 1 && joy_x <= 4)
+      // Robe of Many Pockets...
+      joy_index = 703 + joy_x
 
     
   // Figure out which item we're drawing...
   item_ext = 0
-  if(icon_index > 253)
+  if(icon_index > 253 && icon_index < 256)
     // Special quick equip slot...  Or trash...
     item_type = ITEM_NONE
   else
@@ -823,7 +829,7 @@ int RowIcon(int icon_index, float x, float y)
       if(!(binding.sflags & SCRIPT_ALLOW_LEGS))
         color = DARK_RED
   overlay_file=SystemGet(SYS_ITEMREGISTRYOVERLAY, item_type, 0)
-  if(item_type == ITEM_NONE && icon_index > 245)
+  if(item_type == ITEM_NONE && icon_index > 245 && icon_index < 256)
     image_file = "FILE:=IGNONE.RGB"
     if(icon_index == 254)
       image_file = "FILE:=ITRASH.RGB"
@@ -969,6 +975,19 @@ int RowIcon(int icon_index, float x, float y)
         icon_from = 65535
         ButtonSound()
   else
+    if(joy_hit < 4 && joy_index == icon_index && icon_drag != icon_index && UNIQUE.IsPocket(icon_index))
+      // Robe of Many Pockets: a button takes the item out to the first free pack slot...
+      if(item_type != ITEM_NONE && !garbage_mode)
+        i = 224
+        while(i < 240)
+          if(FileReadByte(binding, i) == ITEM_NONE)
+            icon_from = 65535 // Just in case
+            IconSwap(icon_index, i)
+            i = 250
+          i++
+        if(i == 240)
+          BuzzerSound()
+      joy_hit = 255
     if(joy_hit < 4 && joy_index == icon_index && icon_drag != icon_index)
       // Item is selected with joystick funky thing and one of the 4 buttons was hit...
       if(item_type != ITEM_NONE)
@@ -1222,6 +1241,8 @@ CenterVertical(int self)
   scale = ((SystemGet(SYS_WINDOWSCALE, 0, 0) * 0.00166666666) + 6.0)
   statsize = size*scale
   size = size + 1.75 + 11.75
+  if(UNIQUE.Pockets(binding))
+    size = size + 3.0
   if(shop_on && gem3)
     size = size + 7.75
   size = size * scale
@@ -1253,6 +1274,8 @@ JustifyVertical(int self, int force)
     size = size+11.75
   if(gem3)
     size = size+11.75
+    if(UNIQUE.Pockets(binding))
+      size = size+3.0
   if(shop_on && gem3)
     size = size+7.75
   scale = ((SystemGet(SYS_WINDOWSCALE, 0, 0) * 0.00166666666) + 6.0)
@@ -1340,8 +1363,8 @@ int SpecialDragDropStuff()
             else
               // Trying to drop on some other window?
               if(last_script == "FILE:WSTATUS.RUN" || last_script == "FILE:WHELPER.RUN")
-                last_object.stat02l = icon_pick
-                last_object.stat03l = icon_drag
+                last_object.stat08w = icon_pick
+                last_object.stat09w = icon_drag
                 last_object.stat03h = TRUE
                 last_object.stat11w = self.binding
                 worked = 3
@@ -1361,15 +1384,20 @@ Refresh()
   int    blue_green, alpha
   int    last_object, last_item, last_script, worked, item_type, target, index
   int    lowy, highy, mode, curroom, script_file, temp
-  int    statmax
+  int    statmax, pocketrow
   float  disx, disy
-  float  x, y, ypos, size
+  float  x, y, ypos, size, oy
 
 
   // Make sure our binding is valid
   self = FindSelf()
   self.binding = SystemGet(SYS_LOCALPLAYER, player, 0)
   binding = FindBinding()
+  pocketrow = FALSE
+  if(gem3 && binding)
+    pocketrow = UNIQUE.Pockets(binding)  // Robe of Many Pockets: a 4th row...
+  if(!pocketrow && joy_y == 10)
+    joy_y = 5
   if(!binding)
     // Player is no longer active...  That means the character
     // either left the room or was poof'd...  Try to figger out
@@ -1652,16 +1680,27 @@ Refresh()
               joy_x = 0
         if(y < -50.0)
           joy_timer = 1
-          if(joy_y-1 < lowy)
-            joy_y = highy
+          if(pocketrow && joy_y == 5)
+            joy_y = 10  // Up to the pockets...
           else
-            joy_y--
+            if(joy_y == 10)
+              joy_y = highy
+            else
+              if(joy_y-1 < lowy)
+                joy_y = highy
+              else
+                joy_y--
         if(y > 50.0)
           joy_timer = 1
-          if(joy_y+1 > highy)
-            joy_y = lowy
+          if(joy_y == 10)
+            joy_y = 5
           else
-            joy_y++
+            if(joy_y+1 > highy)
+              joy_y = lowy
+              if(pocketrow && lowy == 5)
+                joy_y = 10
+            else
+              joy_y++
       else
         if(x > -50.0 && x < 50.0 && y > -50.0 && y < 50.0)
           // Joystick is center'd...
@@ -1689,6 +1728,8 @@ Refresh()
       y = y+11.75
     if(gem3)
       y = y+11.75
+      if(pocketrow)
+        y = y+3.0
     if(shop_on && gem3)
       y = y+7.75
       
@@ -1819,34 +1860,48 @@ Refresh()
 
     // Items
     if(gem3)
-      y = y-11.75
-      WindowBorder(FALSE, -8.5, y, 17, 11, BORDER_LOW_TITLE)
+      oy = 0.0
+      if(pocketrow)
+        oy = 3.0
+      y = y-11.75-oy
+      if(pocketrow)
+        WindowBorder(FALSE, -8.5, y, 17, 14, BORDER_LOW_TITLE)
+      else
+        WindowBorder(FALSE, -8.5, y, 17, 11, BORDER_LOW_TITLE)
 
 
       // Draw the Trash & Equip icons...
-      RowIcon(255,14.5, 8.2)  // Quick equip slot...
-      RowIcon(254,-0.5, 8.2)  // Trash
+      RowIcon(255,14.5, 8.2+oy)  // Quick equip slot...
+      RowIcon(254,-0.5, 8.2+oy)  // Trash
 
 
       // Draw the inventory icons from bottom to top...
       x = -0.5+3.0
       icon_index = 236
       while(icon_index < 240)
-        RowIcon(icon_index, x, 8.2)
+        RowIcon(icon_index, x, 8.2+oy)
         x = x+3.000
         icon_index++
       x = -0.5
       icon_index = 230
       while(icon_index < 236)
-        RowIcon(icon_index, x, 5.2)
+        RowIcon(icon_index, x, 5.2+oy)
         x = x+3.000
         icon_index++
       x = -0.5
       icon_index = 224
       while(icon_index < 230)
-        RowIcon(icon_index, x, 2.2)
+        RowIcon(icon_index, x, 2.2+oy)
         x = x+3.000
         icon_index++
+      if(pocketrow)
+        // Robe of Many Pockets...
+        x = -0.5+3.0
+        icon_index = 704
+        while(icon_index < 708)
+          RowIcon(icon_index, x, 2.2)
+          x = x+3.000
+          icon_index++
 
 
       // New Money
