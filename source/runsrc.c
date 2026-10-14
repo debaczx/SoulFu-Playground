@@ -27,6 +27,7 @@ char emacs_buffer[EMACS_SIZE];
 #define EMACS_HORIZ_SIZE 74
 char emacs_horiz[EMACS_HORIZ_SIZE] = "//-----------------------------------------------------------------------";
 #define EMACS_BAD_SIZE 13
+#define UNIQUE_VEIL_OFFSET 696   // Character byte: 1 while Veil of Dusk is worn (UNIQUE.SRC), foes notice from half as far
 char emacs_bad[EMACS_BAD_SIZE] = "// !!!BAD!!!";
 int emacs_buffer_size = 0;
 int emacs_buffer_write = 0;
@@ -5952,8 +5953,9 @@ float_stack_head-=num_float_args;
                                                         // Our target is invisible, and we can't see 'em...  But we can still smell 'em at close range...
                                                         script_temp_f = 225.0f;  // 15 foot radius...
                                                     }
-                                                    // But is it within the specified radius?
-                                                    if(e < script_temp_f)
+                                                    // But is it within the specified radius?  Veil of Dusk (UNIQUE.SRC) halves how far
+                                                    // foes notice its wearer (not once they're already chasing, radius 200+)...
+                                                    if(e < script_temp_f && !(arg_address[UNIQUE_VEIL_OFFSET] && arg_address[78] != current_object_data[78] && script_temp_f < 40000.0f && (e*4.0f) >= script_temp_f))
                                                     {
                                                         // Shorten the distance depending on max hits of opponent
                                                         e /= (((unsigned short) arg_address[80]) + 1);

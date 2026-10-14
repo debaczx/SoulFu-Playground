@@ -72,6 +72,7 @@ int Event()
     SetSpawnOwner(FindIndex(self))
     SetSpawnTeam(self.team)
     child = PTHRAXE.Effect(self.x, self.y, self.z+(self.height*0.6), vx, vy, vz, type, damage, wound)
+    UNIQUE.Thrown(self, child)  // Boomerang...
     PlaySound("FILE:SWIPE.RAW", 180 + RollDice(1, 50), 255)
 
 //-----------------------------------------------------------------------

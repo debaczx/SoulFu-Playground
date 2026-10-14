@@ -40,6 +40,8 @@ int Event()
     if(target)
       DamageTarget(axe_type, axe_damage, axe_wound)
     PSPARK.Effect(self.lastx, self.lasty, self.lastz, 4, 3)
+    if(UNIQUE.ComeBack(self))
+      return TRUE  // Boomerang: flies back...
     GoPoof(POOF_SELF)
   if(self.event == EVENT_HIT_FLOOR || self.event == EVENT_HIT_WALL)
     PlaySound("FILE:-BOW00.RAW", 300, 200)

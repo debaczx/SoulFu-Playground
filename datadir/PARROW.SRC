@@ -140,6 +140,8 @@ int Event()
       target.defwoun = defwoun  // Undo funny vs. undead thing
       if(element)
         VariantHit(element, target)
+      if(UNIQUE.Pierce(target))
+        return TRUE  // Siegebreaker: flies on through...
       if((target.flags & CHAR_NO_STUCK_PARTS) || critical)
         // Don't stick into character, but still do damage...
         PSPARK.Effect(self.lastx, self.lasty, self.lastz, 10, 0)

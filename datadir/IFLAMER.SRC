@@ -90,7 +90,7 @@ int FrameEvent()
       if(!(self.frame & 1))
         // Just in case we have high dexterity
         self.frame--
-      self.charge++
+      self.charge = self.charge + 1 + UNIQUE.ExtraHeat()  // Dragon's Breath heats faster...
       if((SystemGet(SYS_ITEMEXT, 0, 0) & 255) != XITEM_LIGHTNING_CANNON)
         self.charge++  // Lightning Cannon heats at half speed, to give time to aim the charge...
     if(self.charge & 128)
@@ -205,8 +205,10 @@ Refresh()
         if(ext == XITEM_SANCTIFIER)
           // Holy light...  Little damage, but wounds, and undead can't resist it...
           PCONE.Effect(x, y, z, self.frontx, self.fronty, 0.05, DAMAGE_BASH, RollDice(1, 2)-1, 1, SPECIAL_FLAG_CHOP_THROUGH | SPECIAL_FLAG_INVERT_DEFWOUN, ((self.charge>>1)&7) + 195, HOLY_SMOKE_COLOR, "FILE:SPARK4.RGB")
-        if(ext == 0)
-          PCONE.Effect(x, y, z, self.frontx, self.fronty, 0.05, DAMAGE_FIRE, RollDice(1, 4), 0, SPECIAL_FLAG_CHOP_THROUGH, ((self.charge>>1)&7) + 195, SMOKE_COLOR, "FILE:FIRE1.RGB")
+        if(ext == 0 || ext == XITEM_UNIQUE)  // Plain flames (Dragon's Breath reaches twice as far, and its flames spread)...
+          size = UNIQUE.FlameReach()
+          child = PCONE.Effect(x, y, z, self.frontx*size, self.fronty*size, 0.05, DAMAGE_FIRE, RollDice(1, 4), 0, SPECIAL_FLAG_CHOP_THROUGH, ((self.charge>>1)&7) + 195, SMOKE_COLOR, "FILE:FIRE1.RGB")
+          UNIQUE.Flame(child)
     else
       // Flamer doesn't have button held...
       if(self.charge > 0)

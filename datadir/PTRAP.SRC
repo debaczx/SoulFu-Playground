@@ -146,6 +146,8 @@ int Refresh()
               if(SystemGet(SYS_CHARACTERSCRIPTFILE, 0, i) == "FILE:CCHEST.RUN")
                 if(target.daction == ACTION_DOUBLE)
                   found = TRUE
+          if(UNIQUE.Pathfinder(target))
+            found = FALSE  // Pathfinder...
           if(found)
             x = self.x - target.x
             y = self.y - target.y

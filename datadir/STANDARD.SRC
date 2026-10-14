@@ -1355,7 +1355,7 @@ WeaponAttackStart(int reload_time, int weapon_attack)
 //-----------------------------------------------------------------------
 int GiveExperience()
   int self, killer_amount, team_amount, owner, mana_restore
-  int target
+  int target, bonus
 
   // Experience amount should be calculated on spawn...
   // Character who had last hit gets half that amount...
@@ -1369,6 +1369,9 @@ int GiveExperience()
     killer_amount = self.expgive - team_amount
     ExperienceFunction(self.target, EXPERIENCE_GIVE, killer_amount, FALSE)
     ExperienceFunction(FindIndex(self), EXPERIENCE_GIVE, team_amount, TRUE)
+    bonus = UNIQUE.BonusExp(target, self.expgive)  // Sash of the Novice...
+    if(bonus > 0)
+      ExperienceFunction(self.target, EXPERIENCE_GIVE, bonus, FALSE)
 
 
     // Give us Courage for defeating a monster...

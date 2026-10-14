@@ -28,6 +28,7 @@ int AmmoEffect(int do_damage_to_target)
   int self, child, damage, wound, target, owner
 
   self = FindSelf()
+  UNIQUE.Boom(self)  // Old Thunder...
   if(do_damage_to_target)
     damage = RollDice(1, 3)+1
     wound = RollDice(1, 3)
@@ -142,6 +143,8 @@ int Refresh()
       GoPoof(POOF_SELF)
   else
     // Release the shot
+    if(UNIQUE.Dud(self))
+      return 0  // Old Thunder fizzled...
     self.flags = PART_WALL_COLLISION_ON | PART_CHAR_COLLISION_ON | PART_FAST_ON // Removes PART_STUCK_ON flag...
     x = self.x
     y = self.y

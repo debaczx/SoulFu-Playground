@@ -98,6 +98,7 @@ int FrameEvent()
     child = PGONNE.FrameEvent(vx, vy, vz)
     if(child && element)
       child.xhand = XHAND_ELEMENT_BASE + WEAPON_VARIANT_UNHOLY
+    UNIQUE.Thunder(child)  // Old Thunder may fizzle or blow up...
     return TRUE
   SpecialShot(self, element, vx, vy, vz)
   return TRUE

@@ -112,7 +112,7 @@ int Event()
   if(self.action == ACTION_WALK || self.action == ACTION_STAND || self.action == ACTION_JUMP || self.action == ACTION_DOUBLE)
     if(grip == MODEL_RIGHT_FILE)
       if(self.rrtimer == 0)
-        self.rrtimer = reload_time
+        self.rrtimer = UNIQUE.Reload(self, reload_time)  // Siegebreaker reloads slower...
         self.action = ACTION_GONNE_RIGHT
         self.daction = ACTION_STAND
         ButtonHandled()

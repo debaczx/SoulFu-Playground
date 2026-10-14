@@ -39,7 +39,10 @@
 #define UNIQUE_STILL_OFFSET    691   // Seconds the character has stood still (Phalanx, Sniper's Patience)
 #define UNIQUE_SPOT_OFFSET     692   // Where it stood at the last tick (low bytes of x*2 and y*2)
 #define UNIQUE_SHOTS_OFFSET    694   // Shots counted (Stormstring)
-// 695 to 703 are free (UNIQUE_SIZE is 32, see object.c)...
+#define UNIQUE_PICKED_OFFSET   695   // On a chest: Thief's Cowl already tried to pick it
+#define UNIQUE_VEIL_OFFSET     696   // 1 while Veil of Dusk is worn (runsrc.c AcquireTarget reads it)
+#define UNIQUE_VANISH_OFFSET   697   // Whisper: seconds of invisibility left after a kill
+// 698 to 703 are free (UNIQUE_SIZE is 32, see object.c)...
 // Unique numbers (UNIQUE.SRC), one per base item and kind...  Never renumber (saves count drops by number)...
 #define UQ_NIGHTS_EDGE         1     // Obsidian Blade
 #define UQ_MEDUSAS_MIRROR      2     // Mirror Shield
@@ -103,7 +106,25 @@
 #define UQ_WARLORDS_CREST      60    // Bastion Helm kind
 #define UQ_SIEGEWALKER         61    // Bastion Greaves kind
 #define UQ_GATEKEEPER          62    // Chain Helm
-#define UQ_LAST                62
+#define UQ_WHISPER             63    // Stiletto kind
+#define UQ_EMBERWAKE           64    // Flamberge kind
+#define UQ_DELVERS_LUCK        65    // Pick Axe
+#define UQ_BOOMERANG           66    // Throwing Axe kind
+#define UQ_CRESCENT_MOON       67    // Glaive kind
+#define UQ_SIEGEBREAKER        68    // Heavy Crossbow kind
+#define UQ_OLD_THUNDER         69    // Gonne
+#define UQ_GRAPESHOT_GRAN      70    // Blunderbuss kind
+#define UQ_DRAGONS_BREATH      71    // Flamer
+#define UQ_THIEFS_COWL         72    // Leather Hood
+#define UQ_LEAPERS_GREAVES     73    // Light Leggings
+#define UQ_ROOTSTRIDER         74    // Heavy Leggings
+#define UQ_SASH_OF_THE_NOVICE  75    // Apprentice Sash kind
+#define UQ_RUSTGUARD           76    // Iron Brigandine kind
+#define UQ_EARTHFALL           77    // Juggernaut Greaves kind
+#define UQ_VEIL_OF_DUSK        78    // Shadow Hood kind
+#define UQ_PATHFINDER          79    // Scout Jerkin kind
+#define UQ_HORNED_DREAD        80    // Juggernaut Helm kind
+#define UQ_LAST                80
 #define TICK_FRAMES      60    // Frames per unique timer tick (one second)
 #define MINION_FOREVER   255   // UNIQUE_MLEFT_OFFSET value: stays while the item is worn
 #define RAT_SECONDS      20    // Rat King's Tooth: how long a rat stays
@@ -147,6 +168,26 @@
 #define KNIFE_DAMAGE     3     // Mantle of Knives: blade damage
 #define CREST_RANGE      8.0   // Warlord's Crest: reach of the damage bonus
 #define PHALANX_DEF      3     // Phalanx: edge and bash defense while still
+#define VANISH_SECONDS   2     // Whisper: seconds unseen after a kill
+#define ARROW_PIERCE     4     // Arrow flag (particle number): flies on through foes (Siegebreaker)
+#define XHAND_SPREAD     120   // Particle xhand: Dragon's Breath flame, sets foes near the target alight
+#define XHAND_GRAPE      121   // Particle xhand: Grapeshot Gran pellet, kills drop a coin
+#define XHAND_DUD        122   // Particle xhand: Old Thunder bullet that fizzles
+#define XHAND_THUNDER    123   // Particle xhand: Old Thunder bullet that blows up
+#define SPREAD_RANGE     4.0   // Dragon's Breath: reach of the fire spread
+#define GRAPE_PELLETS    8     // Grapeshot Gran: pellets per shot
+#define THUNDER_DUD      10    // Old Thunder: percent of shots that fizzle
+#define THUNDER_BIG      20    // Old Thunder: percent of shots that blow up
+#define SCARE_RANGE      8.0   // Old Thunder: reach of the scare
+#define SCARE_FRAMES     120   // Frames a scared foe runs for
+#define DREAD_RANGE      6.0   // Horned Dread: reach of the fear
+#define DREAD_CHANCE     15    // Horned Dread: percent chance a second for each weak foe to flee
+#define PICK_CHANCE      25    // Thief's Cowl: percent chance to open a locked chest for free
+#define LEAP_POWER       1.41  // Leaper's Greaves: jump speed multiplier (twice the height)
+#define STOMP_DAMAGE     4     // Leaper's Greaves: damage landing on a foe
+#define FALL_RANGE       5.0   // Earthfall: reach of the landing shockwave
+#define FALL_DAMAGE      3     // Earthfall: damage of the landing shockwave
+#define LUCK_FRAMES      600   // Delver's Luck: Luck from each smashed crate (10 seconds)
 
 
 //-----------------------------------------------------------------------
@@ -186,10 +227,7 @@ int Id(int item, int raw_ext)
 // Unique number for a base item and kind, whether or not it is one...
 // Enchant variants are ignored (item & 248 for weapons, & 252 for armour)...
 int IdFor(int item, int kind)
-  if(item >= ITEM_DAGGER)
-    item = item & 248
-  else
-    item = item & 252
+  item = Plain(item)
   if(kind == 0)
     if(item == ITEM_OBSIDIAN_BLADE)
       return UQ_NIGHTS_EDGE
@@ -243,6 +281,18 @@ int IdFor(int item, int kind)
       return UQ_MUDWALKER
     if(item == ITEM_HELM_2)
       return UQ_GATEKEEPER
+    if(item == ITEM_PICK_AXE)
+      return UQ_DELVERS_LUCK
+    if(item == ITEM_GONNE)
+      return UQ_OLD_THUNDER
+    if(item == ITEM_FLAMER)
+      return UQ_DRAGONS_BREATH
+    if(item == ITEM_HELM_1)
+      return UQ_THIEFS_COWL
+    if(item == ITEM_LEGS_3)
+      return UQ_LEAPERS_GREAVES
+    if(item == ITEM_LEGS_4)
+      return UQ_ROOTSTRIDER
     return 0
   if(kind == KIND_SPIKED_SHIELD)
     return UQ_THORNBACK
@@ -316,7 +366,41 @@ int IdFor(int item, int kind)
     return UQ_WARLORDS_CREST
   if(kind == KIND_BASTION_GREAVES)
     return UQ_SIEGEWALKER
+  if(kind == KIND_STILETTO)
+    return UQ_WHISPER
+  if(kind == KIND_FLAMBERGE)
+    return UQ_EMBERWAKE
+  if(kind == KIND_THROWING_AXE)
+    return UQ_BOOMERANG
+  if(kind == KIND_GLAIVE)
+    return UQ_CRESCENT_MOON
+  if(kind == KIND_HEAVY_CROSSBOW)
+    return UQ_SIEGEBREAKER
+  if(kind == KIND_BLUNDERBUSS)
+    return UQ_GRAPESHOT_GRAN
+  if(kind == KIND_APPRENTICE_SASH)
+    return UQ_SASH_OF_THE_NOVICE
+  if(kind == KIND_IRON_BRIGANDINE)
+    return UQ_RUSTGUARD
+  if(kind == KIND_JUGGERNAUT_GREAVES)
+    return UQ_EARTHFALL
+  if(kind == KIND_SHADOW_HOOD)
+    return UQ_VEIL_OF_DUSK
+  if(kind == KIND_SCOUT_JERKIN)
+    return UQ_PATHFINDER
+  if(kind == KIND_JUGGERNAUT_HELM)
+    return UQ_HORNED_DREAD
   return 0
+
+//-----------------------------------------------------------------------
+// The plain item a unique sits on: enchant variants off (& 248 for weapons,
+// & 252 for armour, shields and bows); items below those have no variants...
+int Plain(int item)
+  if(item >= ITEM_DAGGER)
+    return (item & 248)
+  if(item >= ITEM_SHIELD)
+    return (item & 252)
+  return item
 
 //-----------------------------------------------------------------------
 // Highest unique number in use (the test shop runs through 1 to this)...
@@ -451,6 +535,42 @@ int KeyOf(int uq)
     return MakeKey(ITEM_LEGS_1, KIND_BASTION_GREAVES)
   if(uq == UQ_GATEKEEPER)
     return MakeKey(ITEM_HELM_2, 0)
+  if(uq == UQ_WHISPER)
+    return MakeKey(ITEM_DAGGER, KIND_STILETTO)
+  if(uq == UQ_EMBERWAKE)
+    return MakeKey(ITEM_GREAT_SWORD, KIND_FLAMBERGE)
+  if(uq == UQ_DELVERS_LUCK)
+    return MakeKey(ITEM_PICK_AXE, 0)
+  if(uq == UQ_BOOMERANG)
+    return MakeKey(ITEM_HATCHET, KIND_THROWING_AXE)
+  if(uq == UQ_CRESCENT_MOON)
+    return MakeKey(ITEM_DAGGER, KIND_GLAIVE)
+  if(uq == UQ_SIEGEBREAKER)
+    return MakeKey(ITEM_BOW, KIND_HEAVY_CROSSBOW)
+  if(uq == UQ_OLD_THUNDER)
+    return MakeKey(ITEM_GONNE, 0)
+  if(uq == UQ_GRAPESHOT_GRAN)
+    return MakeKey(ITEM_GONNE, KIND_BLUNDERBUSS)
+  if(uq == UQ_DRAGONS_BREATH)
+    return MakeKey(ITEM_FLAMER, 0)
+  if(uq == UQ_THIEFS_COWL)
+    return MakeKey(ITEM_HELM_1, 0)
+  if(uq == UQ_LEAPERS_GREAVES)
+    return MakeKey(ITEM_LEGS_3, 0)
+  if(uq == UQ_ROOTSTRIDER)
+    return MakeKey(ITEM_LEGS_4, 0)
+  if(uq == UQ_SASH_OF_THE_NOVICE)
+    return MakeKey(ITEM_LEGS_1, KIND_APPRENTICE_SASH)
+  if(uq == UQ_RUSTGUARD)
+    return MakeKey(ITEM_BODY_1, KIND_IRON_BRIGANDINE)
+  if(uq == UQ_EARTHFALL)
+    return MakeKey(ITEM_LEGS_1, KIND_JUGGERNAUT_GREAVES)
+  if(uq == UQ_VEIL_OF_DUSK)
+    return MakeKey(ITEM_HELM_1, KIND_SHADOW_HOOD)
+  if(uq == UQ_PATHFINDER)
+    return MakeKey(ITEM_BODY_1, KIND_SCOUT_JERKIN)
+  if(uq == UQ_HORNED_DREAD)
+    return MakeKey(ITEM_HELM_1, KIND_JUGGERNAUT_HELM)
   return 0
 
 //-----------------------------------------------------------------------
@@ -614,6 +734,42 @@ int Name(int uq)
     return "SIEGEWALKER"
   if(uq == UQ_GATEKEEPER)
     return "GATEKEEPER"
+  if(uq == UQ_WHISPER)
+    return "WHISPER"
+  if(uq == UQ_EMBERWAKE)
+    return "EMBERWAKE"
+  if(uq == UQ_DELVERS_LUCK)
+    return "DELVER'S LUCK"
+  if(uq == UQ_BOOMERANG)
+    return "BOOMERANG"
+  if(uq == UQ_CRESCENT_MOON)
+    return "CRESCENT MOON"
+  if(uq == UQ_SIEGEBREAKER)
+    return "SIEGEBREAKER"
+  if(uq == UQ_OLD_THUNDER)
+    return "OLD THUNDER"
+  if(uq == UQ_GRAPESHOT_GRAN)
+    return "GRAPESHOT GRAN"
+  if(uq == UQ_DRAGONS_BREATH)
+    return "DRAGON'S BREATH"
+  if(uq == UQ_THIEFS_COWL)
+    return "THIEF'S COWL"
+  if(uq == UQ_LEAPERS_GREAVES)
+    return "LEAPER'S GREAVES"
+  if(uq == UQ_ROOTSTRIDER)
+    return "ROOTSTRIDER"
+  if(uq == UQ_SASH_OF_THE_NOVICE)
+    return "SASH OF THE NOVICE"
+  if(uq == UQ_RUSTGUARD)
+    return "RUSTGUARD"
+  if(uq == UQ_EARTHFALL)
+    return "EARTHFALL"
+  if(uq == UQ_VEIL_OF_DUSK)
+    return "VEIL OF DUSK"
+  if(uq == UQ_PATHFINDER)
+    return "PATHFINDER"
+  if(uq == UQ_HORNED_DREAD)
+    return "HORNED DREAD"
   return NULL
 
 //-----------------------------------------------------------------------
@@ -743,6 +899,42 @@ int Info(int uq)
     return "WALKING INTO FOES KNOCKS THEM DOWN"
   if(uq == UQ_GATEKEEPER)
     return "CAN'T BE KNOCKED DOWN"
+  if(uq == UQ_WHISPER)
+    return "BACKSTABS X3, KILLS HIDE YOU 2S"
+  if(uq == UQ_EMBERWAKE)
+    return "SWINGS LEAVE FIRE, IT CAN BURN YOU"
+  if(uq == UQ_DELVERS_LUCK)
+    return "CRATES DROP MORE, SMASHING GIVES LUCK"
+  if(uq == UQ_BOOMERANG)
+    return "THROWN AXES FLY BACK, HITTING AGAIN"
+  if(uq == UQ_CRESCENT_MOON)
+    return "TWO-HANDED SWINGS SEND AN ICE WAVE"
+  if(uq == UQ_SIEGEBREAKER)
+    return "BOLTS PIERCE FOES, 25% SLOWER RELOAD"
+  if(uq == UQ_OLD_THUNDER)
+    return "SHOTS MAY FIZZLE OR BLOW UP"
+  if(uq == UQ_GRAPESHOT_GRAN)
+    return "8 PELLETS, KILLS DROP COINS, KICKS"
+  if(uq == UQ_DRAGONS_BREATH)
+    return "FLAMES X2 REACH AND SPREAD, HEATS X2"
+  if(uq == UQ_THIEFS_COWL)
+    return "MAY OPEN LOCKED CHESTS FOR FREE"
+  if(uq == UQ_LEAPERS_GREAVES)
+    return "JUMP TWICE AS HIGH, LANDING HURTS FOES"
+  if(uq == UQ_ROOTSTRIDER)
+    return "NO KNOCKDOWN, +2 BASH DEF, CAN'T JUMP"
+  if(uq == UQ_SASH_OF_THE_NOVICE)
+    return "+50% EXPERIENCE, -2 ALL DEFENSE"
+  if(uq == UQ_RUSTGUARD)
+    return "ACID IMMUNE, ARMOUR DOESN'T SLOW"
+  if(uq == UQ_EARTHFALL)
+    return "LANDING FROM A JUMP MAKES A SHOCKWAVE"
+  if(uq == UQ_VEIL_OF_DUSK)
+    return "FOES NOTICE YOU FROM HALF AS FAR"
+  if(uq == UQ_PATHFINDER)
+    return "TRAPS DON'T GO OFF FOR YOU"
+  if(uq == UQ_HORNED_DREAD)
+    return "WEAK FOES NEARBY MAY FLEE, -2 DEX"
   return NULL
 
 //-----------------------------------------------------------------------
@@ -872,6 +1064,42 @@ int Icon(int uq)
     return "FILE:=IUQ61.RGB"
   if(uq == UQ_GATEKEEPER)
     return "FILE:=IUQ62.RGB"
+  if(uq == UQ_WHISPER)
+    return "FILE:=IUQ63.RGB"
+  if(uq == UQ_EMBERWAKE)
+    return "FILE:=IUQ64.RGB"
+  if(uq == UQ_DELVERS_LUCK)
+    return "FILE:=IUQ65.RGB"
+  if(uq == UQ_BOOMERANG)
+    return "FILE:=IUQ66.RGB"
+  if(uq == UQ_CRESCENT_MOON)
+    return "FILE:=IUQ67.RGB"
+  if(uq == UQ_SIEGEBREAKER)
+    return "FILE:=IUQ68.RGB"
+  if(uq == UQ_OLD_THUNDER)
+    return "FILE:=IUQ69.RGB"
+  if(uq == UQ_GRAPESHOT_GRAN)
+    return "FILE:=IUQ70.RGB"
+  if(uq == UQ_DRAGONS_BREATH)
+    return "FILE:=IUQ71.RGB"
+  if(uq == UQ_THIEFS_COWL)
+    return "FILE:=IUQ72.RGB"
+  if(uq == UQ_LEAPERS_GREAVES)
+    return "FILE:=IUQ73.RGB"
+  if(uq == UQ_ROOTSTRIDER)
+    return "FILE:=IUQ74.RGB"
+  if(uq == UQ_SASH_OF_THE_NOVICE)
+    return "FILE:=IUQ75.RGB"
+  if(uq == UQ_RUSTGUARD)
+    return "FILE:=IUQ76.RGB"
+  if(uq == UQ_EARTHFALL)
+    return "FILE:=IUQ77.RGB"
+  if(uq == UQ_VEIL_OF_DUSK)
+    return "FILE:=IUQ78.RGB"
+  if(uq == UQ_PATHFINDER)
+    return "FILE:=IUQ79.RGB"
+  if(uq == UQ_HORNED_DREAD)
+    return "FILE:=IUQ80.RGB"
   return NULL
 
 //-----------------------------------------------------------------------
@@ -910,10 +1138,7 @@ int MaybeUnique(int key)
   if(RollDice(1, 100) > UNIQUE_CHANCE)
     return key
   // Uniques are always the plain item...
-  if(item >= ITEM_DAGGER)
-    item = item & 248
-  else
-    item = item & 252
+  item = Plain(item)
   return (item | (XITEM.KindExt(XITEM.KindOf(key >> 8), XITEM_UNIQUE) << 8))
 
 //-----------------------------------------------------------------------
@@ -1022,6 +1247,17 @@ int Defense(int self)
     SystemSet(SYS_DEFENSERATING, 0, DAMAGE_ACID, 1)
   if(Worn(self, UQ_MANTLE_OF_KNIVES))
     SystemSet(SYS_DEFENSERATING, 0, DAMAGE_EDGE, -2)
+  if(Worn(self, UQ_SASH_OF_THE_NOVICE))
+    SystemSet(SYS_DEFENSERATING, 0, DAMAGE_EDGE, -2)
+    SystemSet(SYS_DEFENSERATING, 0, DAMAGE_BASH, -2)
+    SystemSet(SYS_DEFENSERATING, 0, DAMAGE_ACID, -2)
+    SystemSet(SYS_DEFENSERATING, 0, DAMAGE_FIRE, -2)
+    SystemSet(SYS_DEFENSERATING, 0, DAMAGE_ICE, -2)
+    SystemSet(SYS_DEFENSERATING, 0, DAMAGE_VOLT, -2)
+  if(Worn(self, UQ_ROOTSTRIDER))
+    SystemSet(SYS_DEFENSERATING, 0, DAMAGE_BASH, 2)
+  if(Worn(self, UQ_RUSTGUARD))
+    SystemSet(SYS_DEFENSERATING, 0, DAMAGE_ACID, 30)  // Enough that acid never gets through...
   if(Worn(self, UQ_PHALANX))
     if(FileReadByte(self, UNIQUE_STILL_OFFSET))
       SystemSet(SYS_DEFENSERATING, 0, DAMAGE_EDGE, PHALANX_DEF)
@@ -1031,7 +1267,9 @@ int Defense(int self)
 //-----------------------------------------------------------------------
 // Gatekeeper: can't be knocked down (STANDARD.DamageAction)...
 int Unshaken(int who)
-  return Worn(who, UQ_GATEKEEPER)
+  if(Worn(who, UQ_GATEKEEPER) || Worn(who, UQ_ROOTSTRIDER))
+    return TRUE
+  return FALSE
 
 //-----------------------------------------------------------------------
 // Mudwalker: can't be poisoned (STANDARD.PoisonCharacter)...
@@ -1039,9 +1277,89 @@ int NoPoison(int who)
   return Worn(who, UQ_MUDWALKER)
 
 //-----------------------------------------------------------------------
-// Silent Step: big backstabs do double (PATTACK.SRC)...
-int Backstab(int who)
-  return Worn(who, UQ_SILENT_STEP)
+// How many times a big backstab hits (PATTACK.SRC): Silent Step doubles it,
+// Whisper triples it (both: x6)...  xhand is the hand that swung...
+int Backstab(int who, int xhand)
+  int times
+  times = 1
+  if(Worn(who, UQ_SILENT_STEP))
+    times = 2
+  if(xhand == 1 || xhand == 2)
+    if(HandId(who, xhand) == UQ_WHISPER)
+      times = times * 3
+  return times
+
+//-----------------------------------------------------------------------
+// Pathfinder: traps don't go off for the wearer (PTRAP.SRC)...
+int Pathfinder(int who)
+  return Worn(who, UQ_PATHFINDER)
+
+//-----------------------------------------------------------------------
+// Rootstrider: the wearer can't jump (IJUMP.SRC)...
+int Rooted(int who)
+  return Worn(who, UQ_ROOTSTRIDER)
+
+//-----------------------------------------------------------------------
+// Jump speed (IJUMP.SRC): Leaper's Greaves jump twice as high...
+float JumpPower(int who, float vz)
+  if(Worn(who, UQ_LEAPERS_GREAVES))
+    return (vz * LEAP_POWER)
+  return vz
+
+//-----------------------------------------------------------------------
+// Experience a killer gets on top of the usual (STANDARD.GiveExperience)...
+int BonusExp(int killer, int amount)
+  if(!killer)
+    return 0
+  if(Worn(killer, UQ_SASH_OF_THE_NOVICE))
+    return (amount >> 1)
+  return 0
+
+//-----------------------------------------------------------------------
+// Thief's Cowl: sometimes a locked chest opens without a key...  One try per chest...
+int Pick(int who, int chest)
+  if(!Worn(who, UQ_THIEFS_COWL))
+    return FALSE
+  if(FileReadByte(chest, UNIQUE_PICKED_OFFSET))
+    return FALSE
+  FileWriteByte(chest, UNIQUE_PICKED_OFFSET, 1)
+  if(RollDice(1, 100) > PICK_CHANCE)
+    return FALSE
+  PFLASH.Effect(chest, "FILE:LITESPRK.RGB", UNIQUE_GOLD, TRUE, 1.0)
+  PlaySound("FILE:-CASH.RAW", 300, 200)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Delver's Luck: a crate or barrel was smashed by attacker (index)...  Call from
+// the crate's own script...  Drops a random extra and gives a little Luck...
+int Smashed(int attacker)
+  int self, who, roll
+  self = FindSelf()
+  who = FindByIndex(attacker)
+  if(!who)
+    return FALSE
+  if(!Worn(who, UQ_DELVERS_LUCK))
+    return FALSE
+  if(who.team == TEAM_GOOD)
+    if(SystemGet(SYS_LUCK, 0, 0) < LUCK_FRAMES)
+      SystemSet(SYS_LUCK, 0, 0, LUCK_FRAMES)
+  roll = RollDice(1, 4)
+  if(roll == 1)
+    PCOIN.Effect(RollDice(2, 5), self.x, self.y, self.z)
+  if(roll == 2)
+    PKEY.Effect(1, self.x, self.y, self.z)
+  if(roll == 3)
+    PHEART.Effect(RED_HEART, self.x, self.y, self.z+2.0, 0.0, 0.0, 0.0)
+  if(roll < 4)
+    PFLASH.Effect(self, "FILE:LITESPRK.RGB", UNIQUE_GOLD, TRUE, 1.0)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Siegebreaker reloads 25% slower (IHXBOW.SRC)...
+int Reload(int self, int frames)
+  if(IdIn(self, 243) == UQ_SIEGEBREAKER)
+    return ((frames * 5) / 4)
+  return frames
 
 //-----------------------------------------------------------------------
 // Ironbrow: can't be stunned, knocked down or petrified (STANDARD.SRC)...
@@ -1319,7 +1637,310 @@ int Hit(int owner, int target, int xhand, int dealt, int killed)
     if(RollDice(1, 100) <= REFILL_CHANCE)
       Refill(owner)
     return TRUE
+  if(uq == UQ_WHISPER)
+    if(killed)
+      Vanish(owner)
+    return TRUE
   return FALSE
+
+//-----------------------------------------------------------------------
+// A free moving attack (a flame, a pellet, a wave) from owner hit a foe...
+// xhand marks what fired it, start_hits is what the foe had before (PATTACK.SRC)...
+int FreeHit(int owner, int target, int xhand, int start_hits)
+  int i, who
+  float dx, dy
+  if(!owner || !target)
+    return FALSE
+  if(target.team == owner.team)
+    return FALSE
+  if(xhand == XHAND_GRAPE)  // Grapeshot Gran: kills shake out a coin...
+    if(start_hits > 0 && target.hits == 0)
+      PCOIN.Effect(1, target.x, target.y, target.z + (target.height*0.5))
+      PlaySound("FILE:-CASH.RAW", 256, 160)
+    return TRUE
+  if(xhand == XHAND_SPREAD)  // Dragon's Breath: the fire jumps to foes next to the one it hit...
+    i = 0
+    while(i < MAX_CHARACTER)
+      who = FindByIndex(i)
+      if(DWARFFX.Foe(owner, who) && who != target)
+        if(who.combo < 2)
+          dx = who.x - target.x
+          dy = who.y - target.y
+          if(dx*dx + dy*dy < SPREAD_RANGE*SPREAD_RANGE)
+            PBURNING.Effect(who, 4, FindIndex(owner))
+      i++
+    return TRUE
+  return FALSE
+
+//-----------------------------------------------------------------------
+// A melee swing just spawned its attack particle (PATTACK.FrameEvent)...  self is the
+// swinger, grip the hand's model slot...  Runs in the weapon's own callback...
+int Swing(int self, int grip)
+  int uq, other, child
+  float x, y, z
+  uq = CurrentId()
+  if(uq == UQ_EMBERWAKE)  // A short line of fire across the ground ahead (it burns the swinger too)...
+    x = self.x + self.frontx*(self.boxsize + 3.0)
+    y = self.y + self.fronty*(self.boxsize + 3.0)
+    PFWALL.Effect(x, y, self.z, 4.0, self.spin, 0, FindIndex(self), 20, 2, TRUE)
+    return TRUE
+  if(uq == UQ_CRESCENT_MOON)  // Only while held in both hands (the other hand empty)...
+    other = 243
+    if(grip == MODEL_RIGHT_FILE)
+      other = 242
+    if(FileReadByte(self, other) != ITEM_NONE)
+      return FALSE
+    x = self.x + self.frontx*(self.boxsize + 1.0)
+    y = self.y + self.fronty*(self.boxsize + 1.0)
+    z = self.z + (self.height*0.4)
+    child = PCONE.Effect(x, y, z, self.frontx*0.9, self.fronty*0.9, 0.0, DAMAGE_ICE, 2, 0, SPECIAL_FLAG_CHOP_THROUGH, 200, (4239600), "FILE:ICE1.RGB")
+    if(child)
+      child.xhand = XHAND_CHILL  // The wave chills what it hits...
+    PCONE.Effect(x, y, z, self.frontx*0.9, self.fronty*0.9, 0.0, DAMAGE_ICE, 0, 0, 0, 230, (4239600), "FILE:ICE1.RGB")
+    PCONE.Effect(x, y, z, self.frontx*0.9, self.fronty*0.9, 0.0, DAMAGE_ICE, 0, 0, 0, 255, (4239600), "FILE:ICE1.RGB")
+    return TRUE
+  return FALSE
+
+//-----------------------------------------------------------------------
+// Whisper: a kill hides the holder for a moment (unless they're already invisible)...
+int Vanish(int self)
+  if(FileReadByte(self, UNIQUE_VANISH_OFFSET) == 0)
+    if(self.eflags & ENCHANT_FLAG_INVISIBLE)
+      return FALSE  // Hidden some other way...
+    self.eflags = self.eflags | ENCHANT_FLAG_INVISIBLE
+    PINVIS.Effect(self, FALSE)
+  FileWriteByte(self, UNIQUE_VANISH_OFFSET, VANISH_SECONDS + 1)
+  StartTimer(self)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Whisper's hiding wears off (Tick)...
+int Unvanish(int self)
+  int left
+  left = FileReadByte(self, UNIQUE_VANISH_OFFSET)
+  if(left == 0)
+    return FALSE
+  left--
+  FileWriteByte(self, UNIQUE_VANISH_OFFSET, left)
+  if(left > 0)
+    return FALSE
+  if(self.eflags & ENCHANT_FLAG_INVISIBLE)
+    self.eflags = self.eflags & (255 - ENCHANT_FLAG_INVISIBLE)
+    PINVIS.FadeInEffect(self)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Makes a foe run away from where for a moment...
+int Scare(int who, float x, float y)
+  float dx, dy, sl
+  dx = who.x - x
+  dy = who.y - y
+  sl = sqrt(dx*dx + dy*dy)
+  if(sl < 0.1)
+    dx = who.frontx
+    dy = who.fronty
+    sl = 1.0
+  who.gotox = who.x + (dx / sl)*15.0
+  who.gotoy = who.y + (dy / sl)*15.0
+  who.aitimer = SCARE_FRAMES
+  who.target = 65535
+  PEXCLAIM.Effect(who.x, who.y, who.z + who.height + 1.0, who.boxsize, FALSE)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// A foe weak enough to scare (fewer than half the scarer's max hits, no bosses)...
+int Weak(int self, int who)
+  if(!DWARFFX.Foe(self, who))
+    return FALSE
+  if(who.flags & CHAR_NO_BACKSTAB)
+    return FALSE
+  if(who.hitsmax * 2 > self.hitsmax)
+    return FALSE
+  if(BossRoom())
+    return FALSE
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Horned Dread: weak foes close by sometimes flee...
+int Dread(int self)
+  int i, who
+  float dx, dy
+  i = 0
+  while(i < MAX_CHARACTER)
+    who = FindByIndex(i)
+    if(Weak(self, who))
+      dx = who.x - self.x
+      dy = who.y - self.y
+      if(dx*dx + dy*dy < DREAD_RANGE*DREAD_RANGE)
+        if(RollDice(1, 100) <= DREAD_CHANCE)
+          Scare(who, self.x, self.y)
+    i++
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Leaper's Greaves and Earthfall: the wearer just landed from a jump (CPLAYER.Event)...
+int Landed(int self)
+  int i, who, any
+  float dx, dy, reach
+  if(Worn(self, UQ_LEAPERS_GREAVES))  // Landing on a foe hurts it...
+    i = 0
+    while(i < MAX_CHARACTER)
+      who = FindByIndex(i)
+      if(DWARFFX.Foe(self, who))
+        dx = who.x - self.x
+        dy = who.y - self.y
+        reach = self.boxsize + who.boxsize + 0.5
+        if(dx*dx + dy*dy < reach*reach)
+          Hurt(who, DAMAGE_BASH, STOMP_DAMAGE, self)
+          PSPARK.Effect(who.x, who.y, who.z + who.height, 8, 1)
+          PlaySound("FILE:BLOCK.RAW", 120, 255)
+      i++
+  if(Worn(self, UQ_EARTHFALL))  // A shockwave hurts and knocks down foes around...
+    PlaySound("FILE:BAD5.RAW", 120, 255)
+    PSPARK.Effect(self.x, self.y, self.z, 16, 1)
+    SystemSet(SYS_SCREENSHAKE, 0, 2, 15)
+    any = FALSE
+    i = 0
+    while(i < MAX_CHARACTER)
+      who = FindByIndex(i)
+      if(DWARFFX.Foe(self, who))
+        dx = who.x - self.x
+        dy = who.y - self.y
+        if(dx*dx + dy*dy < FALL_RANGE*FALL_RANGE)
+          Hurt(who, DAMAGE_BASH, FALL_DAMAGE, self)
+          DWARFFX.KnockDown(who, self.x, self.y)
+          any = TRUE
+      i++
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Boomerang: a thrown axe was just loosed (ITHRAXE.SRC)...  Marks it to come back...
+int Thrown(int self, int child)
+  if(child)
+    if(CurrentId() == UQ_BOOMERANG)
+      child.number = 1
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Boomerang: a thrown axe hit a foe (PTHRAXE.SRC, self is the axe)...  The first hit
+// sends it back toward the thrower, so it can hit again on the way...  TRUE if it flies on...
+int ComeBack(int self)
+  int owner
+  float dx, dy, dz, sl, speed
+  if(self.number != 1)
+    return FALSE
+  owner = FindOwner()
+  if(!owner)
+    return FALSE
+  self.number = 2
+  self.x = self.lastx
+  self.y = self.lasty
+  self.z = self.lastz
+  dx = owner.x - self.x
+  dy = owner.y - self.y
+  dz = (owner.z + (owner.height*0.6)) - self.z
+  sl = sqrt(dx*dx + dy*dy + dz*dz)
+  if(sl < 0.1)
+    return FALSE
+  speed = sqrt(self.vx*self.vx + self.vy*self.vy)
+  if(speed < 0.8)
+    speed = 0.8
+  self.vx = (dx / sl)*speed
+  self.vy = (dy / sl)*speed
+  self.vz = (dz / sl)*speed
+  self.flags = self.flags & (65535 - PART_GRAVITY_ON)
+  self.evtimer = 60
+  PlaySound("FILE:SWIPE.RAW", 260, 200)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Old Thunder: picks how a shot goes (IGONNE.FrameEvent, child is the bullet)...
+int Thunder(int child)
+  int roll
+  if(!child)
+    return FALSE
+  if(CurrentId() != UQ_OLD_THUNDER)
+    return FALSE
+  roll = RollDice(1, 100)
+  if(roll <= THUNDER_DUD)
+    child.xhand = XHAND_DUD
+  if(roll > 100 - THUNDER_BIG)
+    child.xhand = XHAND_THUNDER
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Old Thunder: a dud fizzles in the barrel (PGONNE.Refresh, self is the bullet)...
+// TRUE if the shot is spent...
+int Dud(int self)
+  if(self.xhand != XHAND_DUD)
+    return FALSE
+  ButtonSound()
+  PSMOKE.Effect(self.x, self.y, self.z + 1.0, 0.0, 0.0, 0.03, 0.8, 0.02, FALSE, (128), 255, 40)
+  GoPoof(POOF_SELF)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Old Thunder: a big shot blows up where it lands and scares weak foes away
+// (PGONNE.AmmoEffect, self is the bullet)...
+int Boom(int self)
+  int owner, i, who
+  float dx, dy
+  if(self.xhand != XHAND_THUNDER)
+    return FALSE
+  self.xhand = 0  // Once...
+  PEXPLODE.Effect(self.x, self.y, self.z, 0.0, 0.0, 2.3, DAMAGE_FIRE, 3 + RollDice(1, 3), 2, self.owner, self.team, "FILE:FIRE1.RGB", (128), 160)
+  owner = FindOwner()
+  if(!owner)
+    return TRUE
+  i = 0
+  while(i < MAX_CHARACTER)
+    who = FindByIndex(i)
+    if(Weak(owner, who))
+      dx = who.x - self.x
+      dy = who.y - self.y
+      if(dx*dx + dy*dy < SCARE_RANGE*SCARE_RANGE)
+        if(who.hits > 0)
+          Scare(who, self.x, self.y)
+    i++
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Grapeshot Gran: pellets per shot, and the kick back (IBLUNDER.FrameEvent)...
+int Pellets(int self, int normal)
+  if(CurrentId() != UQ_GRAPESHOT_GRAN)
+    return normal
+  self.vx = self.vx - (self.frontx*0.5)
+  self.vy = self.vy - (self.fronty*0.5)
+  return GRAPE_PELLETS
+
+//-----------------------------------------------------------------------
+// Grapeshot Gran: marks a pellet so its kills drop coins...
+int Pellet(int child)
+  if(child)
+    if(CurrentId() == UQ_GRAPESHOT_GRAN)
+      child.xhand = XHAND_GRAPE
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Dragon's Breath: how far the flames reach (1.0 normal, IFLAMER.Refresh)...
+float FlameReach()
+  if(CurrentId() == UQ_DRAGONS_BREATH)
+    return 2.0
+  return 1.0
+
+//-----------------------------------------------------------------------
+// Dragon's Breath: marks a flame so it spreads, and how much more it heats per shot...
+int Flame(int child)
+  if(child)
+    if(CurrentId() == UQ_DRAGONS_BREATH)
+      child.xhand = XHAND_SPREAD
+  return TRUE
+
+//-----------------------------------------------------------------------
+int ExtraHeat()
+  if(CurrentId() == UQ_DRAGONS_BREATH)
+    return 2
+  return 0
 
 //-----------------------------------------------------------------------
 // Tinker's Mallet: puts an arrow back in the first quiver that isn't full...
@@ -1378,6 +1999,8 @@ int Shot(int self, int child, int xhand)
   if(uq == UQ_HORNET_NEST)
     // Each bolt costs one more...
     UseArrow(self)
+  if(uq == UQ_SIEGEBREAKER)
+    child.number = ARROW_UNIQUE | ARROW_PIERCE
   return TRUE
 
 //-----------------------------------------------------------------------
@@ -1422,8 +2045,28 @@ int ArrowHit(int owner, int target, int damage)
     target.vy = target.vy + (self.vy * PUSH_SPEED)
   if(uq == UQ_HORNET_NEST)
     STANDARD.PoisonCharacter(FindIndex(target), FindIndex(owner), POISON_FRAMES)
-  self.number = 0  // Once per arrow...
+  self.number = self.number & ARROW_PIERCE  // Once per arrow (piercing keeps going)...
   return damage
+
+//-----------------------------------------------------------------------
+// Siegebreaker: a piercing bolt goes on through the foe it hit (PARROW.SRC, self is
+// the bolt)...  TRUE if it flies on (don't stick or break it)...
+int Pierce(int target)
+  int self
+  float sl, dx, dy
+  self = FindSelf()
+  if(!(self.number & ARROW_PIERCE) || !target)
+    return FALSE
+  // Hop past the foe so it isn't hit again...
+  sl = sqrt(self.vx*self.vx + self.vy*self.vy)
+  if(sl < 0.01)
+    return FALSE
+  dx = self.vx / sl
+  dy = self.vy / sl
+  self.x = target.x + dx*(target.boxsize + 1.5)
+  self.y = target.y + dy*(target.boxsize + 1.5)
+  PSPARK.Effect(target.x, target.y, self.z, 6, 0)
+  return TRUE
 
 //-----------------------------------------------------------------------
 // Mercy: heals the most hurt ally nearby (the holder too)...
@@ -1736,7 +2379,10 @@ int Sync(int self)
     speed = speed - 10
   if(Worn(self, UQ_PHALANX))
     speed = speed - 10
+  if(Worn(self, UQ_RUSTGUARD))
+    speed = speed + Unslowed(self)
   FileWriteByte(self, UNIQUE_SPEED_OFFSET, speed & 255)
+  FileWriteByte(self, UNIQUE_VEIL_OFFSET, Worn(self, UQ_VEIL_OF_DUSK))
   SyncStats(self)
   // Starwoven Sash: more max mana, fewer max hits...
   wear = Worn(self, UQ_STARWOVEN_SASH)
@@ -1775,6 +2421,19 @@ int Sync(int self)
   return TRUE
 
 //-----------------------------------------------------------------------
+// Rustguard: walk speed that makes up for heavy armour (6% a piece, charact.c)...
+int Unslowed(int self)
+  int slot, speed
+  speed = 0
+  slot = 246
+  while(slot <= 248)
+    if(FileReadByte(self, slot) != ITEM_NONE)
+      if(SystemGet(SYS_KINDREGISTRY, XITEM.Kind(self, slot), KIND_FIELD_FLAGS) & KIND_FLAG_SLOW)
+        speed = speed + 6
+    slot++
+  return speed
+
+//-----------------------------------------------------------------------
 // Stat changes from worn uniques...  What's applied is kept in the
 // character (UNIQUE_STATS_OFFSET, UNIQUE_INTS_OFFSET) so it comes off again...
 int SyncStats(int self)
@@ -1805,6 +2464,8 @@ int SyncStats(int self)
     d = d - 1
     n = n - 1
   if(Worn(self, UQ_WINDFORCE))
+    d = d - 2
+  if(Worn(self, UQ_HORNED_DREAD))
     d = d - 2
   if(Worn(self, UQ_SQUIRES_PROMISE))
     if(self.hits * 2 < self.hitsmax)
@@ -1869,6 +2530,8 @@ int NeedsTimer(int self)
     return TRUE
   if(Worn(self, UQ_WARDENS_WATCH) || Worn(self, UQ_MANTLE_OF_KNIVES) || Worn(self, UQ_SIEGEWALKER))
     return TRUE
+  if(FileReadByte(self, UNIQUE_VANISH_OFFSET) || Worn(self, UQ_HORNED_DREAD))
+    return TRUE
   return FALSE
 
 //-----------------------------------------------------------------------
@@ -1900,6 +2563,9 @@ int Tick(int self)
       Knife(self)
   if(Worn(self, UQ_SIEGEWALKER))
     Trample(self)
+  if(Worn(self, UQ_HORNED_DREAD))
+    Dread(self)
+  Unvanish(self)
   if(Worn(self, UQ_UNDYING_COLOSSUS))
     if(secs % REGEN_SECONDS == 0)
       if(self.hits < self.hitsmax - self.hitstap)

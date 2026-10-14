@@ -151,6 +151,9 @@ int UnlockEffect(int self, int target, int cost_key)
 
 
   subtype = self.eqcol01 >> 6
+  if(cost_key && target.team == TEAM_GOOD && target.aitimer == 0)
+    if(UNIQUE.Pick(target, self))
+      cost_key = FALSE  // Thief's Cowl...
   if((target.keys > 0 || cost_key == FALSE) && target.team == TEAM_GOOD && target.aitimer == 0)
     level = self.misc5
 

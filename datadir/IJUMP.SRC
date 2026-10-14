@@ -33,10 +33,13 @@ int Event()
               self.vz = z*0.06
       levitate = TRUE
   else
+    if(UNIQUE.Rooted(self))  // Rootstrider: feet stay on the ground...
+      ButtonHandled()
+      return 0
     if((self.action == ACTION_WALK || self.action == ACTION_STAND) && (self.flags & (CHAR_ON_GROUND | CHAR_ON_PLATFORM)))
       self.action = ACTION_JUMP_BEGIN
       self.daction = ACTION_JUMP
-      self.vz = 0.65 + (dex * 0.0025)
+      self.vz = UNIQUE.JumpPower(self, 0.65 + (dex * 0.0025))  // Leaper's Greaves...
       self.flags = self.flags | CHAR_FALL_ON
       self.flags = self.flags & (65535-CHAR_ON_PLATFORM)
       PlaySound("FILE:JUMP.RAW", 384, 255)
@@ -48,7 +51,7 @@ int Event()
       if(self.daction == ACTION_JUMP && self.dex > 29 && self.class != CLASS_NONE)
         self.action = ACTION_DOUBLE_BEGIN
         self.daction = ACTION_DOUBLE
-        self.vz = 0.65 + (dex * 0.0025)
+        self.vz = UNIQUE.JumpPower(self, 0.65 + (dex * 0.0025))
         self.flags = self.flags | CHAR_FALL_ON
         PlaySound("FILE:JUMP.RAW", 325 + RollDice(1, 50), 255)
         ButtonHandled()

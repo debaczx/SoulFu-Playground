@@ -103,6 +103,7 @@ int Event()
         PDUST.Effect(30)
         PSPARK.Effect(self.x, self.y, self.z, 30, 3)
         RANDOM.Goodies(5)
+        UNIQUE.Smashed(SystemGet(SYS_GLOBALATTACKER, 0, 0))  // Delver's Luck...
       else
         // Trapped Crate
         charge = 120
