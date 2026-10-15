@@ -1005,20 +1005,22 @@ unsigned char twohand_pole(unsigned char* character_data, int slot)
 // Kinds with KIND_FLAG_SLOW (the Tower Shield) slow their holder's walk...
 #define KIND_SLOW_SPEED 0.8f
 #define ARMOR_SLOW_STEP 0.06f   // Each heavy armour piece (KIND_FLAG_SLOW on helm, body or legs)
-#define ARMOR_FAST_STEP 0.04f   // Each nimble armour piece (KIND_FLAG_NIMBLE)
+#define ARMOR_KIND_FIRST 29    // First armour line kind (KIND_ARMOR_FIRST): each tier is 3 kinds (helm, body, legs)
+float armor_fast_step[3] = {0.03f, 0.06f, 0.10f};  // Each nimble armour piece (KIND_FLAG_NIMBLE) by tier: Scout, Shadow, Nightblade (KINDFX.PieceSpeed)
 // Walk speed multiplier from the kinds a character holds and wears...
 float kind_speed(unsigned char* character_data)
 {
     float speed;
     int slot;
-    unsigned char flags;
+    unsigned char flags, kind;
     speed = 1.0f;
     for(slot = 246; slot <= 248; slot++)
     {
         if(character_data[slot] == 0) continue;
-        flags = item_kind_flags[item_ext_kind(xitem_get(character_data, slot))];
+        kind = item_ext_kind(xitem_get(character_data, slot));
+        flags = item_kind_flags[kind];
         if(flags & KIND_FLAG_SLOW) speed -= ARMOR_SLOW_STEP;
-        if(flags & KIND_FLAG_NIMBLE) speed += ARMOR_FAST_STEP;
+        if((flags & KIND_FLAG_NIMBLE) && kind >= ARMOR_KIND_FIRST) speed += armor_fast_step[((kind - ARMOR_KIND_FIRST) / 3) % 3];
     }
     speed += ((signed char) character_data[UNIQUE_SPEED_OFFSET]) * 0.01f;  // Worn uniques (UNIQUE.SRC)
     if(character_data[242] && (item_kind_flags[item_ext_kind(xitem_get(character_data, 242))] & KIND_FLAG_SLOW)) speed *= KIND_SLOW_SPEED;
@@ -2100,6 +2102,15 @@ void character_update_all()
 
                     }
 
+                    // Phantom Steps dash (character_phantom_dash), after the turning slowdown...
+                    if(character_data[DASH_LEFT_OFFSET] > 0)
+                    {
+                        character_data[DASH_LEFT_OFFSET]--;
+                        velocity_xyz[X] += ((signed char) character_data[DASH_DIR_OFFSET])*0.01f*DASH_BOOST;
+                        velocity_xyz[Y] += ((signed char) character_data[DASH_DIR_OFFSET+1])*0.01f*DASH_BOOST;
+                    }
+
+
                     // Bounce off ground just a little bit...
                     if(velocity_xyz[Z] < 0.0f && !in_water)
                     {
@@ -2715,8 +2726,7 @@ void character_button_function(unsigned short character, unsigned char code, uns
 
 //-----------------------------------------------------------------------------------------------
 // Phantom Steps (UNIQUE.SRC): tapping a direction twice quickly dashes that way...
-#define DASH_TAP_FRAMES  15     // Most frames a tap can be held, and the most between the two taps
-#define DASH_SPEED       1.1f   // Velocity added by a dash
+#define DASH_TAP_FRAMES  18     // Most frames a tap can be held, and the most between the two taps
 #define DASH_COOLDOWN    45     // Frames before the next dash
 unsigned char dash_held[MAX_LOCAL_PLAYER];
 unsigned int dash_press_frame[MAX_LOCAL_PLAYER];
@@ -2748,8 +2758,10 @@ void character_phantom_dash(unsigned short player, unsigned char* character_data
             {
                 if(action == ACTION_STAND || action == ACTION_WALK || (action >= ACTION_STAND+TWOHAND_RIGHT_ADD && action <= ACTION_WALK+TWOHAND_LEFT_ADD))
                 {
-                    *((float*) (character_data+24)) += wx*DASH_SPEED;
-                    *((float*) (character_data+28)) += wy*DASH_SPEED;
+                    // Walking sets the speed every frame, so the dash adds to it for a few frames...
+                    character_data[DASH_LEFT_OFFSET] = DASH_FRAMES;
+                    character_data[DASH_DIR_OFFSET] = (unsigned char) ((signed char) (wx*100.0f));
+                    character_data[DASH_DIR_OFFSET+1] = (unsigned char) ((signed char) (wy*100.0f));
                     dash_ready_frame[player] = main_game_frame + DASH_COOLDOWN;
                     dash_release_frame[player] = 0;
                 }

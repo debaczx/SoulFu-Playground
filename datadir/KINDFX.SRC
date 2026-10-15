@@ -27,7 +27,7 @@ int Blocked(int holder, int attacker)
 // Armour lines (kinds KIND_ARMOR_FIRST to KIND_ARMOR_LAST)...  Kinds run caster, rogue,
 // heavy; each line has 3 tiers of helm, body and legs...
 //   Caster: mana regenerates faster (ManaRegen, MREGEN.SRC)
-//   Rogue:  KIND_FLAG_NIMBLE, walk ARMOR_SPEED_UP percent faster per piece (charact.c)
+//   Rogue:  KIND_FLAG_NIMBLE, walk PieceSpeed percent faster per piece (charact.c armor_fast_step)
 //   Heavy:  KIND_FLAG_SLOW, walk ARMOR_SPEED_DOWN percent slower per piece (charact.c)
 int ArmorLine(int kind)
   if(kind < KIND_ARMOR_FIRST || kind > KIND_ARMOR_LAST)
@@ -50,6 +50,17 @@ int PieceRegen(int kind)
   if(tier == 1)
     return 20
   return 35
+
+//-----------------------------------------------------------------------
+// Walk speed percent of one rogue piece (must match charact.c armor_fast_step)...
+int PieceSpeed(int kind)
+  int tier
+  tier = ArmorTier(kind)
+  if(tier == 0)
+    return 3
+  if(tier == 1)
+    return 6
+  return 10
 
 //-----------------------------------------------------------------------
 // Total mana regen percent from the caster pieces a character wears...
@@ -75,7 +86,7 @@ int ArmorName(int kind)
     StringAppend(NAME_STRING, "%)", 256)
   if(line == 1)
     StringAppend(NAME_STRING, " (SPEED +", 256)
-    StringAppendNumber(NAME_STRING, ARMOR_SPEED_UP, 256)
+    StringAppendNumber(NAME_STRING, PieceSpeed(kind), 256)
     StringAppend(NAME_STRING, "%)", 256)
   if(line == 2)
     StringAppend(NAME_STRING, " (SPEED -", 256)

@@ -564,7 +564,6 @@
 #define LOOK_CLOTH         5
 #define LOOK_CLOTH_GLOSS   6
 #define LOOK_TINT          7
-#define ARMOR_SPEED_UP     4    // Percent per rogue armour piece (charact.c ARMOR_FAST_STEP)
 #define ARMOR_SPEED_DOWN   6    // Percent per heavy armour piece (charact.c ARMOR_SLOW_STEP)
 #define SYS_MODELCHECKHACK          255
 

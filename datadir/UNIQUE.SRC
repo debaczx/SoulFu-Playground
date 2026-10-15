@@ -45,9 +45,11 @@
 #define UNIQUE_EYE_OFFSET      698   // 1 while Third Eye is worn (charact.c draws hidden foes half seen)
 #define UNIQUE_MAPPED_OFFSET   699   // Lookout's Rag: the map level it last showed + 1
 #define UNIQUE_DASH_OFFSET     700   // 1 while Phantom Steps are worn (charact.c dashes on a double tap)
-// 701 to 703 are free...  704 to 715 hold the Robe of Many Pockets' slots (UNIQUE_SIZE is 48, see object.c)...
+// 701 to 703 are the Phantom Steps dash (engine only)...  704 to 715 hold the Robe of Many Pockets' slots, 718 and 719 are free (UNIQUE_SIZE is 48, see object.c)...
 #define POCKET_FIRST           704   // Robe of Many Pockets: item bytes of the 4 pockets (704-707, extensions at 708-715)
 #define POCKET_COUNT           4
+#define UNIQUE_FALL_OFFSET     716   // Earthfall: game second (low byte) of the last shockwave
+#define UNIQUE_CLEAVER_OFFSET  717   // Gremf Cleaver: max hits it added
 // Unique numbers (UNIQUE.SRC), one per base item and kind...  Never renumber (saves count drops by number)...
 #define UQ_NIGHTS_EDGE         1     // Obsidian Blade
 #define UQ_MEDUSAS_MIRROR      2     // Mirror Shield
@@ -155,10 +157,10 @@
 #define WRATH_CHANCE     20    // Wrath of Ages: percent chance per hit taken to zap back
 #define WRATH_DAMAGE     3     // Wrath of Ages: damage of the zap (on top of the bolt's own)
 #define REGEN_SECONDS    3     // Undying Colossus: seconds per hit regained
-#define SMALL_SIZE       1.3   // Gremf Cleaver: foes this size or smaller take +50% (rats, gremfs)
-#define LARGE_SIZE       2.0   // Gremf Cleaver: foes this size or bigger take -25% (porcs, ogres)
+#define CLEAVER_HITS     5     // Gremf Cleaver: max hits while held
 #define WIND_CHANCE      25    // Highland Wind: percent chance per hit to knock the foe down
 #define BURST_RANGE      5.0   // Wyrmheart: reach of the fire burst when a foe dies
+#define BURST_DAMAGE     3     // Wyrmheart: fire damage of the burst
 #define PENANCE_MAX      5     // Chain of Penance: most extra damage from hits in a row
 #define QUAKE_HITS       4     // Earthshaker: every this many hits makes a shockwave
 #define QUAKE_RANGE      5.0   // Earthshaker: reach of the shockwave
@@ -198,7 +200,8 @@
 #define LEAP_POWER       1.41  // Leaper's Greaves: jump speed multiplier (twice the height)
 #define STOMP_DAMAGE     4     // Leaper's Greaves: damage landing on a foe
 #define FALL_RANGE       5.0   // Earthfall: reach of the landing shockwave
-#define FALL_DAMAGE      3     // Earthfall: damage of the landing shockwave
+#define FALL_DAMAGE      2     // Earthfall: damage of the landing shockwave
+#define FALL_WAIT        4     // Earthfall: seconds before the next shockwave
 #define LUCK_FRAMES      600   // Delver's Luck: Luck from each smashed crate (10 seconds)
 #define WALL_RANGE       8.0   // Wall of the Watch: how far behind the wearer allies are covered
 #define WALL_SPEED       25    // Wall of the Watch: walk percent that makes up for the Tower Shield (x0.8)
@@ -892,7 +895,7 @@ int Info(int uq)
   if(uq == UQ_UNDYING_COLOSSUS)
     return "REGEN 1 HIT EVERY 3S, -10% SPEED"
   if(uq == UQ_GREMF_CLEAVER)
-    return "+50% VS SMALL FOES, -25% VS LARGE"
+    return "+5 MAX HITS WHILE HELD"
   if(uq == UQ_RIPOSTE)
     return "WHEN HIT, YOUR NEXT HIT DOES X2"
   if(uq == UQ_OATHKEEPER)
@@ -988,7 +991,7 @@ int Info(int uq)
   if(uq == UQ_RUSTGUARD)
     return "ACID IMMUNE, ARMOUR DOESN'T SLOW"
   if(uq == UQ_EARTHFALL)
-    return "LANDING FROM A JUMP MAKES A SHOCKWAVE"
+    return "LANDING MAKES A SHOCKWAVE (EVERY 4S)"
   if(uq == UQ_VEIL_OF_DUSK)
     return "FOES NOTICE YOU FROM HALF AS FAR"
   if(uq == UQ_PATHFINDER)
@@ -1550,12 +1553,6 @@ int PreHit(int owner, int target, int xhand, int amount)
     if(BossRoom())
       amount = amount + 2
   uq = HandId(owner, xhand)
-  if(uq == UQ_GREMF_CLEAVER)
-    if(target.boxsize <= SMALL_SIZE)
-      return (amount + (amount >> 1))
-    if(target.boxsize >= LARGE_SIZE && amount > 1)
-      amount = (amount * 3) / 4
-    return amount
   if(uq == UQ_DUELISTS_GRACE)
     // Every third hit strikes twice...
     if(Count(owner, 3) == 0)
@@ -1670,7 +1667,9 @@ int Quake(int owner, int target)
 int Burst(int owner, int target)
   int i, who
   float dx, dy
-  PFLASH.Effect(target, "FILE:LITESPRK.RGB", 16744448, TRUE, 1.5)
+  // Only the look of an explosion (a real one would hurt the wielder too)...
+  PEXPLODE.Effect(target.x, target.y, target.z + (target.height*0.5), 0.0, 0.0, 0.5, DAMAGE_FIRE, 0, 0, FindIndex(owner), owner.team, "FILE:FIRE1.RGB", 4210752, 64)
+  PlaySound("FILE:BAD4.RAW", 225 + RollDice(1, 50), 200)
   i = 0
   while(i < MAX_CHARACTER)
     who = FindByIndex(i)
@@ -1678,6 +1677,7 @@ int Burst(int owner, int target)
       dx = who.x - target.x
       dy = who.y - target.y
       if(dx*dx + dy*dy < BURST_RANGE*BURST_RANGE)
+        Hurt(who, DAMAGE_FIRE, BURST_DAMAGE, owner)
         PBURNING.Effect(who, 4, FindIndex(owner))
     i++
   return TRUE
@@ -2082,7 +2082,7 @@ int Dread(int self)
 //-----------------------------------------------------------------------
 // Leaper's Greaves and Earthfall: the wearer just landed from a jump (CPLAYER.Event)...
 int Landed(int self)
-  int i, who, any
+  int i, who, any, secs
   float dx, dy, reach
   if(Worn(self, UQ_LEAPERS_GREAVES))  // Landing on a foe hurts it...
     i = 0
@@ -2097,7 +2097,12 @@ int Landed(int self)
           PSPARK.Effect(who.x, who.y, who.z + who.height, 8, 1)
           PlaySound("FILE:BLOCK.RAW", 120, 255)
       i++
-  if(Worn(self, UQ_EARTHFALL))  // A shockwave hurts and knocks down foes around...
+  if(Worn(self, UQ_EARTHFALL))  // A shockwave hurts and knocks down foes around, every few seconds...
+    secs = (SystemGet(SYS_MAINGAMEFRAME, 0, 0) / 60) & 255
+    any = (secs - FileReadByte(self, UNIQUE_FALL_OFFSET)) & 255
+    if(any < FALL_WAIT)
+      return FALSE
+    FileWriteByte(self, UNIQUE_FALL_OFFSET, secs)
     PlaySound("FILE:BAD5.RAW", 120, 255)
     PSPARK.Effect(self.x, self.y, self.z, 16, 1)
     SystemSet(SYS_SCREENSHAKE, 0, 2, 15)
@@ -2718,6 +2723,7 @@ int Sync(int self)
     FileWriteByte(self, UNIQUE_MANA_OFFSET, 0)
     FileWriteByte(self, UNIQUE_HITS_OFFSET, 0)
     FileWriteByte(self, UNIQUE_SASH_OFFSET, 0)
+  Cleaver(self)
   // A wraith only stays while the Shroud is worn...
   pet = Minion(self)
   if(pet && FileReadByte(self, UNIQUE_MLEFT_OFFSET) == MINION_FOREVER)
@@ -2726,6 +2732,30 @@ int Sync(int self)
   if(NeedsTimer(self))
     StartTimer(self)
   return TRUE
+
+//-----------------------------------------------------------------------
+// Gremf Cleaver: more max hits while held...  What it added is kept (UNIQUE_CLEAVER_OFFSET)
+// so it comes off again...
+int Cleaver(int self)
+  int hits
+  hits = FileReadByte(self, UNIQUE_CLEAVER_OFFSET)
+  if(Worn(self, UQ_GREMF_CLEAVER))
+    if(hits == 0)
+      hits = CLEAVER_HITS
+      if(self.hitsmax + hits > 255)
+        hits = 255 - self.hitsmax
+      self.hitsmax = self.hitsmax + hits
+      self.hits = self.hits + hits
+      FileWriteByte(self, UNIQUE_CLEAVER_OFFSET, hits)
+    return TRUE
+  if(hits)
+    if(hits >= self.hitsmax)
+      hits = self.hitsmax - 1
+    self.hitsmax = self.hitsmax - hits
+    if(self.hits > self.hitsmax - self.hitstap)
+      self.hits = self.hitsmax - self.hitstap
+    FileWriteByte(self, UNIQUE_CLEAVER_OFFSET, 0)
+  return FALSE
 
 //-----------------------------------------------------------------------
 // Rustguard: walk speed that makes up for heavy armour (6% a piece, charact.c)...

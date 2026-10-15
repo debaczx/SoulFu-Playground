@@ -53,6 +53,10 @@
 #define UNIQUE_SIZE         48
 #define UNIQUE_EYE_OFFSET   698   // 1 while Third Eye is worn: hidden foes are drawn half seen (charact.c)
 #define UNIQUE_DASH_OFFSET  700   // 1 while Phantom Steps are worn: a double tapped direction dashes (charact.c)
+#define DASH_LEFT_OFFSET    701   // Frames of dash left (charact.c)
+#define DASH_DIR_OFFSET     702   // Dash direction, x and y as signed bytes (x100)
+#define DASH_FRAMES         12    // Frames a dash lasts
+#define DASH_BOOST          0.7f  // Speed added each frame of a dash (walking is about 0.25)
 #define POCKET_FIRST_SLOT   704   // Robe of Many Pockets: 4 more item slots (704-707), saved in the unique block...
 #define POCKET_LAST_SLOT    707
 #define POCKET_EXT_OFFSET   708   // ...with their extensions at 708-715
