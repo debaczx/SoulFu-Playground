@@ -28,6 +28,8 @@
 #define MAP_ROOM_FLAG_BOSS        16
 #define MAP_ROOM_FLAG_VIRTUE      8
 #define MAP_ROOM_FLAG_OUTSIDE     4
+#define MAP_ROOM_FLAG_SIDE_STAIR  2     // Dual level room that leads down to a side floor...
+#define SIDE_LEVEL_OFFSET         16    // Side floors use level numbers from 16 up, so they never join a main floor...
 
 #define MAX_MAP_ROOM 4000
 unsigned short num_map_room = 0;
@@ -47,6 +49,18 @@ void map_clear()
 {
     // <ZZ> This function clears the map...
     num_map_room = 0;
+}
+
+//-----------------------------------------------------------------------------------------------
+unsigned char map_level_below(unsigned short room)
+{
+    // <ZZ> This function returns the level that a stairway room leads down to...  Normal
+    //      stairs go to the next level, side stairs go to a side floor...
+    if(map_room_data[room][13] & MAP_ROOM_FLAG_SIDE_STAIR)
+    {
+        return (unsigned char) (map_room_data[room][12] + SIDE_LEVEL_OFFSET + 1);
+    }
+    return (unsigned char) (map_room_data[room][12] + 1);
 }
 
 //-----------------------------------------------------------------------------------------------
@@ -257,6 +271,11 @@ unsigned char map_connect_rooms(unsigned short room_a, unsigned short room_b)
                 if(map_room_data[room_b][12] > map_room_data[room_a][12])
                 {
                     allow_bottom_doors = TRUE;
+                    if(map_room_data[room_a][13] & MAP_ROOM_FLAG_SIDE_STAIR)
+                    {
+                        // Side floors hang off the bottom of the stairs only...
+                        allow_bottom_doors = 2;
+                    }
                 }
             }
             room_a_wall = room_find_best_wall(room_a_srf_file, allow_bottom_doors, room_a_rotation, vector_xy, (map_room_data[room_a]+24));
@@ -272,6 +291,10 @@ unsigned char map_connect_rooms(unsigned short room_a, unsigned short room_b)
                 if(map_room_data[room_a][12] > map_room_data[room_b][12])
                 {
                     allow_bottom_doors = TRUE;
+                    if(map_room_data[room_b][13] & MAP_ROOM_FLAG_SIDE_STAIR)
+                    {
+                        allow_bottom_doors = 2;
+                    }
                 }
             }
             room_b_wall = room_find_best_wall(room_b_srf_file, allow_bottom_doors, room_b_rotation, vector_xy, (map_room_data[room_b]+24));
@@ -443,7 +466,7 @@ unsigned char map_rooms_overlap(unsigned short room_a, unsigned short room_b)
         room_a_flags = map_room_data[room_a][13];
         room_b_level = map_room_data[room_b][12];
         room_b_flags = map_room_data[room_b][13];
-        if(room_a_level == room_b_level || ((room_a_level+1) == room_b_level && (room_a_flags & MAP_ROOM_FLAG_DUAL_LEVEL)) || ((room_b_level+1) == room_a_level && (room_b_flags & MAP_ROOM_FLAG_DUAL_LEVEL)))
+        if(room_a_level == room_b_level || (map_level_below(room_a) == room_b_level && (room_a_flags & MAP_ROOM_FLAG_DUAL_LEVEL)) || (map_level_below(room_b) == room_a_level && (room_b_flags & MAP_ROOM_FLAG_DUAL_LEVEL)))
         {
             // They are...  But are they anywhere near one another?
             room_a_xy[X] = ((*((unsigned short*) (map_room_data[room_a]+4)))-32768.0f)*10.0f;
@@ -611,17 +634,14 @@ void map_automap_prime(float centerx, float centery, unsigned char level, float 
 {
     unsigned short i;
     float roomx, roomy, dx, dy;
-    unsigned char last_level;
 
     automap_prime_level = level;
-    last_level = level;
-    last_level--;
     num_automap_room = 0;
     repeat(i, num_map_room)
     {
         if(map_room_data[i][13] & MAP_ROOM_FLAG_FOUND)
         {
-            if(map_room_data[i][12] == level || ((map_room_data[i][13] & MAP_ROOM_FLAG_DUAL_LEVEL) && map_room_data[i][12] == last_level))
+            if(map_room_data[i][12] == level || ((map_room_data[i][13] & MAP_ROOM_FLAG_DUAL_LEVEL) && map_level_below(i) == level))
             {
                 roomx = ((*((unsigned short*) (map_room_data[i]+4))) - 32768.0f) * 10.0f;
                 roomy = ((*((unsigned short*) (map_room_data[i]+6))) - 32768.0f) * 10.0f;

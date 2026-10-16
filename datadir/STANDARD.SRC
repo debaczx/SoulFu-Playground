@@ -966,11 +966,18 @@ int PartWaterEvent(float size)
 //-----------------------------------------------------------------------
 // Gives us a generic difficulty multiplier for a character...
 float SubtypeDifficulty(int subtype, float multiplier)
+  int self
   float difficulty
+  self = FindSelf()
   difficulty = 1.0 + ((RollDice(1, 21)-1) * 0.01)
   while(subtype > 0)
     difficulty = difficulty * multiplier
     subtype--
+  // Monsters on optional side floors (the Basement) are tougher...
+  if(self)
+    if(self.team == TEAM_MONSTER)
+      if(MAPGEN.IsSideFloor())
+        difficulty = difficulty * 1.5
 
 
   // !!!BAD!!!

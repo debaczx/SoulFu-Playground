@@ -24,7 +24,7 @@ int RevealEffect(int owner)
       // Display next level down if players are low enough...
       z = SystemGet(SYS_LOCALPLAYERZ, 0, 0)
       if(z < -1.0)
-        level++
+        level = MAPGEN.GetRoomLevelBelow(room)
 
 
     found = 0
@@ -35,7 +35,7 @@ int RevealEffect(int owner)
         dx = MAPGEN.GetRoomLevel(room)
         dy = dx
         if(flags & MAP_ROOM_FLAG_DUAL_LEVEL)
-          dy++
+          dy = MAPGEN.GetRoomLevelBelow(room)
         if(level == dx || level == dy)
           dx = MAPGEN.GetRoomX(room) - x
           dy = MAPGEN.GetRoomY(room) - y

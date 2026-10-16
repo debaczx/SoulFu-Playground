@@ -607,6 +607,8 @@
 #define MAP_ROOM_FLAG_BOSS        16
 #define MAP_ROOM_FLAG_VIRTUE      8
 #define MAP_ROOM_FLAG_OUTSIDE     4
+#define MAP_ROOM_FLAG_SIDE_STAIR  2
+#define SIDE_LEVEL_OFFSET         16
 
 
 // For SYS_MAPROOM...

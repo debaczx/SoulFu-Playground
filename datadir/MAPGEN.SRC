@@ -1,5 +1,6 @@
 #define REVEAL FALSE
 #define START_LEVEL 0
+#define TWSET_SEWER 2   // Texture set that turns cellar walls & floors into sewer ones...
 
 
 //-----------------------------------------------------------------------
@@ -67,12 +68,12 @@ int SetCurrentRoom(int room)
     srf_file = SystemGet(SYS_MAPROOM, room, MAP_ROOM_SRF)
     twset = SystemGet(SYS_MAPROOM, room, MAP_ROOM_TWSET)
     GoPoof(POOF_ALL_PARTICLES)
-    if(twset == 0)
-      // Normal
-      SystemSet(SYS_ROOMUNCOMPRESS, srf_file, "FILE:WALLSET0.DDD", room)
-    else
+    if(twset == 1)
       // Town
       SystemSet(SYS_ROOMUNCOMPRESS, srf_file, "FILE:WALLSET1.DDD", room)
+    else
+      // Normal
+      SystemSet(SYS_ROOMUNCOMPRESS, srf_file, "FILE:WALLSET0.DDD", room)
     TextureSet(srf_file, twset, FALSE)
 
 
@@ -129,6 +130,17 @@ int TextureSet(int srf_file, int set_number, int wroomer)
       if(StringCompare(String(0), "PAVE"))
         StringClear(String(0))
         StringAppend(String(0), "MPPAVE", 9)
+      if(set_number == TWSET_SEWER)
+        // Cellar stone becomes sewer stone...
+        if(StringCompare(String(0), "MPWL01B") || StringCompare(String(0), "MPWL01C"))
+          StringClear(String(0))
+          StringAppend(String(0), "MPWL05A", 9)
+        if(StringCompare(String(0), "MPCP01B"))
+          StringClear(String(0))
+          StringAppend(String(0), "MPCP05A", 9)
+        if(StringCompare(String(0), "MPFL07A"))
+          StringClear(String(0))
+          StringAppend(String(0), "MPFL13A", 9)
       StringAppend(String(0), ".RGB", 16)
       SystemSet(SYS_ROOMTEXTURE, wroomer, i, FileOpen(String(0), FILE_NORMAL))
       tex_offset = tex_offset+8
@@ -155,10 +167,32 @@ int GetCurrentDifficulty()
 
 
 //-----------------------------------------------------------------------
+// Depth of the current room (side floors count as the depth they hang off)...
 int GetCurrentLevel()
+  int room, level
+  room = SystemGet(SYS_MAPROOM, 0, MAP_ROOM_CURRENT)
+  level = SystemGet(SYS_MAPROOM, room, MAP_ROOM_LEVEL)
+  return (level % SIDE_LEVEL_OFFSET)
+
+
+//-----------------------------------------------------------------------
+// TRUE if the current room is on an optional side floor...
+int IsSideFloor()
   int room
   room = SystemGet(SYS_MAPROOM, 0, MAP_ROOM_CURRENT)
-  return SystemGet(SYS_MAPROOM, room, MAP_ROOM_LEVEL)
+  if(SystemGet(SYS_MAPROOM, room, MAP_ROOM_LEVEL) >= SIDE_LEVEL_OFFSET)
+    return TRUE
+  return FALSE
+
+
+//-----------------------------------------------------------------------
+// Level a stairway room leads down to (side stairs lead to a side floor)...
+int GetRoomLevelBelow(int room)
+  int level
+  level = GetRoomLevel(room)
+  if(GetRoomFlags(room) & MAP_ROOM_FLAG_SIDE_STAIR)
+    return (level + SIDE_LEVEL_OFFSET + 1)
+  return (level + 1)
 
 
 //-----------------------------------------------------------------------
@@ -291,6 +325,72 @@ SuperPlopRoom(int file, int area, int force_from_room, int rotation_fix, int fla
   if(num_attempt > 50)
     // We failed to plop an important room...
     return TRUE
+  return FALSE
+
+//-----------------------------------------------------------------------
+// Adds a room to a side floor at a random spot next to one of the rooms
+// from first_room up...  Returns TRUE if it worked...
+int SidePlopRoom(int file, int area, int level, int first_room, int twset, int flags)
+  int num_room, i, attempt, from_room, rotation, difficulty
+  float x, y, scale, angle
+
+  num_room = GetNumberOfRooms()
+  i = num_room - first_room
+  attempt = 0
+  while(attempt < 200)
+    from_room = first_room
+    if(i > 1)
+      from_room = first_room + (RollDice(1, i)-1)
+    angle = (RollDice(1, 256)*360) >> 8
+    scale = RollDice(1, 120) + 150
+    x = GetRoomX(from_room) + (sin(angle)*scale)
+    y = GetRoomY(from_room) + (sin(angle+90.0)*scale)
+    rotation = (RollDice(1, 256)<<8)
+    difficulty = ((NumLocalPlayer()-1)*42) + RollDice(1, 50)
+    AddRoom(x, y, level, area, difficulty, rotation, file, from_room, TRUE, RollDice(1, 256), twset, flags)
+    if(num_room < GetNumberOfRooms())
+      return TRUE
+    attempt++
+  return FALSE
+
+//-----------------------------------------------------------------------
+// Removes every room from first_room up...
+int RemoveRoomsFrom(int first_room)
+  while(GetNumberOfRooms() > first_room)
+    SystemSet(SYS_MAPROOM, 0, MAP_ROOM_REMOVE, 0)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Basement: optional side floor behind the Shrine of Honor...  Cellar
+// rooms with sewer textures, monsters get 1.5x stats (STANDARD.SubtypeDifficulty)...
+int BuildBasement(int shrine_room, int flags)
+  int stair_room, side_level, tries, fail
+
+  stair_room = GetNumberOfRooms()
+  side_level = SIDE_LEVEL_OFFSET + 1
+  tries = 0
+  while(tries < 20)
+    RemoveRoomsFrom(stair_room)
+    AddRoom(0.0, -540.0, 0, AREA_CELLAR, 0, 0, "FILE:TOWNST0.SRF", shrine_room, FALSE, RollDice(1, 256), 0, flags | MAP_ROOM_FLAG_DUAL_LEVEL | MAP_ROOM_FLAG_SIDE_STAIR)
+    if(GetNumberOfRooms() == stair_room)
+      // Stairway doesn't fit behind the shrine...
+      return FALSE
+    fail = FALSE
+    if(SidePlopRoom("FILE:CELLR003.SRF", AREA_CELLAR, side_level, stair_room, TWSET_SEWER, flags) == FALSE)
+      fail = TRUE
+    if(fail == FALSE)
+      SidePlopRoom("FILE:CELLR001.SRF", AREA_CELLAR, side_level, stair_room+1, TWSET_SEWER, flags)
+      SidePlopRoom("FILE:CELLR005.SRF", AREA_CELLAR, side_level, stair_room+1, TWSET_SEWER, flags)
+      SidePlopRoom("FILE:CELLR002.SRF", AREA_CELLAR, side_level, stair_room+1, TWSET_SEWER, flags)
+      SidePlopRoom("FILE:CELLR004.SRF", AREA_CELLAR, side_level, stair_room+1, TWSET_SEWER, flags)
+      SidePlopRoom("FILE:CELLR006.SRF", AREA_CELLAR, side_level, stair_room+1, TWSET_SEWER, flags)
+      SidePlopRoom("FILE:CELLR007.SRF", AREA_CELLAR, side_level, stair_room+1, TWSET_SEWER, flags)
+      if(SidePlopRoom("FILE:CELLRBS1.SRF", AREA_CELLAR, side_level, stair_room+1, TWSET_SEWER, flags | MAP_ROOM_FLAG_BOSS) == FALSE)
+        fail = TRUE
+    if(fail == FALSE)
+      return TRUE
+    tries++
+  RemoveRoomsFrom(stair_room)
   return FALSE
 
 //-----------------------------------------------------------------------
@@ -565,6 +665,12 @@ Setup()
         ClearLevel()
 
 
+
+
+  // Basement side floor behind the Shrine of Honor (room 11)...  Built last
+  // so the main floors above keep their room numbers...
+  if(START_LEVEL <= 0)
+    BuildBasement(11, flags)
 
 
   // Pick the water/lava animation textures...

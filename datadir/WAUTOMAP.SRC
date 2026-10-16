@@ -83,7 +83,7 @@ Refresh()
     // Display next level down if players are low enough...
     z = SystemGet(SYS_LOCALPLAYERZ, 0, 0)
     if(z < -1.0)
-      curlevel++
+      curlevel = MAPGEN.GetRoomLevelBelow(curroom)
 
 
   // Figger out where the automap camera is...
@@ -128,7 +128,7 @@ Refresh()
 //  WindowImage(blx-0.25, bly-0.25, 0.5, 0.5, "FILE:YELLOW.RGB", NULL, 255)
   WindowMegaImage(tlx,tly,  trx,try,  brx,bry,  blx,bly,  0.0,0.0,  1.0,1.0,  WHITE, 255, "FILE:=COMPASS.RGB")
   StringClear(String(0))
-  StringAppendNumber(String(0), curlevel, 3)
+  StringAppendNumber(String(0), curlevel % SIDE_LEVEL_OFFSET, 3)
   CenterString(WHITE, x, y-0.4, String(0))
   button1 = WindowImage(x-1.0, y-1.0, 2.0, 2.0, NULL, NULL, 0)
   if(curroom != oldroom || button1 == 255)

@@ -6301,7 +6301,16 @@ unsigned char room_find_best_wall(unsigned char* data, unsigned char allow_botto
                 dot = side_xy[X]*vector_xy[X] + side_xy[Y]*vector_xy[Y];
                 if(dot > best_dot)
                 {
-                    if((vertex_xyz[Z] > -1.0f && last_vertex_xyz[Z] > -1.0f) || allow_bottom_doors)
+                    if(allow_bottom_doors == 2)
+                    {
+                        // Only bottom doors allowed (side floor stairs)...
+                        if(vertex_xyz[Z] <= -1.0f && last_vertex_xyz[Z] <= -1.0f)
+                        {
+                            best_wall = i;
+                            best_dot = dot;
+                        }
+                    }
+                    else if((vertex_xyz[Z] > -1.0f && last_vertex_xyz[Z] > -1.0f) || allow_bottom_doors)
                     {
                         best_wall = i;
                         best_dot = dot;
