@@ -264,6 +264,10 @@ int AIScript()
   self = FindSelf()
 
 
+  // War bands of 3 or more Porcs get a Captain (STANDARD.PackSetup)...
+  STANDARD.PackSetup()
+
+
   // Twiddle some stuff...
   state = self.aistate
   self.aistate = STATE_NORMAL
@@ -294,7 +298,11 @@ int AIScript()
 //      if(target.alpha <= 100)
 //        // Harder to keep track of invisible guys
 //        distance = distance * 4.0
-      if(distance > 400.0)
+      check = 400.0
+      if(self.aimode != 0)
+        // Called into the fight by our war band...  Keep after 'em longer...
+        check = 3600.0
+      if(distance > check)
         target = NULL
         self.target = 65535
     else
@@ -318,6 +326,16 @@ int AIScript()
 
   // Are we chasing an enemy, or just wandering around?
   if(chase_enemy)
+    if(self.aimode == 0)
+      // Now in the fight...  A Captain calls its war band in...
+      self.aimode = 1
+      STANDARD.PackRally(target)
+    if(STANDARD.PackOrders(target))
+      // Following the Captain's orders (or running for it)...
+      return TRUE
+    if(STANDARD.AIWaitTurn(target))
+      // Waiting our turn to attack...
+      return TRUE
     // Are we facing our target?
     oldtarget = FindByIndex(oldtarget)
     if(GetDirection(target.x, target.y) == DIRECTION_FRONT)
@@ -361,6 +379,9 @@ int AIScript()
         self.target = 65535
     self.aitimer = 10 + RollDice(1, 10)
   else
+    if(STANDARD.PackFormation())
+      // Marching behind our Captain...
+      return TRUE
     if(state == STATE_HIT_WALL)
       // Stop moving...
       self.gotox = self.x

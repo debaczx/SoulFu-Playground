@@ -1881,6 +1881,7 @@ int AINotice()
     return FALSE
   self.target = FindIndex(target)
   self.aimode = 1
+  PackRally(target)
   i = 0
   while(i < MAX_CHARACTER)
     other = FindByIndex(i)
@@ -1966,7 +1967,8 @@ int AIWaitTurn(int target)
 // Pack Captains...  When 3 or more monsters of one kind are together, the
 // toughest becomes their Captain (bigger and tinted by charact.c, tougher,
 // better loot).  The Captain gives orders in its aimode (1 attack, 2 encircle,
-// 3 regroup), and its pack panics for a few seconds when it falls...
+// 3 regroup, 4 pincer), its pack marches behind it in a wedge, and panics
+// for a few seconds when it falls...
 #define PACK_ROLE_OFFSET   718   // Character byte: 0 not decided, 1 no Captain, 2 follows a Captain, 3 Captain, 4 Captain that has called a regroup
 #define PACK_CLOCK_OFFSET  719   // Character byte: on a Captain the game second its order began, on others the game second their Captain fell (0 none)
 #define PACK_NONE          1
@@ -1976,6 +1978,7 @@ int AIWaitTurn(int target)
 #define PACK_ATTACK        1
 #define PACK_ENCIRCLE      2
 #define PACK_REGROUP       3
+#define PACK_PINCER        4
 #define PACK_RANGE         6400.0  // 80ft, squared
 #define PACK_COOLDOWN      20      // Seconds after a Captain falls before its pack gets a new one
 int PackSecond()
@@ -2166,7 +2169,36 @@ int PackMoveFrom(float x, float y, float distance)
 int PackShout(int captain, int order)
   captain.aimode = order
   FileWriteByte(captain, PACK_CLOCK_OFFSET, PackSecond())
-  PlaySound("FILE:-GROWL.RAW", 160 + RollDice(1, 40), 255)
+  if(SystemGet(SYS_CHARACTERSCRIPTFILE, 0, FindIndex(captain)) == "FILE:CPORC.RUN")
+    PlaySound("FILE:-PORC00.RAW", 200 + RollDice(1, 30), 255)
+  else
+    PlaySound("FILE:-GROWL.RAW", 160 + RollDice(1, 40), 255)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// War cry...  When a Captain spots an enemy, its whole pack goes for it...
+int PackRally(int target)
+  int self, other, script, i
+  float dx, dy
+  self = FindSelf()
+  if(FileReadByte(self, PACK_ROLE_OFFSET) < PACK_CAPTAIN)
+    return FALSE
+  script = SystemGet(SYS_CHARACTERSCRIPTFILE, 0, FindIndex(self))
+  i = 0
+  while(i < MAX_CHARACTER)
+    other = FindByIndex(i)
+    if(other)
+      if(other != self && other.team == self.team && other.hits > 0)
+        if(FileReadByte(other, PACK_ROLE_OFFSET) == PACK_MEMBER)
+          if(SystemGet(SYS_CHARACTERSCRIPTFILE, 0, i) == script)
+            dx = other.x - self.x
+            dy = other.y - self.y
+            if(dx*dx + dy*dy < PACK_RANGE)
+              AIWakeUp(other, target)
+              other.target = FindIndex(target)
+              if(other.aitimer > 10)
+                other.aitimer = RollDice(1, 10)
+    i++
   return TRUE
 
 //-----------------------------------------------------------------------
@@ -2185,7 +2217,7 @@ int PackCommand(int target)
     PackMoveFrom(target.x, target.y, 15.0)
     self.aitimer = 15
     return TRUE
-  if(self.aimode == PACK_ENCIRCLE)
+  if(self.aimode == PACK_ENCIRCLE || self.aimode == PACK_PINCER)
     if(since >= 5 || members < 2)
       PackShout(self, PACK_ATTACK)
     return FALSE
@@ -2201,8 +2233,73 @@ int PackCommand(int target)
         dx = self.x - target.x
         dy = self.y - target.y
         if(dx*dx + dy*dy < 900.0)
-          PackShout(self, PACK_ENCIRCLE)
+          if(RollDice(1, 2) == 1)
+            PackShout(self, PACK_ENCIRCLE)
+          else
+            PackShout(self, PACK_PINCER)
   return FALSE
+
+//-----------------------------------------------------------------------
+// Sends us to a spot on a ring around the target, at an angle from the
+// Captain's side...
+int PackRingSpot(int target, int captain, float angle)
+  int self
+  float dx, dy, dis, ring, c, s
+  self = FindSelf()
+  c = sin(angle + 90.0)
+  s = sin(angle)
+  dx = captain.x - target.x
+  dy = captain.y - target.y
+  dis = sqrt(dx*dx + dy*dy)
+  if(dis < 0.1)
+    dx = 1.0
+    dy = 0.0
+    dis = 1.0
+  dx = dx/dis
+  dy = dy/dis
+  ring = self.boxsize + target.boxsize + 11.0
+  self.gotox = target.x + (dx*c - dy*s)*ring
+  self.gotoy = target.y + (dx*s + dy*c)*ring
+  FindPath()
+  self.aitimer = 10
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Marching...  While wandering, pack members follow their Captain in a
+// wedge behind it...  Returns TRUE if it set our goto spot...
+int PackFormation()
+  int self, captain, slot, row
+  float fx, fy, dis, side
+  self = FindSelf()
+  if(self.team != TEAM_MONSTER)
+    return FALSE
+  if(FileReadByte(self, PACK_ROLE_OFFSET) >= PACK_CAPTAIN)
+    return FALSE
+  captain = PackFindCaptain()
+  if(!captain)
+    return FALSE
+  FileWriteByte(self, PACK_ROLE_OFFSET, PACK_MEMBER)
+  slot = PackCount(captain, FindIndex(self))
+  row = (slot>>1) + 1
+  side = 1.0
+  if(slot & 1)
+    side = -1.0
+  fx = captain.frontx
+  fy = captain.fronty
+  dis = sqrt(fx*fx + fy*fy)
+  if(dis < 0.01)
+    return FALSE
+  fx = fx/dis
+  fy = fy/dis
+  // Side vector is the front turned a quarter...
+  dis = captain.boxsize + self.boxsize + 3.0
+  self.gotox = captain.x - fx*row*dis + fy*side*row*dis*0.8
+  self.gotoy = captain.y - fy*row*dis - fx*side*row*dis*0.8
+  if(!FindPath())
+    self.gotox = captain.x
+    self.gotoy = captain.y
+  self.aitimer = 15 + RollDice(1, 10)
+  return TRUE
 
 //-----------------------------------------------------------------------
 // Pack orders, called while attacking...  Returns TRUE if they moved us,
@@ -2255,29 +2352,19 @@ int PackOrders(int target)
     FindPath()
     self.aitimer = 10 + RollDice(1, 10)
     return TRUE
-  if(captain.aimode == PACK_ENCIRCLE)
-    if(captain.target == self.target)
+  if(captain.target == self.target)
+    if(captain.aimode == PACK_ENCIRCLE)
       // Take our own spot around the enemy, the Captain's side being the front...
       members = PackCount(captain, MAX_CHARACTER)
       slot = PackCount(captain, FindIndex(self))
-      angle = 360.0 * (slot + 1) / (members + 1)
-      c = sin(angle + 90.0)
-      s = sin(angle)
-      dx = captain.x - target.x
-      dy = captain.y - target.y
-      dis = sqrt(dx*dx + dy*dy)
-      if(dis < 0.1)
-        dx = 1.0
-        dy = 0.0
-        dis = 1.0
-      dx = dx/dis
-      dy = dy/dis
-      ring = self.boxsize + target.boxsize + 11.0
-      self.gotox = target.x + (dx*c - dy*s)*ring
-      self.gotoy = target.y + (dx*s + dy*c)*ring
-      FindPath()
-      self.aitimer = 10
-      return TRUE
+      return PackRingSpot(target, captain, 360.0 * (slot + 1) / (members + 1))
+    if(captain.aimode == PACK_PINCER)
+      // Half the pack swings round each side of the enemy...
+      slot = PackCount(captain, FindIndex(self))
+      angle = 100.0 + (slot>>1)*14.0
+      if(slot & 1)
+        angle = 0.0 - angle
+      return PackRingSpot(target, captain, angle)
   return FALSE
 
 //-----------------------------------------------------------------------
@@ -2630,12 +2717,16 @@ int AIScript()
       self.gotox = self.x
       self.gotoy = self.y
       self.aitimer = 1
-    if(RollDice(1, 100) > 50)
-      // Try switching modes randomly...
-      self.aistate = RollDice(1, 4)&3
-      if(self.aistate == STANDARD_AISTATE_MOUNT)
-        if(!(self.flags & CHAR_CAN_RIDE_MOUNT))
-          self.aistate = STANDARD_AISTATE_WANDER
+    if(PackFormation())
+      // Marching behind our Captain...
+      self.aistate = STANDARD_AISTATE_WANDER
+    else
+      if(RollDice(1, 100) > 50)
+        // Try switching modes randomly...
+        self.aistate = RollDice(1, 4)&3
+        if(self.aistate == STANDARD_AISTATE_MOUNT)
+          if(!(self.flags & CHAR_CAN_RIDE_MOUNT))
+            self.aistate = STANDARD_AISTATE_WANDER
     if(self.team == TEAM_MONSTER)
       if(AINotice())
         self.aistate = STANDARD_AISTATE_ATTACK
