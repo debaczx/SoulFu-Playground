@@ -1968,7 +1968,7 @@ int AIWaitTurn(int target)
 // better loot).  The Captain gives orders in its aimode (1 attack, 2 encircle,
 // 3 regroup), and its pack panics for a few seconds when it falls...
 #define PACK_ROLE_OFFSET   718   // Character byte: 0 not decided, 1 no Captain, 2 follows a Captain, 3 Captain, 4 Captain that has called a regroup
-#define PACK_CLOCK_OFFSET  719   // Character byte: on a Captain the game second its order began, on others the game second their panic ends (0 none)
+#define PACK_CLOCK_OFFSET  719   // Character byte: on a Captain the game second its order began, on others the game second their Captain fell (0 none)
 #define PACK_NONE          1
 #define PACK_MEMBER        2
 #define PACK_CAPTAIN       3
@@ -1977,24 +1977,52 @@ int AIWaitTurn(int target)
 #define PACK_ENCIRCLE      2
 #define PACK_REGROUP       3
 #define PACK_RANGE         6400.0  // 80ft, squared
+#define PACK_COOLDOWN      20      // Seconds after a Captain falls before its pack gets a new one
 int PackSecond()
   int now
   now = (SystemGet(SYS_MAINGAMEFRAME, 0, 0) / 60) & 255
   return now
 
 //-----------------------------------------------------------------------
-// Run on every think...  Picks a Captain the first time a monster thinks...
+// Returns TRUE if a pack that lost its Captain (clock holds the game second
+// it fell) is still waiting PACK_COOLDOWN seconds before a new one rises...
+int PackCoolingDown(int who)
+  int clock
+  clock = FileReadByte(who, PACK_CLOCK_OFFSET)
+  if(clock == 0)
+    return FALSE
+  clock = (PackSecond() - clock) & 255
+  if(clock < PACK_COOLDOWN)
+    return TRUE
+  return FALSE
+
+//-----------------------------------------------------------------------
+// Run on every think...  Monsters without a Captain look for 2 or more of
+// their kind nearby and promote the toughest, unless we're in a boss room
+// or a Captain fell here less than PACK_COOLDOWN seconds ago...
 int PackSetup()
-  int self, other, best, script, count, i
+  int self, other, best, script, count, i, room
   float dx, dy
   self = FindSelf()
   if(self.team != TEAM_MONSTER)
     return FALSE
-  if(FileReadByte(self, PACK_ROLE_OFFSET) != 0)
-    return FALSE
-  FileWriteByte(self, PACK_ROLE_OFFSET, PACK_NONE)
+  i = FileReadByte(self, PACK_ROLE_OFFSET)
+  if(i == 0)
+    FileWriteByte(self, PACK_ROLE_OFFSET, PACK_NONE)
+  else
+    if(i != PACK_NONE)
+      return FALSE
+    if(PackCoolingDown(self))
+      return FALSE
+    if(RollDice(1, 4) != 1)
+      // No need to look around every think...
+      return FALSE
+  FileWriteByte(self, PACK_CLOCK_OFFSET, 0)
   if(self.hitsmax > 150)
     // Bosses lead nobody...
+    return FALSE
+  room = SystemGet(SYS_MAPROOM, 0, MAP_ROOM_CURRENT)
+  if(SystemGet(SYS_MAPROOM, room, MAP_ROOM_FLAGS) & MAP_ROOM_FLAG_BOSS)
     return FALSE
   script = SystemGet(SYS_CHARACTERSCRIPTFILE, 0, FindIndex(self))
   best = self
@@ -2003,13 +2031,16 @@ int PackSetup()
   while(i < MAX_CHARACTER)
     other = FindByIndex(i)
     if(other)
-      if(other != self && other.team == self.team)
+      if(other != self && other.team == self.team && other.hits > 0)
         if(SystemGet(SYS_CHARACTERSCRIPTFILE, 0, i) == script)
           dx = other.x - self.x
           dy = other.y - self.y
           if(dx*dx + dy*dy < 3600.0)
             if(FileReadByte(other, PACK_ROLE_OFFSET) >= PACK_CAPTAIN)
               // This pack already has a Captain...
+              return FALSE
+            if(PackCoolingDown(other))
+              // This pack lost its Captain not long ago...
               return FALSE
             count++
             if(other.hitsmax > best.hitsmax)
@@ -2084,11 +2115,29 @@ int PackCount(int captain, int before)
 // Called from DeathEffect...  A Captain drops something extra (its pack
 // notices it's gone in PackOrders, and panics)...
 int PackFallen()
-  int self
+  int self, other, script, i, now
+  float dx, dy
   self = FindSelf()
   if(FileReadByte(self, PACK_ROLE_OFFSET) < PACK_CAPTAIN)
     return FALSE
   FileWriteByte(self, PACK_ROLE_OFFSET, PACK_NONE)
+  // Its kind around here won't get a new Captain for a while...
+  now = PackSecond()
+  if(now == 0)
+    now = 255
+  script = SystemGet(SYS_CHARACTERSCRIPTFILE, 0, FindIndex(self))
+  i = 0
+  while(i < MAX_CHARACTER)
+    other = FindByIndex(i)
+    if(other)
+      if(other != self && other.team == self.team)
+        if(SystemGet(SYS_CHARACTERSCRIPTFILE, 0, i) == script)
+          dx = other.x - self.x
+          dy = other.y - self.y
+          if(dx*dx + dy*dy < PACK_RANGE)
+            if(FileReadByte(other, PACK_ROLE_OFFSET) < PACK_CAPTAIN)
+              FileWriteByte(other, PACK_CLOCK_OFFSET, now)
+    i++
   // A Captain always drops something extra...
   DropItems()
   PHEART.Effect(RED_HEART, self.x, self.y, self.z+2.0, 0.0, 0.0, 0.0)
@@ -2172,13 +2221,11 @@ int PackOrders(int target)
   // Panic for a few seconds after our Captain fell...
   since = FileReadByte(self, PACK_CLOCK_OFFSET)
   if(since != 0)
-    since = (since - PackSecond()) & 255
-    if(since > 0)
-      if(since < 10)
-        PackMoveFrom(target.x, target.y, 20.0)
-        self.aitimer = 10 + RollDice(1, 10)
-        return TRUE
-    FileWriteByte(self, PACK_CLOCK_OFFSET, 0)
+    since = (PackSecond() - since) & 255
+    if(since < 4)
+      PackMoveFrom(target.x, target.y, 20.0)
+      self.aitimer = 10 + RollDice(1, 10)
+      return TRUE
 
 
   captain = PackFindCaptain()
@@ -2186,15 +2233,16 @@ int PackOrders(int target)
     if(role == PACK_MEMBER)
       // Our Captain has fallen...  Run for a few seconds...
       FileWriteByte(self, PACK_ROLE_OFFSET, PACK_NONE)
-      since = (PackSecond() + 3 + RollDice(1, 2)) & 255
+      since = PackSecond()
       if(since == 0)
-        since = 1
+        since = 255
       FileWriteByte(self, PACK_CLOCK_OFFSET, since)
       PackMoveFrom(target.x, target.y, 20.0)
       self.aitimer = 10 + RollDice(1, 10)
       return TRUE
     return FALSE
   FileWriteByte(self, PACK_ROLE_OFFSET, PACK_MEMBER)
+  FileWriteByte(self, PACK_CLOCK_OFFSET, 0)
   if(captain.aimode == PACK_REGROUP)
     // Gather behind the Captain...
     dx = captain.x - target.x
