@@ -2,6 +2,9 @@
 #define START_LEVEL 0
 #define TWSET_SEWER 2   // Texture set that turns cellar walls & floors into sewer ones...
 #define TWSET_CISTERN 3 // Texture set that turns cellar & sewer stone into the Cistern's blue stone & teal tiles...
+#define TWSET_GROTTO 4  // Side floor texture sets from here on swap every wall, cap and main floor (SideTexture)...
+#define TWSET_CATACOMBS 5
+#define TWSET_SHAFT 6
 
 
 //-----------------------------------------------------------------------
@@ -79,6 +82,30 @@ int SetCurrentRoom(int room)
 
 
 //-----------------------------------------------------------------------
+// Wall (part 0), wall cap (1) and floor (2) textures of the side floors...
+int SideTexture(int set_number, int part)
+  if(set_number == TWSET_GROTTO)
+    // Grey rock and blue crystal cobbles...
+    if(part == 0)
+      return "MPWL08D"
+    if(part == 1)
+      return "MPCP08D"
+    return "MPFL04A"
+  if(set_number == TWSET_CATACOMBS)
+    // Pale grey-blue crypt stone...
+    if(part == 0)
+      return "MPWL06B"
+    if(part == 1)
+      return "MPCP06B"
+    return "MPFL11A"
+  // Old Shaft...  Red ore rock and dark red cobbles...
+  if(part == 0)
+    return "MPWL08B"
+  if(part == 1)
+    return "MPCP08B"
+  return "MPFL07B"
+
+//-----------------------------------------------------------------------
 int TextureSet(int srf_file, int set_number, int wroomer)
   int i, j, tex_offset, self
 
@@ -153,6 +180,22 @@ int TextureSet(int srf_file, int set_number, int wroomer)
         if(StringCompare(String(0), "MPFL07A") || StringCompare(String(0), "MPFL13A"))
           StringClear(String(0))
           StringAppend(String(0), "MPFL12A", 9)
+      if(set_number >= TWSET_GROTTO)
+        // Walls, caps and main floors all get the side floor's look...
+        StringClear(String(1))
+        StringAppend(String(1), String(0), 5)
+        j = 3
+        if(StringCompare(String(1), "MPWL"))
+          j = 0
+        if(StringCompare(String(1), "MPCP"))
+          j = 1
+        if(StringCompare(String(0), "MPFL00A") || StringCompare(String(0), "MPFL03A") || StringCompare(String(0), "MPFL03B") || StringCompare(String(0), "MPFL07A"))
+          j = 2
+        if(StringCompare(String(0), "MPFL09A") || StringCompare(String(0), "MPFL10A") || StringCompare(String(0), "MPFL12B") || StringCompare(String(0), "MPFL13A"))
+          j = 2
+        if(j < 3)
+          StringClear(String(0))
+          StringAppend(String(0), SideTexture(set_number, j), 9)
       StringAppend(String(0), ".RGB", 16)
       SystemSet(SYS_ROOMTEXTURE, wroomer, i, FileOpen(String(0), FILE_NORMAL))
       tex_offset = tex_offset+8
@@ -433,8 +476,10 @@ int SideStairRoom(int file, int area, int first_room, int end_room, int twset, i
 
   num_room = GetNumberOfRooms()
   attempt = 0
-  while(attempt < 200)
-    from_room = first_room + (RollDice(1, end_room-first_room)-1)
+  while(attempt < 400)
+    // Go round every room in turn, since some (like the Mines tunnels) have
+    // no door wall left over...
+    from_room = first_room + ((attempt + RollDice(1, 4)) % (end_room-first_room))
     level = GetRoomLevel(from_room)
     angle = (RollDice(1, 256)*360) >> 8
     scale = RollDice(1, 120) + 150
@@ -482,9 +527,109 @@ int BuildCistern(int first_sewer, int end_sewer, int flags)
   return FALSE
 
 //-----------------------------------------------------------------------
+// Grotto side floor...  A stairway off a random Caves room leads down to 7
+// cave rooms in grey rock & blue crystal and a dragon's lair...
+int BuildGrotto(int first_room, int end_room, int flags)
+  int stair_room, side_level, tries, fail
+
+  if(end_room <= first_room)
+    return FALSE
+  stair_room = GetNumberOfRooms()
+  side_level = SIDE_LEVEL_OFFSET + GetRoomLevel(first_room) + 1
+  tries = 0
+  while(tries < 20)
+    RemoveRoomsFrom(stair_room)
+    if(SideStairRoom("FILE:CAVESST0.SRF", AREA_CAVES, first_room, end_room, TWSET_GROTTO, flags) == FALSE)
+      return FALSE
+    fail = FALSE
+    if(SidePlopRoom("FILE:CAVES001.SRF", AREA_CAVES, side_level, stair_room, TWSET_GROTTO, flags) == FALSE)
+      fail = TRUE
+    if(fail == FALSE)
+      SidePlopRoom("FILE:CAVES003.SRF", AREA_CAVES, side_level, stair_room+1, TWSET_GROTTO, flags)
+      SidePlopRoom("FILE:CAVES007.SRF", AREA_CAVES, side_level, stair_room+1, TWSET_GROTTO, flags)
+      SidePlopRoom("FILE:CAVES009.SRF", AREA_CAVES, side_level, stair_room+1, TWSET_GROTTO, flags)
+      SidePlopRoom("FILE:CAVES011.SRF", AREA_CAVES, side_level, stair_room+1, TWSET_GROTTO, flags)
+      SidePlopRoom("FILE:CAVES016.SRF", AREA_CAVES, side_level, stair_room+1, TWSET_GROTTO, flags)
+      SidePlopRoom("FILE:CAVES019.SRF", AREA_CAVES, side_level, stair_room+1, TWSET_GROTTO, flags)
+      if(SidePlopRoom("FILE:UPPERBS1.SRF", AREA_CAVES, side_level, stair_room+1, TWSET_GROTTO, flags | MAP_ROOM_FLAG_BOSS) == FALSE)
+        fail = TRUE
+    if(fail == FALSE)
+      return TRUE
+    tries++
+  RemoveRoomsFrom(stair_room)
+  return FALSE
+
+//-----------------------------------------------------------------------
+// Catacombs side floor...  A stairway off a random Upper Dungeon room leads
+// down to 7 rooms of pale crypt stone and the Medusa's statue hall...
+int BuildCatacombs(int first_room, int end_room, int flags)
+  int stair_room, side_level, tries, fail
+
+  if(end_room <= first_room)
+    return FALSE
+  stair_room = GetNumberOfRooms()
+  side_level = SIDE_LEVEL_OFFSET + GetRoomLevel(first_room) + 1
+  tries = 0
+  while(tries < 20)
+    RemoveRoomsFrom(stair_room)
+    if(SideStairRoom("FILE:UPPERST0.SRF", AREA_UPPER, first_room, end_room, TWSET_CATACOMBS, flags) == FALSE)
+      return FALSE
+    fail = FALSE
+    if(SidePlopRoom("FILE:UPPER001.SRF", AREA_UPPER, side_level, stair_room, TWSET_CATACOMBS, flags) == FALSE)
+      fail = TRUE
+    if(fail == FALSE)
+      SidePlopRoom("FILE:UPPER003.SRF", AREA_UPPER, side_level, stair_room+1, TWSET_CATACOMBS, flags)
+      SidePlopRoom("FILE:UPPER005.SRF", AREA_UPPER, side_level, stair_room+1, TWSET_CATACOMBS, flags)
+      SidePlopRoom("FILE:UPPER007.SRF", AREA_UPPER, side_level, stair_room+1, TWSET_CATACOMBS, flags)
+      SidePlopRoom("FILE:UPPER009.SRF", AREA_UPPER, side_level, stair_room+1, TWSET_CATACOMBS, flags)
+      SidePlopRoom("FILE:UPPER011.SRF", AREA_UPPER, side_level, stair_room+1, TWSET_CATACOMBS, flags)
+      SidePlopRoom("FILE:UPPER013.SRF", AREA_UPPER, side_level, stair_room+1, TWSET_CATACOMBS, flags)
+      if(SidePlopRoom("FILE:LOWERBS1.SRF", AREA_UPPER, side_level, stair_room+1, TWSET_CATACOMBS, flags | MAP_ROOM_FLAG_BOSS) == FALSE)
+        fail = TRUE
+    if(fail == FALSE)
+      return TRUE
+    tries++
+  RemoveRoomsFrom(stair_room)
+  return FALSE
+
+//-----------------------------------------------------------------------
+// Old Shaft side floor...  A stairway off a random D'warven Mines room leads
+// down to 7 mine rooms in brown rock and the unused twin dragon room...
+int BuildShaft(int first_room, int end_room, int flags)
+  int stair_room, side_level, tries, fail
+
+  if(end_room <= first_room)
+    return FALSE
+  stair_room = GetNumberOfRooms()
+  side_level = SIDE_LEVEL_OFFSET + GetRoomLevel(first_room) + 1
+  tries = 0
+  while(tries < 20)
+    RemoveRoomsFrom(stair_room)
+    if(SideStairRoom("FILE:LOWERST0.SRF", AREA_MINES, first_room, end_room, TWSET_SHAFT, flags) == FALSE)
+      return FALSE
+    fail = FALSE
+    if(SidePlopRoom("FILE:MINES003.SRF", AREA_MINES, side_level, stair_room, TWSET_SHAFT, flags) == FALSE)
+      fail = TRUE
+    if(fail == FALSE)
+      SidePlopRoom("FILE:MINES005.SRF", AREA_MINES, side_level, stair_room+1, TWSET_SHAFT, flags)
+      SidePlopRoom("FILE:MINES006.SRF", AREA_MINES, side_level, stair_room+1, TWSET_SHAFT, flags)
+      SidePlopRoom("FILE:MINES008.SRF", AREA_MINES, side_level, stair_room+1, TWSET_SHAFT, flags)
+      SidePlopRoom("FILE:MINES010.SRF", AREA_MINES, side_level, stair_room+1, TWSET_SHAFT, flags)
+      SidePlopRoom("FILE:MINES011.SRF", AREA_MINES, side_level, stair_room+1, TWSET_SHAFT, flags)
+      SidePlopRoom("FILE:MINES012.SRF", AREA_MINES, side_level, stair_room+1, TWSET_SHAFT, flags)
+      if(SidePlopRoom("FILE:BOSS000.SRF", AREA_MINES, side_level, stair_room+1, TWSET_SHAFT, flags | MAP_ROOM_FLAG_BOSS) == FALSE)
+        fail = TRUE
+    if(fail == FALSE)
+      return TRUE
+    tries++
+  RemoveRoomsFrom(stair_room)
+  return FALSE
+
+//-----------------------------------------------------------------------
 // This function is supposed to build the whole world map...
 Setup()
   int seed, i, flags, difficulty, mine_fork_room, fail, first_sewer, end_sewer
+  int first_cave, end_cave, first_upper, end_upper, first_mine, end_mine
 
 
   // Set the game seed...
@@ -581,6 +726,7 @@ Setup()
     fail = TRUE
     while(fail)
       fail = FALSE
+      first_cave = GetNumberOfRooms()
       fail = fail | SuperPlopRoom("FILE:CAVES000.SRF", AREA_CAVES, -1, FALSE, flags)
       fail = fail | SuperPlopRoom("FILE:CAVES002.SRF", AREA_CAVES, -1, FALSE, flags)
       fail = fail | SuperPlopRoom("FILE:CAVES004.SRF", AREA_CAVES, -1, FALSE, flags)
@@ -605,6 +751,7 @@ Setup()
       fail = fail | SuperPlopRoom("FILE:CAVESST0.SRF", AREA_CAVES, -1, FALSE, flags | MAP_ROOM_FLAG_DUAL_LEVEL)
       if(fail)
         ClearLevel()
+    end_cave = GetNumberOfRooms() - 1
 
 
   // Upper Dungeon
@@ -612,6 +759,7 @@ Setup()
     fail = TRUE
     while(fail)
       fail = FALSE
+      first_upper = GetNumberOfRooms()
       fail = fail | SuperPlopRoom("FILE:UPPER016.SRF", AREA_UPPER, -1,  4096, flags)
       fail = fail | SuperPlopRoom("FILE:UPPER000.SRF", AREA_UPPER, -1, FALSE, flags)
       fail = fail | SuperPlopRoom("FILE:UPPER004.SRF", AREA_UPPER, -1, FALSE, flags)
@@ -638,6 +786,7 @@ Setup()
       fail = fail | SuperPlopRoom("FILE:UPPERST0.SRF", AREA_UPPER, -1, FALSE, flags | MAP_ROOM_FLAG_DUAL_LEVEL)
       if(fail)
         ClearLevel()
+    end_upper = GetNumberOfRooms() - 1
 
 
   // Lower Dungeon
@@ -675,6 +824,7 @@ Setup()
     while(fail)
       fail = FALSE
       fail = fail | SuperPlopRoom("FILE:MINES000.SRF", AREA_MINES, -1, FALSE, flags)
+      first_mine = GetNumberOfRooms()
       fail = fail | SuperPlopRoom("FILE:MINES001.SRF", AREA_MINES, GetLastRoom(), FALSE, flags)
       fail = fail | SuperPlopRoom("FILE:MINES002.SRF", AREA_MINES, GetLastRoom(), FALSE, flags)
       fail = fail | SuperPlopRoom("FILE:MINES003.SRF", AREA_MINES, GetLastRoom(), FALSE, flags)
@@ -709,6 +859,7 @@ Setup()
       // !!!BAD!!!
       if(fail)
         ClearLevel()
+    end_mine = GetNumberOfRooms() - 1
 
 
 
@@ -746,6 +897,13 @@ Setup()
   // Cistern side floor off the Sewers...
   if(START_LEVEL <= 1)
     BuildCistern(first_sewer, end_sewer, flags)
+  // Grotto off the Caves, Catacombs off the Upper Dungeon, Old Shaft off the Mines...
+  if(START_LEVEL <= 2)
+    BuildGrotto(first_cave, end_cave, flags)
+  if(START_LEVEL <= 3)
+    BuildCatacombs(first_upper, end_upper, flags)
+  if(START_LEVEL <= 5)
+    BuildShaft(first_mine, end_mine, flags)
 
 
   // Pick the water/lava animation textures...
