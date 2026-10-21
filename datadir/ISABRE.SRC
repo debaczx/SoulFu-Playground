@@ -1,7 +1,7 @@
 // Sabre (KIND_SABRE, Sword block)...  Curved cavalry sword with a knuckle guard.  Quick wide slashes.
 #define DAMAGE_TYPE DAMAGE_EDGE
 #define DAMAGE_LOW  1
-#define DAMAGE_HIGH 4
+#define DAMAGE_HIGH 3
 #define WOUND_LOW   1
 #define WOUND_HIGH  2
 

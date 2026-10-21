@@ -1,6 +1,6 @@
 #define DAMAGE_TYPE DAMAGE_EDGE
 #define DAMAGE_LOW  4
-#define DAMAGE_HIGH 5
+#define DAMAGE_HIGH 6
 #define WOUND_LOW   1
 #define WOUND_HIGH  3
 

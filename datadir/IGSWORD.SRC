@@ -1,8 +1,8 @@
 #define DAMAGE_TYPE DAMAGE_EDGE
-#define DAMAGE_LOW  1
-#define DAMAGE_HIGH 5
+#define DAMAGE_LOW  3
+#define DAMAGE_HIGH 7
 #define WOUND_LOW   1
-#define WOUND_HIGH  1
+#define WOUND_HIGH  2
 
 //-----------------------------------------------------------------------
 int GetName()

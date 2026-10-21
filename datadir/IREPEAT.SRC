@@ -3,7 +3,7 @@
 #define SPEED        1.6
 #define DAMAGE_BONUS 0   // Extra bolt damage (PARROW reads it from bits 3-4 of misc7)
 #define BOLTS        3
-#define RELOAD       WEAPON_RELOAD_LONG
+#define RELOAD       (WEAPON_RELOAD_LONG+40)
 #define MUZZLE_OUT   1.6
 
 //-----------------------------------------------------------------------

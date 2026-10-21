@@ -10,7 +10,7 @@ int DefenseRating()
   int variant
   variant = SystemGet(SYS_ITEMINDEX, 0, 0) & 3
   STANDARD.DefenseBoost(variant, 1)
-  SystemSet(SYS_DEFENSERATING, 0, DAMAGE_EDGE,  3)
+  SystemSet(SYS_DEFENSERATING, 0, DAMAGE_EDGE,  4)
   SystemSet(SYS_DEFENSERATING, 0, DAMAGE_BASH,  2)
   SystemSet(SYS_DEFENSERATING, 0, DAMAGE_FIRE,  0)
   SystemSet(SYS_DEFENSERATING, 0, DAMAGE_ICE,   0)
