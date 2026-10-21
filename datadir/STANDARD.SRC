@@ -1933,7 +1933,7 @@ int AIWaitTurn(int target)
 
 
   // Wait our turn in a ring around the target, drifting sideways...
-  ring = self.boxsize + target.boxsize + 9.0
+  ring = self.boxsize + target.boxsize + 11.0
   dis = sqrt(mine)
   dx = self.sidex
   dy = self.sidey
