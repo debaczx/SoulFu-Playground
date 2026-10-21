@@ -1,6 +1,7 @@
 #define REVEAL FALSE
 #define START_LEVEL 0
 #define TWSET_SEWER 2   // Texture set that turns cellar walls & floors into sewer ones...
+#define TWSET_CISTERN 3 // Texture set that turns cellar & sewer stone into the Cistern's blue stone & teal tiles...
 
 
 //-----------------------------------------------------------------------
@@ -141,6 +142,17 @@ int TextureSet(int srf_file, int set_number, int wroomer)
         if(StringCompare(String(0), "MPFL07A"))
           StringClear(String(0))
           StringAppend(String(0), "MPFL13A", 9)
+      if(set_number == TWSET_CISTERN)
+        // Cellar & sewer stone becomes blue cistern stone...
+        if(StringCompare(String(0), "MPWL01B") || StringCompare(String(0), "MPWL01C") || StringCompare(String(0), "MPWL05A"))
+          StringClear(String(0))
+          StringAppend(String(0), "MPWL07A", 9)
+        if(StringCompare(String(0), "MPCP01B") || StringCompare(String(0), "MPCP05A"))
+          StringClear(String(0))
+          StringAppend(String(0), "MPCP07A", 9)
+        if(StringCompare(String(0), "MPFL07A") || StringCompare(String(0), "MPFL13A"))
+          StringClear(String(0))
+          StringAppend(String(0), "MPFL12A", 9)
       StringAppend(String(0), ".RGB", 16)
       SystemSet(SYS_ROOMTEXTURE, wroomer, i, FileOpen(String(0), FILE_NORMAL))
       tex_offset = tex_offset+8
@@ -413,9 +425,66 @@ AddRoom(float x, float y, int level, int area, int difficulty, int rotation, int
 
 
 //-----------------------------------------------------------------------
+// Adds a side stairway to a random room in first_room...end_room-1 (one
+// level), returns TRUE if it fit...
+int SideStairRoom(int file, int area, int first_room, int end_room, int twset, int flags)
+  int num_room, attempt, from_room, rotation, level, difficulty
+  float x, y, scale, angle
+
+  num_room = GetNumberOfRooms()
+  attempt = 0
+  while(attempt < 200)
+    from_room = first_room + (RollDice(1, end_room-first_room)-1)
+    level = GetRoomLevel(from_room)
+    angle = (RollDice(1, 256)*360) >> 8
+    scale = RollDice(1, 120) + 150
+    x = GetRoomX(from_room) + (sin(angle)*scale)
+    y = GetRoomY(from_room) + (sin(angle+90.0)*scale)
+    rotation = (RollDice(1, 256)<<8)
+    difficulty = ((NumLocalPlayer()-1)*42) + RollDice(1, 50)
+    AddRoom(x, y, level, area, difficulty, rotation, file, from_room, TRUE, RollDice(1, 256), twset, flags | MAP_ROOM_FLAG_DUAL_LEVEL | MAP_ROOM_FLAG_SIDE_STAIR)
+    if(num_room < GetNumberOfRooms())
+      return TRUE
+    attempt++
+  return FALSE
+
+//-----------------------------------------------------------------------
+// Cistern side floor...  A cellar stairway off a random Sewers room leads
+// down to 7 sewer rooms in blue stone and the Lumpkin King's room...
+int BuildCistern(int first_sewer, int end_sewer, int flags)
+  int stair_room, side_level, tries, fail
+
+  if(end_sewer <= first_sewer)
+    return FALSE
+  stair_room = GetNumberOfRooms()
+  side_level = SIDE_LEVEL_OFFSET + GetRoomLevel(first_sewer) + 1
+  tries = 0
+  while(tries < 20)
+    RemoveRoomsFrom(stair_room)
+    if(SideStairRoom("FILE:CELLRST0.SRF", AREA_SEWERS, first_sewer, end_sewer, TWSET_CISTERN, flags) == FALSE)
+      return FALSE
+    fail = FALSE
+    if(SidePlopRoom("FILE:SEWER003.SRF", AREA_SEWERS, side_level, stair_room, TWSET_CISTERN, flags) == FALSE)
+      fail = TRUE
+    if(fail == FALSE)
+      SidePlopRoom("FILE:SEWER007.SRF", AREA_SEWERS, side_level, stair_room+1, TWSET_CISTERN, flags)
+      SidePlopRoom("FILE:SEWER010.SRF", AREA_SEWERS, side_level, stair_room+1, TWSET_CISTERN, flags)
+      SidePlopRoom("FILE:SEWER005.SRF", AREA_SEWERS, side_level, stair_room+1, TWSET_CISTERN, flags)
+      SidePlopRoom("FILE:SEWER014.SRF", AREA_SEWERS, side_level, stair_room+1, TWSET_CISTERN, flags)
+      SidePlopRoom("FILE:SEWER001.SRF", AREA_SEWERS, side_level, stair_room+1, TWSET_CISTERN, flags)
+      SidePlopRoom("FILE:SEWER016.SRF", AREA_SEWERS, side_level, stair_room+1, TWSET_CISTERN, flags)
+      if(SidePlopRoom("FILE:SEWERBS1.SRF", AREA_SEWERS, side_level, stair_room+1, TWSET_CISTERN, flags | MAP_ROOM_FLAG_BOSS) == FALSE)
+        fail = TRUE
+    if(fail == FALSE)
+      return TRUE
+    tries++
+  RemoveRoomsFrom(stair_room)
+  return FALSE
+
+//-----------------------------------------------------------------------
 // This function is supposed to build the whole world map...
 Setup()
-  int seed, i, flags, difficulty, mine_fork_room, fail
+  int seed, i, flags, difficulty, mine_fork_room, fail, first_sewer, end_sewer
 
 
   // Set the game seed...
@@ -480,6 +549,7 @@ Setup()
     fail = TRUE
     while(fail)
       fail = FALSE
+      first_sewer = GetNumberOfRooms()
       fail = fail | SuperPlopRoom("FILE:SEWER012.SRF", AREA_SEWERS, -1, FALSE, flags)
       fail = fail | SuperPlopRoom("FILE:SEWER000.SRF", AREA_SEWERS, -1, FALSE, flags)
       fail = fail | SuperPlopRoom("FILE:SEWER009.SRF", AREA_SEWERS, -1, FALSE, flags)
@@ -502,6 +572,8 @@ Setup()
       fail = fail | SuperPlopRoom("FILE:SEWERST0.SRF", AREA_SEWERS, -1, FALSE, flags | MAP_ROOM_FLAG_DUAL_LEVEL)
       if(fail)
         ClearLevel()
+    // Leave out the stairway down (the last room)...
+    end_sewer = GetNumberOfRooms() - 1
 
 
   // Caves
@@ -671,6 +743,9 @@ Setup()
   // so the main floors above keep their room numbers...
   if(START_LEVEL <= 0)
     BuildBasement(11, flags)
+  // Cistern side floor off the Sewers...
+  if(START_LEVEL <= 1)
+    BuildCistern(first_sewer, end_sewer, flags)
 
 
   // Pick the water/lava animation textures...
