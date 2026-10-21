@@ -1899,6 +1899,59 @@ int AIWakeUp(int who, int attacker)
   return FALSE
 
 //-----------------------------------------------------------------------
+// Attack turns...  Only the AI_MAX_ATTACKERS monsters nearest to a target
+// go for it, the rest hover in a ring a few steps out and dart in when one
+// of the attackers falls or drops back...  Returns TRUE if we're waiting...
+#define AI_MAX_ATTACKERS 3
+int AIWaitTurn(int target)
+  int self, other, i, ahead
+  float dx, dy, mine, dis, ring, c, s
+  self = FindSelf()
+  if(self.team != TEAM_MONSTER)
+    return FALSE
+  if(self.aistate == STANDARD_AISTATE_CHARGE)
+    return FALSE
+  if(FindByIndex(self.mount))
+    return FALSE
+  dx = self.x - target.x
+  dy = self.y - target.y
+  mine = dx*dx + dy*dy
+  ahead = 0
+  i = 0
+  while(i < MAX_CHARACTER)
+    other = FindByIndex(i)
+    if(other)
+      if(other != self && other.team == self.team && other.target == self.target)
+        if(other.aistate == STANDARD_AISTATE_ATTACK || other.aistate == STANDARD_AISTATE_ATTACK_FOLLOW || other.aistate == STANDARD_AISTATE_CHARGE)
+          dx = other.x - target.x
+          dy = other.y - target.y
+          if(dx*dx + dy*dy < mine)
+            ahead++
+    i++
+  if(ahead < AI_MAX_ATTACKERS)
+    return FALSE
+
+
+  // Wait our turn in a ring around the target, drifting sideways...
+  ring = self.boxsize + target.boxsize + 9.0
+  dis = sqrt(mine)
+  dx = self.sidex
+  dy = self.sidey
+  if(dis > 0.1)
+    dx = (self.x - target.x)/dis
+    dy = (self.y - target.y)/dis
+  // Drift 12 degrees a think...
+  c = 0.978
+  s = 0.208
+  if(FindIndex(self) & 1)
+    s = -0.208
+  self.gotox = target.x + (dx*c - dy*s)*ring
+  self.gotoy = target.y + (dx*s + dy*c)*ring
+  FindPath()
+  self.aitimer = 10 + RollDice(1, 10)
+  return TRUE
+
+//-----------------------------------------------------------------------
 // Sets our goto spot a little around the target from where we stand, so
 // we sidestep around it while waiting to strike again...
 int AICircle(int target, float radius)
@@ -2057,6 +2110,11 @@ int AIScript()
       self.gotox = target.x
       self.gotoy = target.y
       FindPath()
+      if(AIWaitTurn(target))
+        // Not our turn to attack...  Hovering in the ring...
+        if(!(self.flags & (CHAR_HOVER_ON | CHAR_IN_WATER)))
+          AIPitAvoidance()
+        return 0
 
       mount = FindByIndex(self.mount)
       if(mount)
