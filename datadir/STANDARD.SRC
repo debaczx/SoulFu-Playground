@@ -1853,7 +1853,40 @@ int AIProvoked()
   return TRUE
 
 //-----------------------------------------------------------------------
+// Looks and listens for enemies...  Sees 35ft ahead with a clear line of
+// sight, hears 12ft all around...  On noticing one, we and our friends
+// within 40ft join the fight...  Returns TRUE if we noticed somebody...
+int AINotice()
+  int self, target, other, i
+  float dx, dy
+  self = FindSelf()
+  target = FindByIndex(AcquireTarget(ACQUIRE_SEE_ENEMY, NULL, 35.0))
+  if(target)
+    if(LineOfSight(target.x, target.y, target.z+target.height) == FALSE)
+      target = NULL
+  if(!target)
+    target = FindByIndex(AcquireTarget(ACQUIRE_SEE_BEHIND | ACQUIRE_SEE_ENEMY, NULL, 12.0))
+  if(!target)
+    return FALSE
+  self.target = FindIndex(target)
+  self.aimode = 1
+  i = 0
+  while(i < MAX_CHARACTER)
+    other = FindByIndex(i)
+    if(other)
+      if(other != self && other.team == self.team)
+        dx = other.x - self.x
+        dy = other.y - self.y
+        if(dx*dx + dy*dy < 1600.0)
+          AIWakeUp(other, target)
+    i++
+  return TRUE
+
+//-----------------------------------------------------------------------
 int AIWakeUp(int who, int attacker)
+  if(who.team == TEAM_MONSTER)
+    // Now aware of enemies...
+    who.aimode = 1
   if(who.aistate == STANDARD_AISTATE_WANDER || who.aistate == STANDARD_AISTATE_FOLLOW || who.aistate == STANDARD_AISTATE_MOUNT)
     who.target = FindIndex(attacker)
     if(who.aistate == STANDARD_AISTATE_FOLLOW)
@@ -1980,6 +2013,14 @@ int AIScript()
       self.hitsmax++
       self.hits++
 
+
+
+  // Monsters start out unaware of enemies...  They only join the fight
+  // once they see or hear one (AINotice) or get hit (AIProvoked)...
+  if(self.team == TEAM_MONSTER && self.aimode == 0)
+    if(self.aistate == STANDARD_AISTATE_ATTACK || self.aistate == STANDARD_AISTATE_ATTACK_FOLLOW)
+      if(AINotice() == FALSE)
+        self.aistate = STANDARD_AISTATE_WANDER
 
 
   if(self.daction == ACTION_KNOCK_OUT)
@@ -2199,8 +2240,12 @@ int AIScript()
       if(self.aistate == STANDARD_AISTATE_MOUNT)
         if(!(self.flags & CHAR_CAN_RIDE_MOUNT))
           self.aistate = STANDARD_AISTATE_WANDER
-    if(FindByIndex(AcquireTarget(ACQUIRE_SEE_BEHIND | ACQUIRE_SEE_ENEMY, NULL, 25.0)))
-      self.aistate = STANDARD_AISTATE_ATTACK
+    if(self.team == TEAM_MONSTER)
+      if(AINotice())
+        self.aistate = STANDARD_AISTATE_ATTACK
+    else
+      if(FindByIndex(AcquireTarget(ACQUIRE_SEE_BEHIND | ACQUIRE_SEE_ENEMY, NULL, 25.0)))
+        self.aistate = STANDARD_AISTATE_ATTACK
     if (!FindByIndex(self.mount) && AIIsStuck())
       ButtonPress(BUTTON_PRESS, BUTTON_SPECIAL1, 0)
 
