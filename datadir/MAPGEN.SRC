@@ -385,7 +385,7 @@ int BuildBasement(int shrine_room, int flags)
       SidePlopRoom("FILE:CELLR004.SRF", AREA_CELLAR, side_level, stair_room+1, TWSET_SEWER, flags)
       SidePlopRoom("FILE:CELLR006.SRF", AREA_CELLAR, side_level, stair_room+1, TWSET_SEWER, flags)
       SidePlopRoom("FILE:CELLR007.SRF", AREA_CELLAR, side_level, stair_room+1, TWSET_SEWER, flags)
-      if(SidePlopRoom("FILE:CELLRBS1.SRF", AREA_CELLAR, side_level, stair_room+1, TWSET_SEWER, flags | MAP_ROOM_FLAG_BOSS) == FALSE)
+      if(SidePlopRoom("FILE:SEWERBS0.SRF", AREA_CELLAR, side_level, stair_room+1, TWSET_SEWER, flags | MAP_ROOM_FLAG_BOSS) == FALSE)
         fail = TRUE
     if(fail == FALSE)
       return TRUE
