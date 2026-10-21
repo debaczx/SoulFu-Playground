@@ -789,6 +789,12 @@ void character_draw_all(unsigned char after_water, unsigned char draw_only_doors
                             global_render_light_color_rgb[0] = (global_render_light_color_rgb[0] * 140) >> 8;
                             global_render_light_color_rgb[1] = (global_render_light_color_rgb[1] * 200) >> 8;
                         }
+                        if(character_data[PACK_ROLE_OFFSET] >= PACK_CAPTAIN)
+                        {
+                            // Pack Captain...  Fiery gold tint...
+                            global_render_light_color_rgb[1] = (global_render_light_color_rgb[1] * 190) >> 8;
+                            global_render_light_color_rgb[2] = (global_render_light_color_rgb[2] * 110) >> 8;
+                        }
 
 
 
@@ -2618,6 +2624,12 @@ void character_bone_frame_all()
                     script_matrix[9]  = *((float*) (character_data));
                     script_matrix[10] = *((float*) (character_data+4));
                     script_matrix[11] = *((float*) (character_data+8)) + CHARACTER_Z_FLOAT;
+                    if(character_data[PACK_ROLE_OFFSET] >= PACK_CAPTAIN)
+                    {
+                        // Pack Captains are drawn bigger...
+                        int _k;
+                        for(_k = 0; _k < 9; _k++) { script_matrix[_k] *= CAPTAIN_SCALE; }
+                    }
 
                     // Generate the bone frame data...
                     frame = *((unsigned short*) (character_data + 178));

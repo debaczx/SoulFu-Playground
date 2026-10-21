@@ -505,6 +505,16 @@ int NameAppendHits()
     StringAppend(NAME_STRING, self.name, 16)
 
 
+  // Pack Captains...
+  if(self.team == TEAM_MONSTER)
+    if(FileReadByte(self, 718) >= 3)
+      StringClear(String(12))
+      StringAppend(String(12), "Captain ", 256)
+      StringAppend(String(12), NAME_STRING, 256)
+      StringClear(NAME_STRING)
+      StringAppend(NAME_STRING, String(12), 256)
+
+
 
 //  StringAppend(NAME_STRING, "<", 256)
 //  StringAppendNumber(NAME_STRING, self.mount, 256)
@@ -730,6 +740,7 @@ int DeathEffect()
 
   self = FindSelf()
   PSPARK.Effect(self.x, self.y, self.z, 30, 3)
+  PackFallen()
 
 
   if(self.money > 0 || self.keys > 0)
@@ -1884,7 +1895,7 @@ int AINotice()
 
 //-----------------------------------------------------------------------
 int AIWakeUp(int who, int attacker)
-  if(who.team == TEAM_MONSTER)
+  if(who.team == TEAM_MONSTER && who.aimode == 0)
     // Now aware of enemies...
     who.aimode = 1
   if(who.aistate == STANDARD_AISTATE_WANDER || who.aistate == STANDARD_AISTATE_FOLLOW || who.aistate == STANDARD_AISTATE_MOUNT)
@@ -1950,6 +1961,276 @@ int AIWaitTurn(int target)
   FindPath()
   self.aitimer = 10 + RollDice(1, 10)
   return TRUE
+
+//-----------------------------------------------------------------------
+// Pack Captains...  When 3 or more monsters of one kind are together, the
+// toughest becomes their Captain (bigger and tinted by charact.c, tougher,
+// better loot).  The Captain gives orders in its aimode (1 attack, 2 encircle,
+// 3 regroup), and its pack panics for a few seconds when it falls...
+#define PACK_ROLE_OFFSET   718   // Character byte: 0 not decided, 1 no Captain, 2 follows a Captain, 3 Captain, 4 Captain that has called a regroup
+#define PACK_CLOCK_OFFSET  719   // Character byte: on a Captain the game second its order began, on others the game second their panic ends (0 none)
+#define PACK_NONE          1
+#define PACK_MEMBER        2
+#define PACK_CAPTAIN       3
+#define PACK_REGROUPED     4
+#define PACK_ATTACK        1
+#define PACK_ENCIRCLE      2
+#define PACK_REGROUP       3
+#define PACK_RANGE         6400.0  // 80ft, squared
+int PackSecond()
+  int now
+  now = (SystemGet(SYS_MAINGAMEFRAME, 0, 0) / 60) & 255
+  return now
+
+//-----------------------------------------------------------------------
+// Run on every think...  Picks a Captain the first time a monster thinks...
+int PackSetup()
+  int self, other, best, script, count, i
+  float dx, dy
+  self = FindSelf()
+  if(self.team != TEAM_MONSTER)
+    return FALSE
+  if(FileReadByte(self, PACK_ROLE_OFFSET) != 0)
+    return FALSE
+  FileWriteByte(self, PACK_ROLE_OFFSET, PACK_NONE)
+  if(self.hitsmax > 150)
+    // Bosses lead nobody...
+    return FALSE
+  script = SystemGet(SYS_CHARACTERSCRIPTFILE, 0, FindIndex(self))
+  best = self
+  count = 0
+  i = 0
+  while(i < MAX_CHARACTER)
+    other = FindByIndex(i)
+    if(other)
+      if(other != self && other.team == self.team)
+        if(SystemGet(SYS_CHARACTERSCRIPTFILE, 0, i) == script)
+          dx = other.x - self.x
+          dy = other.y - self.y
+          if(dx*dx + dy*dy < 3600.0)
+            if(FileReadByte(other, PACK_ROLE_OFFSET) >= PACK_CAPTAIN)
+              // This pack already has a Captain...
+              return FALSE
+            count++
+            if(other.hitsmax > best.hitsmax)
+              best = other
+    i++
+  if(count < 2)
+    return FALSE
+  PackPromote(best)
+  return TRUE
+
+//-----------------------------------------------------------------------
+int PackPromote(int who)
+  int hits
+  FileWriteByte(who, PACK_ROLE_OFFSET, PACK_CAPTAIN)
+  FileWriteByte(who, PACK_CLOCK_OFFSET, PackSecond())
+  hits = who.hitsmax + (who.hitsmax>>1)
+  if(hits > 255)
+    hits = 255
+  who.hitsmax = hits
+  who.hits = hits
+  who.boxsize = who.boxsize * 1.1
+  who.money = 10 + who.money*3
+  if(who.money > MAX_MONEY)
+    who.money = MAX_MONEY
+  who.expgive = who.expgive * 2
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Returns the Captain of our kind within 80ft, or NULL...
+int PackFindCaptain()
+  int self, other, script, i
+  float dx, dy
+  self = FindSelf()
+  script = SystemGet(SYS_CHARACTERSCRIPTFILE, 0, FindIndex(self))
+  i = 0
+  while(i < MAX_CHARACTER)
+    other = FindByIndex(i)
+    if(other)
+      if(other != self && other.team == self.team && other.hits > 0)
+        if(FileReadByte(other, PACK_ROLE_OFFSET) >= PACK_CAPTAIN)
+          if(SystemGet(SYS_CHARACTERSCRIPTFILE, 0, i) == script)
+            dx = other.x - self.x
+            dy = other.y - self.y
+            if(dx*dx + dy*dy < PACK_RANGE)
+              return other
+    i++
+  return NULL
+
+//-----------------------------------------------------------------------
+// Counts the pack members following a Captain...  With before set, only
+// counts the ones that come before index before (to give each a slot)...
+int PackCount(int captain, int before)
+  int other, script, i, count
+  float dx, dy
+  script = SystemGet(SYS_CHARACTERSCRIPTFILE, 0, FindIndex(captain))
+  count = 0
+  i = 0
+  while(i < before)
+    other = FindByIndex(i)
+    if(other)
+      if(other != captain && other.team == captain.team && other.hits > 0)
+        if(FileReadByte(other, PACK_ROLE_OFFSET) == PACK_MEMBER)
+          if(SystemGet(SYS_CHARACTERSCRIPTFILE, 0, i) == script)
+            dx = other.x - captain.x
+            dy = other.y - captain.y
+            if(dx*dx + dy*dy < PACK_RANGE)
+              count++
+    i++
+  return count
+
+//-----------------------------------------------------------------------
+// Called from DeathEffect...  A Captain drops something extra (its pack
+// notices it's gone in PackOrders, and panics)...
+int PackFallen()
+  int self
+  self = FindSelf()
+  if(FileReadByte(self, PACK_ROLE_OFFSET) < PACK_CAPTAIN)
+    return FALSE
+  FileWriteByte(self, PACK_ROLE_OFFSET, PACK_NONE)
+  // A Captain always drops something extra...
+  DropItems()
+  PHEART.Effect(RED_HEART, self.x, self.y, self.z+2.0, 0.0, 0.0, 0.0)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// Sets our goto spot to run away from (or, with a negative distance, toward)
+// a spot...
+int PackMoveFrom(float x, float y, float distance)
+  int self
+  float dx, dy, dis
+  self = FindSelf()
+  dx = self.x - x
+  dy = self.y - y
+  dis = sqrt(dx*dx + dy*dy)
+  if(dis < 0.1)
+    dx = self.frontx
+    dy = self.fronty
+    dis = 1.0
+  self.gotox = self.x + (dx/dis)*distance
+  self.gotoy = self.y + (dy/dis)*distance
+  FindPath()
+  return TRUE
+
+//-----------------------------------------------------------------------
+int PackShout(int captain, int order)
+  captain.aimode = order
+  FileWriteByte(captain, PACK_CLOCK_OFFSET, PackSecond())
+  PlaySound("FILE:-GROWL.RAW", 160 + RollDice(1, 40), 255)
+  return TRUE
+
+//-----------------------------------------------------------------------
+// The Captain's orders...  Returns TRUE if it moved us...
+int PackCommand(int target)
+  int self, since, members
+  float dx, dy
+  self = FindSelf()
+  since = (PackSecond() - FileReadByte(self, PACK_CLOCK_OFFSET)) & 255
+  members = PackCount(self, MAX_CHARACTER)
+  if(self.aimode == PACK_REGROUP)
+    if(since >= 4)
+      PackShout(self, PACK_ATTACK)
+      return FALSE
+    // Fall back while the pack gathers round...
+    PackMoveFrom(target.x, target.y, 15.0)
+    self.aitimer = 15
+    return TRUE
+  if(self.aimode == PACK_ENCIRCLE)
+    if(since >= 5 || members < 2)
+      PackShout(self, PACK_ATTACK)
+    return FALSE
+  if(self.aimode == PACK_ATTACK)
+    if(members >= 2)
+      if(FileReadByte(self, PACK_ROLE_OFFSET) == PACK_CAPTAIN)
+        if(self.hits < (self.hitsmax>>1))
+          // Hurt...  Call the pack back to us, once...
+          FileWriteByte(self, PACK_ROLE_OFFSET, PACK_REGROUPED)
+          PackShout(self, PACK_REGROUP)
+          return FALSE
+      if(since >= 8)
+        dx = self.x - target.x
+        dy = self.y - target.y
+        if(dx*dx + dy*dy < 900.0)
+          PackShout(self, PACK_ENCIRCLE)
+  return FALSE
+
+//-----------------------------------------------------------------------
+// Pack orders, called while attacking...  Returns TRUE if they moved us,
+// so we skip our own attack this think...
+int PackOrders(int target)
+  int self, captain, role, since, members, slot
+  float dx, dy, dis, ring, angle, c, s
+  self = FindSelf()
+  if(self.team != TEAM_MONSTER)
+    return FALSE
+  role = FileReadByte(self, PACK_ROLE_OFFSET)
+  if(role >= PACK_CAPTAIN)
+    return PackCommand(target)
+
+
+  // Panic for a few seconds after our Captain fell...
+  since = FileReadByte(self, PACK_CLOCK_OFFSET)
+  if(since != 0)
+    since = (since - PackSecond()) & 255
+    if(since > 0)
+      if(since < 10)
+        PackMoveFrom(target.x, target.y, 20.0)
+        self.aitimer = 10 + RollDice(1, 10)
+        return TRUE
+    FileWriteByte(self, PACK_CLOCK_OFFSET, 0)
+
+
+  captain = PackFindCaptain()
+  if(!captain)
+    if(role == PACK_MEMBER)
+      // Our Captain has fallen...  Run for a few seconds...
+      FileWriteByte(self, PACK_ROLE_OFFSET, PACK_NONE)
+      since = (PackSecond() + 3 + RollDice(1, 2)) & 255
+      if(since == 0)
+        since = 1
+      FileWriteByte(self, PACK_CLOCK_OFFSET, since)
+      PackMoveFrom(target.x, target.y, 20.0)
+      self.aitimer = 10 + RollDice(1, 10)
+      return TRUE
+    return FALSE
+  FileWriteByte(self, PACK_ROLE_OFFSET, PACK_MEMBER)
+  if(captain.aimode == PACK_REGROUP)
+    // Gather behind the Captain...
+    dx = captain.x - target.x
+    dy = captain.y - target.y
+    dis = sqrt(dx*dx + dy*dy)
+    if(dis < 0.1)
+      dis = 0.1
+    self.gotox = captain.x + (dx/dis)*6.0 + RollDice(1, 9)*1.0 - 5.0
+    self.gotoy = captain.y + (dy/dis)*6.0 + RollDice(1, 9)*1.0 - 5.0
+    FindPath()
+    self.aitimer = 10 + RollDice(1, 10)
+    return TRUE
+  if(captain.aimode == PACK_ENCIRCLE)
+    if(captain.target == self.target)
+      // Take our own spot around the enemy, the Captain's side being the front...
+      members = PackCount(captain, MAX_CHARACTER)
+      slot = PackCount(captain, FindIndex(self))
+      angle = 360.0 * (slot + 1) / (members + 1)
+      c = sin(angle + 90.0)
+      s = sin(angle)
+      dx = captain.x - target.x
+      dy = captain.y - target.y
+      dis = sqrt(dx*dx + dy*dy)
+      if(dis < 0.1)
+        dx = 1.0
+        dy = 0.0
+        dis = 1.0
+      dx = dx/dis
+      dy = dy/dis
+      ring = self.boxsize + target.boxsize + 11.0
+      self.gotox = target.x + (dx*c - dy*s)*ring
+      self.gotoy = target.y + (dx*s + dy*c)*ring
+      FindPath()
+      self.aitimer = 10
+      return TRUE
+  return FALSE
 
 //-----------------------------------------------------------------------
 // Sets our goto spot a little around the target from where we stand, so
@@ -2068,6 +2349,10 @@ int AIScript()
 
 
 
+  // Packs of 3 or more get a Captain...
+  PackSetup()
+
+
   // Monsters start out unaware of enemies...  They only join the fight
   // once they see or hear one (AINotice) or get hit (AIProvoked)...
   if(self.team == TEAM_MONSTER && self.aimode == 0)
@@ -2110,6 +2395,11 @@ int AIScript()
       self.gotox = target.x
       self.gotoy = target.y
       FindPath()
+      if(PackOrders(target))
+        // Following the Captain's orders (or panicking)...
+        if(!(self.flags & (CHAR_HOVER_ON | CHAR_IN_WATER)))
+          AIPitAvoidance()
+        return 0
       if(AIWaitTurn(target))
         // Not our turn to attack...  Hovering in the ring...
         if(!(self.flags & (CHAR_HOVER_ON | CHAR_IN_WATER)))

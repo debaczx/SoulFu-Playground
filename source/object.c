@@ -48,6 +48,9 @@
 #define XITEM_SIZE       ((XITEM_LAST_SLOT-XITEM_FIRST_SLOT+1)*2)
 #define CHILL_OFFSET     666   // unsigned short...  Frames left of the Chilled status (0 = not chilled).  Not saved.
 #define CHILL_SPEED      0.55f // Movement multiplier while chilled
+#define PACK_ROLE_OFFSET 718   // Pack role byte (STANDARD.SRC): 3 or more is a pack Captain, drawn bigger and tinted
+#define PACK_CAPTAIN     3
+#define CAPTAIN_SCALE    1.3f
 // Unique items (UNIQUE.SRC)...  Characters carry 32 bytes of unique item state, saved with the game...
 #define UNIQUE_OFFSET       672   // Start of the unique item state block
 #define UNIQUE_SIZE         48
